@@ -1,0 +1,48 @@
+@{ ViewData["Title"] = "AI translate"; }
+
+<div class="row"><div class="col-lg-9">
+    <h1 class="th-section-title"><i class="bi bi-translate text-primary me-1"></i> AI translate <span class="th-pill th-pill-info ms-2">DRAFT — verify clinical accuracy before sharing</span></h1>
+    <p class="th-section-sub">Translate clinician notes, patient instructions, or consent text. Drug names and dosages are kept as in the source.</p>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">From</label>
+                <select id="tSrc" class="form-select"><option>English</option><option>Hausa</option><option>Yoruba</option><option>Igbo</option><option>Pidgin</option><option>French</option></select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To</label>
+                <select id="tTgt" class="form-select"><option>Hausa</option><option>Yoruba</option><option>Igbo</option><option>Pidgin</option><option>English</option><option>French</option></select>
+            </div>
+            <div class="col-md-6"><label class="form-label">Context (optional)</label><input id="tCtx" class="form-control" placeholder="e.g. patient discharge instructions, consent form" /></div>
+            <div class="col-12">
+                <label class="form-label">Source text</label>
+                <textarea id="tSrcText" class="form-control" rows="6" placeholder="Paste text to translate…"></textarea>
+            </div>
+        </div>
+        <div class="text-end mt-3"><button class="btn btn-primary" onclick="runTranslate()"><i class="bi bi-translate me-1"></i> Translate</button></div>
+    </div></div>
+
+    <div class="th-card" id="tCard" style="display:none">
+        <div class="th-card-header"><h5 class="th-card-title mb-0">Translation</h5></div>
+        <div class="th-card-body"><pre id="tOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
+    </div>
+</div></div>
+
+@section Scripts {
+<script>
+async function runTranslate() {
+    var src = document.getElementById('tSrc').value;
+    var tgt = document.getElementById('tTgt').value;
+    var text = document.getElementById('tSrcText').value.trim();
+    if (!text) return;
+    var card = document.getElementById('tCard'); var out = document.getElementById('tOut');
+    card.style.display = 'block'; out.textContent = 'Translating…';
+    try {
+        var r = await fetch('/Ai/TranslateRun', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: src, target: tgt, text: text, context: document.getElementById('tCtx').value }) });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

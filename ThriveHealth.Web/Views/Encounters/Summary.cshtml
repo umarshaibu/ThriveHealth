@@ -1,0 +1,167 @@
+@model ThriveHealth.Web.Models.ViewModels.EncounterSummaryViewModel
+@{
+    ViewData["Title"] = "Visit summary";
+    var p = Model.Patient;
+    var e = Model.Encounter;
+    var ai = ViewBag.AiPatientSummary as ThriveHealth.Web.Models.Ai.AiSuggestion;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <span class="th-pill th-pill-success"><i class="bi bi-check2-circle"></i> Signed</span>
+        <h1 class="th-section-title mt-2">Visit summary</h1>
+        <p class="th-section-sub mb-0">Encounter @e.Id · @e.StartedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm") → @e.SignedAt?.ToLocalTime().ToString("HH:mm")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="Patients" asp-action="Profile" asp-route-id="@p.Id" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i> Patient chart</a>
+        <a asp-controller="Claims" asp-action="Build" asp-route-encounterId="@e.Id" class="btn btn-outline-warning" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClaimsManage"><i class="bi bi-file-earmark-medical me-1"></i> Build claim</a>
+        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+</div>
+
+<div class="th-card mb-3">
+    <div class="th-card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="mb-1">@p.FullName</h5>
+                <div class="text-muted small">@p.Sex @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> } · <span class="font-monospace">@p.HospitalNumber</span></div>
+                @if (!string.IsNullOrEmpty(p.Phone)) { <div class="small text-muted">@p.Phone</div> }
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div class="fw-bold">@Model.FacilityName</div>
+                <div class="small text-muted">@e.Clinic?.Name · @e.Clinician?.FullName</div>
+                <div class="small text-muted">@e.Type</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (e.Diagnoses.Any())
+{
+    <div class="th-card mb-3">
+        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-list-ul me-1 text-primary"></i> Diagnoses</h5></div>
+        <div class="th-card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>Code</th><th>Description</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var d in e.Diagnoses.OrderByDescending(x => x.IsPrimary))
+                {
+                    <tr>
+                        <td><span class="font-monospace">@d.IcdCode</span></td>
+                        <td>@d.Description</td>
+                        <td>@d.Status</td>
+                        <td>@if (d.IsPrimary) { <span class="th-pill th-pill-info">Primary</span> }</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (e.Soap is not null && (!string.IsNullOrEmpty(e.Soap.Subjective) || !string.IsNullOrEmpty(e.Soap.Objective) || !string.IsNullOrEmpty(e.Soap.Assessment) || !string.IsNullOrEmpty(e.Soap.Plan)))
+{
+    <div class="th-card mb-3">
+        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-journal-text me-1 text-primary"></i> Clinical note</h5></div>
+        <div class="th-card-body">
+            @if (!string.IsNullOrEmpty(e.Soap.Subjective)) { <h6 class="text-muted">Subjective</h6><pre class="mb-3" style="white-space:pre-wrap;font-family:inherit;">@e.Soap.Subjective</pre> }
+            @if (!string.IsNullOrEmpty(e.Soap.Objective)) { <h6 class="text-muted">Objective</h6><pre class="mb-3" style="white-space:pre-wrap;font-family:inherit;">@e.Soap.Objective</pre> }
+            @if (!string.IsNullOrEmpty(e.Soap.Assessment)) { <h6 class="text-muted">Assessment</h6><pre class="mb-3" style="white-space:pre-wrap;font-family:inherit;">@e.Soap.Assessment</pre> }
+            @if (!string.IsNullOrEmpty(e.Soap.Plan)) { <h6 class="text-muted">Plan</h6><pre class="mb-0" style="white-space:pre-wrap;font-family:inherit;">@e.Soap.Plan</pre> }
+        </div>
+    </div>
+}
+
+@if (e.Prescriptions.Any())
+{
+    <div class="th-card mb-3">
+        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-prescription2 me-1 text-primary"></i> Prescription</h5></div>
+        <div class="th-card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>Drug</th><th>Dose</th><th>Route</th><th>Freq</th><th>Duration</th><th>Instructions</th></tr></thead>
+                <tbody>
+                @foreach (var rx in e.Prescriptions)
+                { foreach (var i in rx.Items)
+                { <tr><td><strong>@i.DrugName</strong></td><td>@i.Dose</td><td>@i.Route</td><td>@i.Frequency</td><td>@i.Duration</td><td>@i.Instructions</td></tr> } }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (e.LabOrders.Any())
+{
+    <div class="th-card mb-3">
+        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-droplet-half me-1 text-primary"></i> Lab orders</h5></div>
+        <div class="th-card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>Test</th><th>Specimen</th><th>Urgency</th><th>Indication</th></tr></thead>
+                <tbody>
+                @foreach (var l in e.LabOrders)
+                { <tr><td><strong>@l.TestName</strong></td><td>@l.Specimen</td><td>@l.Urgency</td><td>@l.ClinicalIndication</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (e.ImagingOrders.Any())
+{
+    <div class="th-card mb-3">
+        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-radioactive me-1 text-primary"></i> Imaging orders</h5></div>
+        <div class="th-card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>Modality</th><th>Study</th><th>Urgency</th><th>Indication</th></tr></thead>
+                <tbody>
+                @foreach (var im in e.ImagingOrders)
+                { <tr><td>@im.Modality</td><td><strong>@im.StudyDescription</strong></td><td>@im.Urgency</td><td>@im.ClinicalIndication</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="th-card mt-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiPatientSummary">
+    <div class="th-card-header d-flex justify-content-between align-items-center">
+        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> Patient-friendly visit summary <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify before sharing</span></h5>
+        <form asp-action="DraftPatientSummary" method="post" class="d-flex gap-2" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiPatientSummary">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="EncounterId" value="@e.Id" />
+            <select name="Language" class="form-select form-select-sm" style="width:auto">
+                <option value="English" selected>English</option>
+                <option value="Hausa">Hausa</option>
+                <option value="Yoruba">Yoruba</option>
+                <option value="Igbo">Igbo</option>
+                <option value="Pidgin">Nigerian Pidgin</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i> @(ai == null ? "Draft" : "Re-draft")</button>
+        </form>
+    </div>
+    <div class="th-card-body">
+        @if (ai == null)
+        {
+            <p class="text-muted small mb-0">Generates a plain-language summary the patient can read or be read to. Pick a language and click <em>Draft</em>.</p>
+        }
+        else if (ai.Status == ThriveHealth.Web.Models.Ai.AiSuggestionStatus.Failed)
+        {
+            <div class="alert alert-warning mb-0"><strong>AI failed:</strong> @ai.ErrorMessage</div>
+        }
+        else
+        {
+            <div class="small text-muted mb-2">Generated @ai.CreatedAtUtc.ToLocalTime().ToString("dd MMM HH:mm") · @ai.Provider/@ai.Model · status <strong>@ai.Status</strong></div>
+            <pre class="mb-2" style="white-space:pre-wrap;font-family:inherit">@(ai.EditedContent ?? ai.Response)</pre>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print for patient</button>
+                @if (ai.Status == ThriveHealth.Web.Models.Ai.AiSuggestionStatus.Pending)
+                {
+                    <form asp-action="ReviewPatientSummary" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiPatientSummary">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="suggestionId" value="@ai.Id" />
+                        <button name="status" value="Accepted" class="btn btn-sm btn-success"><i class="bi bi-check2-circle me-1"></i> Accept</button>
+                        <button name="status" value="Rejected" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1"></i> Reject</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>

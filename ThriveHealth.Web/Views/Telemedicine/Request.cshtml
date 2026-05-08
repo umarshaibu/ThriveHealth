@@ -1,0 +1,77 @@
+@model ThriveHealth.Web.Models.ViewModels.TeleSessionRequestViewModel
+@{ ViewData["Title"] = "New tele-session"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">New tele-session</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Sessions</a>
+</div>
+
+<form asp-action="New" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-camera-video me-1"></i> Session</h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Patient</label>
+                        <div class="input-group">
+                            <input type="hidden" asp-for="PatientId" id="PatientId" />
+                            <input asp-for="PatientLabel" id="PatientLabel" class="form-control" placeholder="Search patient…" autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="psBtn"><i class="bi bi-search"></i></button>
+                        </div>
+                        <span asp-validation-for="PatientId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Mode" class="form-label">Mode</label>
+                        <select asp-for="Mode" class="form-select"><option value="1">Video</option><option value="2">Audio</option><option value="3">Chat</option></select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="ScheduledStartUtc" class="form-label">Scheduled start</label><input asp-for="ScheduledStartUtc" type="datetime-local" class="form-control" /></div>
+                    <div class="col-12"><label asp-for="ConsultationReason" class="form-label">Reason for consultation</label><textarea asp-for="ConsultationReason" class="form-control" rows="3"></textarea></div>
+                </div>
+            </div></div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Create session</button>
+    </div>
+</form>
+
+<div class="modal fade" id="patientSearch" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Find patient</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><input id="ps_q" class="form-control mb-2" placeholder="Search…" /><div id="ps_results" class="list-group" style="max-height:380px;overflow:auto"></div></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    var ps = new bootstrap.Modal(document.getElementById('patientSearch'));
+    document.getElementById('psBtn').addEventListener('click', () => ps.show());
+    document.getElementById('PatientLabel').addEventListener('focus', () => ps.show());
+    var t;
+    document.getElementById('ps_q').addEventListener('input', function () {
+        clearTimeout(t);
+        var q = this.value;
+        t = setTimeout(async () => {
+            if (!q || q.length < 2) { document.getElementById('ps_results').innerHTML = ''; return; }
+            var r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+            if (!r.ok) return;
+            var data = await r.json();
+            document.getElementById('ps_results').innerHTML = data.map(p =>
+                `<button type="button" class="list-group-item list-group-item-action" data-id="${p.id}" data-label="${p.fullName} · ${p.hospitalNumber}"><strong>${p.fullName}</strong> <small class="text-muted">${p.hospitalNumber}</small></button>`
+            ).join('');
+            document.querySelectorAll('#ps_results .list-group-item').forEach(b => b.addEventListener('click', function () {
+                document.getElementById('PatientId').value = this.dataset.id;
+                document.getElementById('PatientLabel').value = this.dataset.label;
+                ps.hide();
+            }));
+        }, 250);
+    });
+</script>
+}

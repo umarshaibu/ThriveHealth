@@ -1,0 +1,158 @@
+@model ThriveHealth.Web.Models.ViewModels.TheatreBookViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Book theatre session";
+    var theatres = ViewBag.Theatres as IList<ThriveHealth.Web.Models.Theatre.Theatre> ?? new List<ThriveHealth.Web.Models.Theatre.Theatre>();
+    var doctors = ViewBag.Doctors as SelectList;
+    var nurses = ViewBag.Nurses as SelectList;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Book theatre session</h1>
+        <p class="th-section-sub mb-0">Schedule a new operating session — WHO checklist will be auto-loaded</p>
+    </div>
+    <a asp-action="Schedule" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Schedule</a>
+</div>
+
+<form asp-action="Book" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient & theatre</h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Patient</label>
+                        <div class="input-group">
+                            <input type="hidden" asp-for="PatientId" id="PatientId" />
+                            <input asp-for="PatientLabel" id="PatientLabel" class="form-control" placeholder="Search patient by name / hospital #…" autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="patientSearchBtn"><i class="bi bi-search"></i></button>
+                        </div>
+                        <span asp-validation-for="PatientId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="TheatreId" class="form-label">Theatre</label>
+                        <select asp-for="TheatreId" class="form-select">
+                            <option value="">— pick theatre —</option>
+                            @foreach (var t in theatres) { <option value="@t.Id">@t.Code · @t.Name</option> }
+                        </select>
+                        <span asp-validation-for="TheatreId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Urgency" class="form-label">Urgency</label>
+                        <select asp-for="Urgency" class="form-select">
+                            <option value="1">Elective</option>
+                            <option value="2">Scheduled urgent</option>
+                            <option value="3">Urgent</option>
+                            <option value="4">Emergency</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="ScheduledStartUtc" class="form-label">Scheduled start</label><input asp-for="ScheduledStartUtc" type="datetime-local" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="EstimatedMinutes" class="form-label">Estimated minutes</label><input asp-for="EstimatedMinutes" type="number" min="15" max="1440" class="form-control" /></div>
+                </div>
+            </div></div>
+
+            <div class="th-card mt-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-people me-1"></i> Surgical team</h6>
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label asp-for="LeadSurgeonId" class="form-label">Lead surgeon</label>
+                        <select asp-for="LeadSurgeonId" asp-items="doctors" class="form-select"><option value="">— pick surgeon —</option></select>
+                        <span asp-validation-for="LeadSurgeonId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="AnaesthetistId" class="form-label">Anaesthetist</label>
+                        <select asp-for="AnaesthetistId" asp-items="doctors" class="form-select"><option value="">— optional —</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ScrubNurseId" class="form-label">Scrub nurse</label>
+                        <select asp-for="ScrubNurseId" asp-items="nurses" class="form-select"><option value="">— optional —</option></select>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Procedure</h6>
+                <div class="row g-3">
+                    <div class="col-md-9"><label asp-for="ProcedureName" class="form-label">Procedure</label><input asp-for="ProcedureName" class="form-control" placeholder="e.g. Open appendicectomy" /></div>
+                    <div class="col-md-3"><label asp-for="CptCode" class="form-label">CPT</label><input asp-for="CptCode" class="form-control" /></div>
+                    <div class="col-md-6">
+                        <label asp-for="Anaesthesia" class="form-label">Anaesthesia</label>
+                        <select asp-for="Anaesthesia" class="form-select">
+                            <option value="1">General</option>
+                            <option value="2">Spinal</option>
+                            <option value="3">Epidural</option>
+                            <option value="4">Regional</option>
+                            <option value="5">Local</option>
+                            <option value="6">Sedation</option>
+                            <option value="7">Combined</option>
+                            <option value="0">None</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="AsaScore" class="form-label">ASA score</label><input asp-for="AsaScore" class="form-control" placeholder="ASA II" /></div>
+                    <div class="col-12"><label asp-for="Indication" class="form-label">Indication</label><textarea asp-for="Indication" class="form-control" rows="3"></textarea></div>
+                </div>
+            </div></div>
+
+            <div class="th-card mt-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-shield-check me-1"></i> WHO Surgical Safety Checklist</h6>
+                <p class="small text-muted mb-2">A 19-item checklist (Sign In · Time Out · Sign Out) will be auto-loaded into this session. Items must be confirmed at each phase before knife on skin and before completion.</p>
+                <div class="d-flex gap-2">
+                    <span class="th-pill th-pill-info">8 Sign In</span>
+                    <span class="th-pill th-pill-warning">6 Time Out</span>
+                    <span class="th-pill th-pill-success">5 Sign Out</span>
+                </div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Schedule" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i> Book session</button>
+    </div>
+</form>
+
+<div class="modal fade" id="patientSearch" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Find patient</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input id="ps_q" class="form-control mb-2" placeholder="Search by name / hospital number / phone…" />
+                <div id="ps_results" class="list-group" style="max-height:380px;overflow:auto"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    var modal = new bootstrap.Modal(document.getElementById('patientSearch'));
+    document.getElementById('patientSearchBtn').addEventListener('click', () => modal.show());
+    document.getElementById('PatientLabel').addEventListener('focus', () => modal.show());
+
+    var t;
+    document.getElementById('ps_q').addEventListener('input', function () {
+        clearTimeout(t);
+        var q = this.value;
+        t = setTimeout(async () => {
+            if (!q || q.length < 2) { document.getElementById('ps_results').innerHTML = ''; return; }
+            try {
+                var r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+                if (!r.ok) return;
+                var data = await r.json();
+                var html = data.map(p => `<button type="button" class="list-group-item list-group-item-action" data-id="${p.id}" data-label="${p.fullName} · ${p.hospitalNumber}"><strong>${p.fullName}</strong><div class="small text-muted">${p.hospitalNumber} · ${p.phone || ''}</div></button>`).join('');
+                document.getElementById('ps_results').innerHTML = html;
+                document.querySelectorAll('#ps_results .list-group-item').forEach(b => b.addEventListener('click', function () {
+                    document.getElementById('PatientId').value = this.dataset.id;
+                    document.getElementById('PatientLabel').value = this.dataset.label;
+                    modal.hide();
+                }));
+            } catch (e) { console.error(e); }
+        }, 250);
+    });
+</script>
+}

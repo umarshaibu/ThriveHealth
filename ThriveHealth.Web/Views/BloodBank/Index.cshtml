@@ -1,0 +1,120 @@
+@model ThriveHealth.Web.Models.ViewModels.BloodBankDashboardViewModel
+@using ThriveHealth.Web.Models.BloodBank
+@using ThriveHealth.Web.Models.Maternity
+@{
+    ViewData["Title"] = "Blood bank";
+    var groups = new[] { BloodGroup.OPos, BloodGroup.ONeg, BloodGroup.APos, BloodGroup.ANeg, BloodGroup.BPos, BloodGroup.BNeg, BloodGroup.ABPos, BloodGroup.ABNeg };
+    string GroupLabel(BloodGroup g) => g switch
+    {
+        BloodGroup.OPos => "O+", BloodGroup.ONeg => "O−",
+        BloodGroup.APos => "A+", BloodGroup.ANeg => "A−",
+        BloodGroup.BPos => "B+", BloodGroup.BNeg => "B−",
+        BloodGroup.ABPos => "AB+", BloodGroup.ABNeg => "AB−",
+        _ => g.ToString()
+    };
+    var components = new[] { BloodComponent.WholeBlood, BloodComponent.PackedRedCells, BloodComponent.FreshFrozenPlasma, BloodComponent.Platelets, BloodComponent.Cryoprecipitate };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Blood bank</h1>
+        <p class="th-section-sub mb-0">@Model.TotalAvailable available · @Model.Reserved reserved · @Model.OpenCrossMatches open cross-matches</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Donors" class="btn btn-outline-secondary"><i class="bi bi-person-plus me-1"></i> Donors</a>
+        <a asp-action="Units" class="btn btn-outline-secondary"><i class="bi bi-droplet me-1"></i> Units</a>
+        <a asp-action="CrossMatches" class="btn btn-outline-secondary"><i class="bi bi-shuffle me-1"></i> Cross-matches</a>
+        <a asp-action="NewCrossMatch" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankCrossMatch" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Cross-match request</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-droplet"></i></div><div class="th-stat-label">Available units</div><div class="th-stat-value">@Model.TotalAvailable</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-bookmark"></i></div><div class="th-stat-label">Reserved</div><div class="th-stat-value">@Model.Reserved</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-calendar-x"></i></div><div class="th-stat-label">Expiring &lt; 7 days</div><div class="th-stat-value">@Model.ExpiringIn7Days</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-shuffle"></i></div><div class="th-stat-label">Open requests</div><div class="th-stat-value">@Model.OpenCrossMatches</div></div></div>
+</div>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-grid-3x3 me-1"></i> Inventory by group × component</h6>
+    <div class="table-responsive">
+    <table class="table align-middle mb-0 text-center">
+        <thead>
+            <tr><th class="text-start">Group</th>@foreach (var c in components) { <th>@c</th> }<th>Total</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var g in groups)
+        {
+            var rowTotal = components.Sum(c => Model.Inventory.GetValueOrDefault((g, c), 0));
+            <tr>
+                <td class="text-start"><strong>@GroupLabel(g)</strong></td>
+                @foreach (var c in components)
+                {
+                    var n = Model.Inventory.GetValueOrDefault((g, c), 0);
+                    <td>@if (n > 0) { <span class="th-pill th-pill-success">@n</span> } else { <span class="text-muted">—</span> }</td>
+                }
+                <td class="fw-bold">@rowTotal</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+</div></div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Recent units</h6></div>
+            @if (!Model.RecentUnits.Any())
+            {
+                <div class="th-empty m-4"><i class="bi bi-droplet"></i><h5 class="mt-2">No units</h5></div>
+            }
+            else
+            {
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Unit #</th><th>Group</th><th>Component</th><th>Expiry</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var u in Model.RecentUnits)
+                    {
+                        <tr>
+                            <td><span class="font-monospace small">@u.UnitNumber</span></td>
+                            <td>@GroupLabel(u.BloodGroup)@(u.RhesusPositive ? "+" : "−")</td>
+                            <td><small>@u.Component</small></td>
+                            <td><small>@u.ExpiryDate.ToString("dd MMM yy")</small></td>
+                            <td><span class="th-pill @(u.Status == BloodUnitStatus.Available ? "th-pill-success" : u.Status == BloodUnitStatus.Quarantined ? "th-pill-warning" : "th-pill-muted")">@u.Status</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-shuffle me-1"></i> Open cross-match requests</h6></div>
+            @if (!Model.OpenRequests.Any())
+            {
+                <div class="th-empty m-4"><i class="bi bi-shuffle"></i><h5 class="mt-2">No open requests</h5></div>
+            }
+            else
+            {
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>XM #</th><th>Patient</th><th>Group</th><th>Comp</th><th>Units</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var c in Model.OpenRequests)
+                    {
+                        <tr>
+                            <td><span class="font-monospace small">@c.CrossMatchNumber</span></td>
+                            <td><small>@c.Patient?.FullName</small></td>
+                            <td>@GroupLabel(c.PatientBloodGroup)@(c.PatientRhesusPositive ? "+" : "−")</td>
+                            <td><small>@c.Component</small></td>
+                            <td>@c.UnitsRequested</td>
+                            <td><a asp-action="CrossMatchDetail" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+    </div>
+</div>

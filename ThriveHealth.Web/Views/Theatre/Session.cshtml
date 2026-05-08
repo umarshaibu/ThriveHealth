@@ -1,0 +1,270 @@
+@model ThriveHealth.Web.Models.Theatre.TheatreSession
+@using ThriveHealth.Web.Models.Theatre
+@{
+    ViewData["Title"] = $"Session · {Model.ProcedureName}";
+
+    string StatusTone(TheatreSessionStatus s) => s switch
+    {
+        TheatreSessionStatus.Scheduled => "th-pill-info",
+        TheatreSessionStatus.PreOp => "th-pill-warning",
+        TheatreSessionStatus.InTheatre => "th-pill-danger",
+        TheatreSessionStatus.Recovery => "th-pill-warning",
+        TheatreSessionStatus.Completed => "th-pill-success",
+        TheatreSessionStatus.Cancelled => "th-pill-muted",
+        TheatreSessionStatus.Postponed => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+
+    string EventIcon(SessionEventKind k) => k switch
+    {
+        SessionEventKind.DrugGiven => "bi-capsule",
+        SessionEventKind.Fluid => "bi-droplet",
+        SessionEventKind.BloodProduct => "bi-droplet-fill",
+        SessionEventKind.Specimen => "bi-droplet-half",
+        SessionEventKind.Complication => "bi-exclamation-octagon",
+        SessionEventKind.Phase => "bi-arrow-right-circle",
+        _ => "bi-chat-left-text"
+    };
+
+    var signIn = Model.Checklist.Where(c => c.Phase == ChecklistPhase.SignIn).OrderBy(c => c.SortOrder).ToList();
+    var timeOut = Model.Checklist.Where(c => c.Phase == ChecklistPhase.TimeOut).OrderBy(c => c.SortOrder).ToList();
+    var signOut = Model.Checklist.Where(c => c.Phase == ChecklistPhase.SignOut).OrderBy(c => c.SortOrder).ToList();
+
+    bool signInDone = signIn.All(c => c.IsConfirmed);
+    bool timeOutDone = timeOut.All(c => c.IsConfirmed);
+    bool signOutDone = signOut.All(c => c.IsConfirmed);
+
+    int phasePct = Model.Status switch
+    {
+        TheatreSessionStatus.Scheduled => 10,
+        TheatreSessionStatus.PreOp => 30,
+        TheatreSessionStatus.InTheatre => 60,
+        TheatreSessionStatus.Recovery => 85,
+        TheatreSessionStatus.Completed => 100,
+        _ => 0
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@Model.ProcedureName</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill @StatusTone(Model.Status)"><i class="bi bi-activity me-1"></i>@Model.Status</span>
+            <span class="th-pill th-pill-muted">@Model.Theatre?.Code · @Model.Theatre?.Name</span>
+            <span class="th-pill th-pill-muted"><i class="bi bi-clock me-1"></i>@Model.ScheduledStartUtc.ToLocalTime().ToString("dd MMM HH:mm") · @Model.EstimatedMinutes min</span>
+            <span class="th-pill th-pill-muted">@Model.Anaesthesia · @Model.Urgency</span>
+        </div>
+    </div>
+    <a asp-action="Schedule" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Schedule</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person me-1"></i> Patient</h6>
+            <div class="fw-semibold">@Model.Patient?.FullName</div>
+            <div class="small text-muted">@Model.Patient?.HospitalNumber · @Model.Patient?.Sex@(Model.Patient?.AgeYears != null ? $" · {Model.Patient.AgeYears} yo" : "")</div>
+            @if (Model.Patient?.Allergies != null && Model.Patient.Allergies.Any())
+            {
+                <div class="alert alert-warning small mt-2 mb-0">
+                    <strong><i class="bi bi-exclamation-triangle me-1"></i>Allergies</strong>
+                    <ul class="mb-0">
+                        @foreach (var a in Model.Patient.Allergies) { <li>@a.Substance @if (!string.IsNullOrEmpty(a.Reaction)) { <small class="text-muted">— @a.Reaction</small> }</li> }
+                    </ul>
+                </div>
+            }
+        </div></div>
+
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-people me-1"></i> Team</h6>
+            <div><strong>Surgeon:</strong> @Model.LeadSurgeon?.FullName</div>
+            @if (Model.Anaesthetist != null) { <div><strong>Anaesthetist:</strong> @Model.Anaesthetist.FullName</div> }
+            @if (Model.ScrubNurse != null) { <div><strong>Scrub nurse:</strong> @Model.ScrubNurse.FullName</div> }
+        </div></div>
+
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-stopwatch me-1"></i> Timeline</h6>
+            <div class="progress mb-3" style="height:6px"><div class="progress-bar" style="width:@phasePct%"></div></div>
+            <ul class="list-unstyled small mb-0">
+                <li><i class="bi bi-circle-fill text-muted me-1"></i>Booked: @Model.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</li>
+                @if (Model.PreOpAt.HasValue) { <li><i class="bi bi-check-circle-fill text-info me-1"></i>Pre-op: @Model.PreOpAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</li> }
+                @if (Model.KnifeOnSkinAt.HasValue) { <li><i class="bi bi-check-circle-fill text-danger me-1"></i>Knife on skin: @Model.KnifeOnSkinAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</li> }
+                @if (Model.KnifeOffSkinAt.HasValue) { <li><i class="bi bi-check-circle-fill text-warning me-1"></i>Knife off skin: @Model.KnifeOffSkinAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</li> }
+                @if (Model.RecoveryAt.HasValue) { <li><i class="bi bi-check-circle-fill text-warning me-1"></i>Recovery: @Model.RecoveryAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</li> }
+                @if (Model.CompletedAt.HasValue) { <li><i class="bi bi-check-circle-fill text-success me-1"></i>Completed: @Model.CompletedAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</li> }
+            </ul>
+        </div></div>
+
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-arrow-right-circle me-1"></i> Advance phase</h6>
+            <div class="d-grid gap-2">
+                @if (Model.Status == TheatreSessionStatus.Scheduled)
+                {
+                    <form asp-action="Advance" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="to" value="@TheatreSessionStatus.PreOp" /><button class="btn btn-outline-info w-100"><i class="bi bi-clipboard2-check me-1"></i> Move to Pre-op</button></form>
+                }
+                @if (Model.Status == TheatreSessionStatus.PreOp)
+                {
+                    <form asp-action="Advance" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="to" value="@TheatreSessionStatus.InTheatre" /><button class="btn btn-danger w-100" @(signInDone && timeOutDone ? "" : "disabled") title="@(signInDone && timeOutDone ? "Knife on skin" : "Complete Sign In + Time Out first")"><i class="bi bi-scissors me-1"></i> Knife on skin</button></form>
+                }
+                @if (Model.Status == TheatreSessionStatus.InTheatre)
+                {
+                    <form asp-action="Advance" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="to" value="@TheatreSessionStatus.Recovery" /><button class="btn btn-warning w-100"><i class="bi bi-bandaid me-1"></i> Move to Recovery</button></form>
+                }
+                @if (Model.Status == TheatreSessionStatus.Recovery)
+                {
+                    <form asp-action="Advance" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="to" value="@TheatreSessionStatus.Completed" /><button class="btn btn-success w-100" @(signOutDone ? "" : "disabled") title="@(signOutDone ? "Complete session" : "Complete Sign Out first")"><i class="bi bi-check-lg me-1"></i> Complete session</button></form>
+                }
+                @if (Model.Status is TheatreSessionStatus.Scheduled or TheatreSessionStatus.PreOp)
+                {
+                    <form asp-action="Advance" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="to" value="@TheatreSessionStatus.Cancelled" /><button class="btn btn-outline-secondary btn-sm w-100" onclick="return confirm('Cancel this session?')"><i class="bi bi-x-circle me-1"></i> Cancel session</button></form>
+                }
+            </div>
+        </div></div>
+    </div>
+
+    <div class="col-lg-8">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cl">WHO checklist</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#log">Intra-op log</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#fin">Operative record</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="cl">
+                @{
+                    var phases = new (string Title, string Icon, string Tone, List<ChecklistItem> Items, bool Done)[]
+                    {
+                        ("Sign In · before induction", "bi-1-circle", "info", signIn, signInDone),
+                        ("Time Out · before knife on skin", "bi-2-circle", "warning", timeOut, timeOutDone),
+                        ("Sign Out · before patient leaves theatre", "bi-3-circle", "success", signOut, signOutDone)
+                    };
+                }
+                @foreach (var ph in phases)
+                {
+                    <div class="th-card mb-3"><div class="th-card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="@ph.Icon me-1"></i>@ph.Title</h6>
+                            <span class="th-pill th-pill-@ph.Tone">@ph.Items.Count(c => c.IsConfirmed) / @ph.Items.Count</span>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                        @foreach (var c in ph.Items)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div>
+                                    @if (c.IsConfirmed) { <i class="bi bi-check-circle-fill text-success me-1"></i> } else { <i class="bi bi-circle text-muted me-1"></i> }
+                                    @c.Question
+                                    @if (c.IsConfirmed && c.ConfirmedBy != null)
+                                    {
+                                        <div class="small text-muted ms-4">@c.ConfirmedBy.FullName · @c.ConfirmedAt?.ToLocalTime().ToString("HH:mm")</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(c.Notes))
+                                    {
+                                        <div class="small text-muted ms-4"><i class="bi bi-chat-left-text me-1"></i>@c.Notes</div>
+                                    }
+                                </div>
+                                <div>
+                                    @if (!c.IsConfirmed)
+                                    {
+                                        <form asp-action="ConfirmCheck" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="itemId" value="@c.Id" />
+                                            <input type="hidden" name="sessionId" value="@Model.Id" />
+                                            <input type="hidden" name="confirmed" value="true" />
+                                            <button class="btn btn-sm btn-outline-success"><i class="bi bi-check-lg"></i> Confirm</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ConfirmCheck" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="itemId" value="@c.Id" />
+                                            <input type="hidden" name="sessionId" value="@Model.Id" />
+                                            <input type="hidden" name="confirmed" value="false" />
+                                            <button class="btn btn-sm btn-outline-secondary" title="Un-confirm"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                        </form>
+                                    }
+                                </div>
+                            </li>
+                        }
+                        </ul>
+                    </div></div>
+                }
+            </div>
+
+            <div class="tab-pane fade" id="log">
+                <div class="th-card mb-3"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-plus-circle me-1"></i> Log event</h6>
+                    <form asp-action="AddEvent" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">
+                        <input type="hidden" name="TheatreSessionId" value="@Model.Id" />
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <select name="Kind" class="form-select">
+                                    <option value="1">Note</option>
+                                    <option value="2">Drug given</option>
+                                    <option value="3">Fluid</option>
+                                    <option value="4">Blood product</option>
+                                    <option value="5">Specimen</option>
+                                    <option value="6">Complication</option>
+                                </select>
+                            </div>
+                            <div class="col-md-7"><input name="Description" class="form-control" placeholder="Description" required /></div>
+                            <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Log</button></div>
+                            <div class="col-12"><textarea name="Details" class="form-control" rows="2" placeholder="Details (optional — dose, route, volume, batch #, etc.)"></textarea></div>
+                        </div>
+                    </form>
+                </div></div>
+
+                <div class="th-card"><div class="th-card-body p-0">
+                @if (!Model.Events.Any())
+                {
+                    <div class="th-empty m-4"><i class="bi bi-list-check"></i><h5 class="mt-2">No events logged yet</h5></div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                    @foreach (var e in Model.Events.OrderByDescending(x => x.AtUtc))
+                    {
+                        <li class="list-group-item">
+                            <div class="d-flex">
+                                <i class="@EventIcon(e.Kind) me-2 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>@e.Description</strong>
+                                        <small class="text-muted">@e.AtUtc.ToLocalTime().ToString("dd MMM HH:mm")</small>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(e.Details)) { <div class="small text-muted">@e.Details</div> }
+                                    <div class="small text-muted">@e.Kind @(e.RecordedBy != null ? "· " + e.RecordedBy.FullName : "")</div>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                    </ul>
+                }
+                </div></div>
+            </div>
+
+            <div class="tab-pane fade" id="fin">
+                <form asp-action="Finalise" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Id" value="@Model.Id" />
+                    <div class="th-card"><div class="th-card-body">
+                        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-journal-medical me-1"></i> Operative record</h6>
+                        <div class="row g-3">
+                            <div class="col-12"><label class="form-label">Operative note</label><textarea name="OperativeNote" class="form-control" rows="6">@Model.OperativeNote</textarea></div>
+                            <div class="col-md-6"><label class="form-label">Estimated blood loss (mL)</label><input name="EstimatedBloodLossMl" type="number" class="form-control" value="@Model.EstimatedBloodLossMl" /></div>
+                            <div class="col-md-6"><label class="form-label">Crystalloid given (mL)</label><input name="CrystalloidGivenMl" type="number" class="form-control" value="@Model.CrystalloidGivenMl" /></div>
+                            <div class="col-12"><label class="form-label">Complications</label><textarea name="Complications" class="form-control" rows="2">@Model.Complications</textarea></div>
+                            <div class="col-12"><label class="form-label">Post-op instructions</label><textarea name="PostOpInstructions" class="form-control" rows="4">@Model.PostOpInstructions</textarea></div>
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save operative record</button>
+                        </div>
+                    </div></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

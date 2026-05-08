@@ -1,0 +1,86 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.Clinical.LabOrder>
+@using ThriveHealth.Web.Models.Clinical
+@{
+    ViewData["Title"] = "My results";
+    var imaging = (ViewBag.Imaging as IReadOnlyList<ImagingOrder>) ?? Array.Empty<ImagingOrder>();
+    string LabPill(LabOrder o)
+    {
+        if (o.Status == OrderStatus.Completed && o.Result != null)
+            return o.Result.Status == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Authorized ? "th-pill-success" : "th-pill-info";
+        return "th-pill-warning";
+    }
+    string LabLabel(LabOrder o) =>
+        o.Result?.Status == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Authorized ? "Ready" : (o.Status == OrderStatus.Completed ? "Reviewing" : o.Status.ToString());
+    string ImgPill(ImagingOrder o) =>
+        o.Status == OrderStatus.Completed && o.Report?.IsAuthorized == true ? "th-pill-success"
+        : o.Status == OrderStatus.Completed ? "th-pill-info"
+        : "th-pill-warning";
+    string ImgLabel(ImagingOrder o) =>
+        o.Report?.IsAuthorized == true ? "Ready" : (o.Status == OrderStatus.Completed ? "Reviewing" : o.Status.ToString());
+}
+
+<h1 class="th-section-title mb-1">My results</h1>
+<p class="text-muted small mb-3">Lab and imaging investigations ordered for you.</p>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabLabs" type="button"><i class="bi bi-droplet-half me-1"></i> Lab (@Model.Count)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabImg" type="button"><i class="bi bi-image me-1"></i> Imaging (@imaging.Count)</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tabLabs" role="tabpanel">
+        @if (!Model.Any())
+        {
+            <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-droplet-half"></i><h5 class="mt-2">No lab orders yet</h5></div></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><ul class="list-group list-group-flush">
+                @foreach (var o in Model)
+                {
+                    <li class="list-group-item">
+                        <a class="text-decoration-none text-body d-flex justify-content-between align-items-center gap-3" asp-action="LabResult" asp-route-orderId="@o.Id">
+                            <div>
+                                <strong>@(o.LabTest?.Name ?? o.TestName)</strong>
+                                <div class="small text-muted">Ordered @o.OrderedAt.ToLocalTime().ToString("dd MMM yyyy") @(o.Urgency == OrderUrgency.Routine ? "" : "· " + o.Urgency)</div>
+                                @if (!string.IsNullOrEmpty(o.ClinicalIndication)) { <div class="small text-muted">@o.ClinicalIndication</div> }
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="th-pill @LabPill(o)">@LabLabel(o)</span>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                            </div>
+                        </a>
+                    </li>
+                }
+            </ul></div></div>
+            <p class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i> Talk to your clinician for an interpretation of your results.</p>
+        }
+    </div>
+    <div class="tab-pane fade" id="tabImg" role="tabpanel">
+        @if (!imaging.Any())
+        {
+            <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-image"></i><h5 class="mt-2">No imaging orders yet</h5></div></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><ul class="list-group list-group-flush">
+                @foreach (var o in imaging)
+                {
+                    <li class="list-group-item">
+                        <a class="text-decoration-none text-body d-flex justify-content-between align-items-center gap-3" asp-action="ImagingReport" asp-route-orderId="@o.Id">
+                            <div>
+                                <strong>@o.Modality — @o.StudyDescription</strong>
+                                <div class="small text-muted">Ordered @o.OrderedAt.ToLocalTime().ToString("dd MMM yyyy") @(o.Urgency == OrderUrgency.Routine ? "" : "· " + o.Urgency)</div>
+                                @if (!string.IsNullOrEmpty(o.ClinicalIndication)) { <div class="small text-muted">@o.ClinicalIndication</div> }
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="th-pill @ImgPill(o)">@ImgLabel(o)</span>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                            </div>
+                        </a>
+                    </li>
+                }
+            </ul></div></div>
+        }
+    </div>
+</div>

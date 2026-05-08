@@ -1,0 +1,126 @@
+@model ThriveHealth.Web.Models.Reporting.IdsrCase
+@using ThriveHealth.Web.Models.Reporting
+@{
+    ViewData["Title"] = $"IDSR · {Model.CaseNumber}";
+    string CTone(CaseClassification c) => c switch
+    {
+        CaseClassification.Confirmed => "th-pill-danger",
+        CaseClassification.Probable => "th-pill-warning",
+        CaseClassification.Discarded => "th-pill-muted",
+        _ => "th-pill-info"
+    };
+    string OTone(CaseOutcome o) => o switch
+    {
+        CaseOutcome.Died => "th-pill-danger",
+        CaseOutcome.Recovered => "th-pill-success",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@Model.NotifiableDisease?.Name</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill th-pill-muted font-monospace">@Model.CaseNumber</span>
+            <span class="th-pill @CTone(Model.Classification)">@Model.Classification</span>
+            <span class="th-pill @OTone(Model.Outcome)">@Model.Outcome</span>
+            @if (Model.NotifiedNcdc) { <span class="th-pill th-pill-success">NCDC notified</span> }
+            else if (Model.NotifiableDisease?.Window == NotificationWindow.Immediate) { <span class="th-pill th-pill-danger">Immediate — NOT notified</span> }
+            <span class="th-pill th-pill-info">Status: @Model.Status</span>
+        </div>
+    </div>
+    <a asp-action="Idsr" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> IDSR</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person me-1"></i> Patient</h6>
+            <dl class="row mb-0">
+                <dt class="col-4">Name</dt><dd class="col-8">@Model.PatientName</dd>
+                <dt class="col-4">Age / sex</dt><dd class="col-8">@(Model.AgeYears?.ToString() ?? "—") yo · @Model.Sex</dd>
+                <dt class="col-4">Phone</dt><dd class="col-8">@Model.Phone</dd>
+                <dt class="col-4">LGA / state</dt><dd class="col-8">@Model.Lga · @Model.State</dd>
+                <dt class="col-4">Address</dt><dd class="col-8">@Model.Address</dd>
+            </dl>
+        </div></div>
+
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard2-pulse me-1"></i> Clinical</h6>
+            <dl class="row mb-0">
+                <dt class="col-4">Onset</dt><dd class="col-8">@Model.OnsetDate.ToString("dd MMM yyyy")</dd>
+                <dt class="col-4">Reported</dt><dd class="col-8">@Model.ReportDate.ToString("dd MMM yyyy") by @(Model.ReportedBy?.FullName ?? "—")</dd>
+                <dt class="col-4">Symptoms</dt><dd class="col-8" style="white-space:pre-wrap">@Model.Symptoms</dd>
+                @if (!string.IsNullOrEmpty(Model.Exposure)) { <dt class="col-4">Exposure</dt><dd class="col-8">@Model.Exposure</dd> }
+                @if (!string.IsNullOrEmpty(Model.Vaccinated)) { <dt class="col-4">Vaccination</dt><dd class="col-8">@Model.Vaccinated</dd> }
+            </dl>
+        </div></div>
+
+        @if (Model.LabSampleCollected || !string.IsNullOrEmpty(Model.LabResult))
+        {
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-droplet-half me-1"></i> Laboratory</h6>
+                <dl class="row mb-0">
+                    <dt class="col-4">Sample collected</dt><dd class="col-8">@(Model.LabSampleCollected ? "Yes" : "No") · @(Model.LabSampleDate?.ToString("dd MMM yyyy") ?? "")</dd>
+                    <dt class="col-4">Type</dt><dd class="col-8">@Model.LabSampleType</dd>
+                    <dt class="col-4">Result</dt><dd class="col-8">@Model.LabResult</dd>
+                </dl>
+            </div></div>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        @if (!Model.NotifiedNcdc)
+        {
+            <form asp-action="NotifyNcdc" method="post" class="mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IdsrNotify">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="th-card"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-broadcast me-1"></i> Notify NCDC</h6>
+                    <p class="small text-muted">Mark this case as reported to NCDC via Surveillance Outbreak Response Management & Analysis System (SORMAS) or LGA M&E officer.</p>
+                    <button class="btn btn-warning w-100"><i class="bi bi-send me-1"></i> Mark as notified</button>
+                </div></div>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle me-1"></i>Notified to NCDC at @Model.NotifiedNcdcAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+            </div>
+        }
+
+        @if (Model.Status == IdsrCaseStatus.Open)
+        {
+            <form asp-action="CloseIdsr" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IdsrReport">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.Id" />
+                <div class="th-card"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-archive me-1"></i> Close case</h6>
+                    <div class="mb-2">
+                        <label class="form-label">Outcome</label>
+                        <select name="Outcome" class="form-select">
+                            <option value="3">Recovered</option>
+                            <option value="4">Died</option>
+                            <option value="5">Lost to follow-up</option>
+                            <option value="6">Transferred</option>
+                            <option value="2">Alive (still under care)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2"><label class="form-label">Outcome date</label><input name="OutcomeDate" type="date" class="form-control" /></div>
+                    <div class="mb-2"><label class="form-label">Comments</label><textarea name="Comments" class="form-control" rows="2"></textarea></div>
+                    <button class="btn btn-outline-primary w-100"><i class="bi bi-check2-circle me-1"></i> Close case</button>
+                </div></div>
+            </form>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Comments))
+        {
+            <div class="th-card mt-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2">Comments</h6>
+                <div style="white-space:pre-wrap">@Model.Comments</div>
+            </div></div>
+        }
+    </div>
+</div>

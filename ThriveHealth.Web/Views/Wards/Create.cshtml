@@ -1,0 +1,29 @@
+@model ThriveHealth.Web.Models.ViewModels.WardEditViewModel
+@{ ViewData["Title"] = "New ward"; }
+
+<div class="row"><div class="col-lg-7">
+    <h1 class="th-section-title">New ward</h1>
+    <form asp-action="Create" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.WardsManage">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <div class="row g-3">
+                <div class="col-md-8"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control text-uppercase" maxlength="6" /></div>
+                <div class="col-md-6"><label asp-for="Type" class="form-label"></label>
+                    <select asp-for="Type" class="form-select">
+                        @foreach (var v in Enum.GetValues<ThriveHealth.Web.Models.Inpatient.WardType>())
+                        { <option value="@((int)v)">@v</option> }
+                    </select>
+                </div>
+                <div class="col-md-3"><label asp-for="ColorHex" class="form-label">Colour</label><input asp-for="ColorHex" type="color" class="form-control form-control-color w-100" /></div>
+                <div class="col-md-3 form-check ms-2 d-flex align-items-end"><div><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">Active</label></div></div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Create ward</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

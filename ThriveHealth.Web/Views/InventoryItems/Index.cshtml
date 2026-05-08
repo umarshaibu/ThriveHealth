@@ -1,0 +1,53 @@
+@model IEnumerable<ThriveHealth.Web.Models.Inventory.InventoryItem>
+@{
+    ViewData["Title"] = "Inventory items";
+    var search = ViewBag.Search as string;
+    var category = ViewBag.Category as ThriveHealth.Web.Models.Inventory.InventoryCategory?;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Inventory items</h1>
+        <p class="th-section-sub mb-0">@Model.Count() items in master.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
+            <select name="category" class="form-select" onchange="this.form.submit()">
+                <option value="">All categories</option>
+                @foreach (var c in Enum.GetValues<ThriveHealth.Web.Models.Inventory.InventoryCategory>())
+                { <option value="@((int)c)" selected="@(category == c)">@c</option> }
+            </select>
+            <input type="search" name="q" value="@search" class="form-control" placeholder="Name or code…" />
+            <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+        </form>
+        <a asp-action="Create" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> New item</a>
+    </div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-box"></i><h5 class="mt-2">No items</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Unit</th><th>Price ₦</th><th>Reorder</th><th>NAFDAC</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td><span class="font-monospace">@i.Code</span></td>
+                <td><strong>@i.Name</strong>@if (!string.IsNullOrEmpty(i.Manufacturer)) { <small class="text-muted ms-1">· @i.Manufacturer</small> }</td>
+                <td><span class="th-pill th-pill-muted">@i.Category</span></td>
+                <td><small>@i.UnitOfIssue</small></td>
+                <td>@i.UnitPrice?.ToString("N0")</td>
+                <td>@i.ReorderLevel</td>
+                <td><span class="font-monospace small">@i.NafdacNumber</span></td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@i.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

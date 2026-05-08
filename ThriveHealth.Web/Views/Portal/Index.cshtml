@@ -1,0 +1,68 @@
+@model ThriveHealth.Web.Models.ViewModels.PortalDashboardViewModel
+@{ ViewData["Title"] = "My health"; }
+
+<div class="mb-3">
+    <h1 class="th-section-title mb-1">Hi, @Model.Patient.FirstName 👋</h1>
+    <small class="text-muted">@Model.Patient.HospitalNumber · @Model.Patient.Sex@(Model.Patient.AgeYears.HasValue ? $" · {Model.Patient.AgeYears} yo" : "")</small>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-calendar2-week"></i></div><div class="th-stat-label">Upcoming visits</div><div class="th-stat-value">@Model.UpcomingAppointments</div></div></div>
+    <div class="col-6 col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-receipt"></i></div><div class="th-stat-label">Open bills</div><div class="th-stat-value">@Model.OpenBills</div></div></div>
+    <div class="col-6 col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-cash-coin"></i></div><div class="th-stat-label">Balance (₦)</div><div class="th-stat-value">@Model.OpenBalance.ToString("N0")</div></div></div>
+    <div class="col-6 col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-droplet-half"></i></div><div class="th-stat-label">Lab results pending</div><div class="th-stat-value">@Model.PendingResults</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-camera-video me-1"></i> Tele-consultation</h6>
+            @if (Model.ActiveTeleSessions > 0)
+            {
+                <div class="alert alert-info mb-2"><i class="bi bi-bell me-1"></i> You have @Model.ActiveTeleSessions active session(s).</div>
+                <a asp-action="Telemed" class="btn btn-primary"><i class="bi bi-arrow-right me-1"></i> View sessions</a>
+            }
+            else
+            {
+                <p class="small text-muted">Speak with a clinician from home.</p>
+                <a asp-action="RequestTelemed" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Request consultation</a>
+            }
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Pre-consultation intake</h6>
+            <p class="small text-muted">Submit symptoms ahead of your visit so the clinician can prepare.</p>
+            <a asp-action="Intake" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1"></i> Fill intake form</a>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-chat-dots me-1"></i> Ask the symptom checker</h6>
+            <p class="small text-muted">Not sure if you should book or come in? Ask a quick question. <span class="th-pill th-pill-info ms-1">general guidance — not a diagnosis</span></p>
+            <a asp-action="SymptomChecker" class="btn btn-outline-primary"><i class="bi bi-stars me-1"></i> Open symptom checker</a>
+        </div></div>
+    </div>
+</div>
+
+@if (Model.RecentVisits.Any())
+{
+    <div class="th-card mt-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clock-history me-1"></i> Recent visits</h6>
+        <ul class="list-unstyled mb-0">
+        @foreach (dynamic v in Model.RecentVisits)
+        {
+            <li class="border-bottom py-2 d-flex justify-content-between align-items-start">
+                <div><strong>@(v.ChiefComplaint ?? "Visit")</strong><div class="small text-muted">@v.StartedAt.ToLocalTime().ToString("dd MMM yyyy") · @v.Status</div></div>
+            </li>
+        }
+        </ul>
+        <div class="text-end mt-2"><a asp-action="Visits" class="small">View all visits →</a></div>
+    </div></div>
+}
+
+<div class="text-center mt-4 mb-3">
+    <small class="text-muted">Install this app: tap <i class="bi bi-share"></i> in your browser → "Add to Home Screen"</small>
+</div>

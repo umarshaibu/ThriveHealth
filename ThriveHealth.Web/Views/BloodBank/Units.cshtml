@@ -1,0 +1,70 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.BloodBank.BloodUnit>
+@using ThriveHealth.Web.Models.BloodBank
+@{
+    ViewData["Title"] = "Blood units";
+    var current = ViewBag.FilterStatus as BloodUnitStatus?;
+    string Tone(BloodUnitStatus s) => s switch
+    {
+        BloodUnitStatus.Available => "th-pill-success",
+        BloodUnitStatus.Reserved => "th-pill-warning",
+        BloodUnitStatus.CrossMatched => "th-pill-info",
+        BloodUnitStatus.Issued => "th-pill-primary",
+        BloodUnitStatus.Quarantined => "th-pill-warning",
+        BloodUnitStatus.Expired => "th-pill-danger",
+        BloodUnitStatus.Discarded => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Blood units</h1>
+        <p class="th-section-sub mb-0">@Model.Count unit@(Model.Count == 1 ? "" : "s") visible</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bank</a>
+        <a asp-action="NewUnit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Register unit</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a asp-action="Units" class="btn btn-sm @(current is null ? "btn-primary" : "btn-outline-secondary")">All</a>
+    @foreach (var s in new[] { BloodUnitStatus.Available, BloodUnitStatus.Quarantined, BloodUnitStatus.CrossMatched, BloodUnitStatus.Issued, BloodUnitStatus.Expired })
+    {
+        <a asp-action="Units" asp-route-status="@s" class="btn btn-sm @(current == s ? "btn-primary" : "btn-outline-secondary")">@s</a>
+    }
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-droplet"></i><h5 class="mt-2">No units</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Unit #</th><th>Donor</th><th>Group</th><th>Component</th><th>Volume</th><th>Collected</th><th>Expiry</th><th>Status</th><th>Screening</th></tr></thead>
+        <tbody>
+        @foreach (var u in Model)
+        {
+            var expired = u.ExpiryDate < today;
+            var soon = u.ExpiryDate <= today.AddDays(7);
+            <tr class="@(expired ? "table-danger" : soon ? "table-warning" : "")">
+                <td><span class="font-monospace small">@u.UnitNumber</span></td>
+                <td><small>@(u.BloodDonor?.FullName ?? "—") · @(u.BloodDonor?.DonorNumber ?? "")</small></td>
+                <td><strong>@u.BloodGroup@(u.RhesusPositive ? "+" : "−")</strong></td>
+                <td><small>@u.Component</small></td>
+                <td>@u.VolumeMl mL</td>
+                <td>@u.CollectionDate.ToString("dd MMM")</td>
+                <td>@u.ExpiryDate.ToString("dd MMM yyyy") @if (expired) { <span class="th-pill th-pill-danger ms-1">Expired</span> } else if (soon) { <span class="th-pill th-pill-warning ms-1">Soon</span> }</td>
+                <td><span class="th-pill @Tone(u.Status)">@u.Status</span></td>
+                <td><small>@if (u.ScreeningComplete) { <i class="bi bi-check-circle-fill text-success"></i> } else { <i class="bi bi-exclamation-triangle text-warning"></i> }</small></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

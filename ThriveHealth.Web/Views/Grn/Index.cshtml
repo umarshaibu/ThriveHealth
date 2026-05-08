@@ -1,0 +1,38 @@
+@model IEnumerable<ThriveHealth.Web.Models.Inventory.Grn>
+@{ ViewData["Title"] = "Goods received notes"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-truck text-primary me-1"></i> Goods received notes</h1>
+        <p class="th-section-sub mb-0">@Model.Count() GRNs · receipts post directly to stock + audit trail.</p>
+    </div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-truck"></i><h5 class="mt-2">No GRNs yet</h5><p>Receive against an Issued PO to create one.</p></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>GRN #</th><th>PO #</th><th>Supplier</th><th>Store</th><th>Received</th><th>By</th><th>Lines</th><th class="text-end">Value ₦</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var g in Model)
+        {
+            <tr>
+                <td><span class="font-monospace">@g.GrnNumber</span></td>
+                <td><span class="font-monospace small">@g.PurchaseOrder?.PoNumber</span></td>
+                <td>@g.PurchaseOrder?.Supplier?.Name</td>
+                <td>@g.Store?.Code</td>
+                <td><small>@g.ReceivedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td>
+                <td><small class="text-muted">@g.ReceivedBy?.FullName</small></td>
+                <td>@g.Items.Count</td>
+                <td class="text-end">@g.TotalReceivedValue.ToString("N2")</td>
+                <td class="text-end"><a asp-action="Details" asp-route-id="@g.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

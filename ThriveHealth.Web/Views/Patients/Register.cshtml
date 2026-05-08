@@ -1,0 +1,418 @@
+@model ThriveHealth.Web.Models.ViewModels.PatientRegisterViewModel
+@{
+    ViewData["Title"] = "Register patient";
+    var hmos = ViewBag.Hmos as System.Collections.IEnumerable;
+}
+
+<style>
+    .th-wizard { max-width: 760px; margin: 0 auto; }
+    .th-wizard-steps { display: flex; gap: .4rem; margin-bottom: 1.25rem; }
+    .th-wizard-steps .step {
+        flex: 1; padding: .55rem .7rem; border-radius: 8px; background: var(--th-surface);
+        border: 1px solid var(--th-border); display: flex; gap: .55rem; align-items: center;
+        font-size: .8rem; transition: background .15s, color .15s, border-color .15s;
+        cursor: default; min-width: 0;
+    }
+    .th-wizard-steps .step .num {
+        width: 24px; height: 24px; border-radius: 50%; background: var(--th-bg);
+        color: var(--th-text-muted); border: 1px solid var(--th-border);
+        display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
+        font-size: .75rem; flex-shrink: 0;
+    }
+    .th-wizard-steps .step.active { background: var(--th-primary-soft); border-color: var(--th-primary); color: var(--th-primary); font-weight: 600; }
+    .th-wizard-steps .step.active .num { background: var(--th-primary); color: #fff; border-color: var(--th-primary); }
+    .th-wizard-steps .step.done { background: var(--th-success-soft); border-color: var(--th-success); color: var(--th-success); cursor: pointer; }
+    .th-wizard-steps .step.done .num { background: var(--th-success); color: #fff; border-color: var(--th-success); }
+    .th-wizard-steps .step .label {
+        display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    @@media (min-width: 992px) { .th-wizard-steps .step .label { display: inline; } }
+    .th-step { display: none; }
+    .th-step.active { display: block; }
+    .th-review dt { color: var(--th-text-muted); font-weight: 500; }
+    .th-review dd { margin-bottom: .25rem; }
+</style>
+
+<div class="th-wizard">
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Register a new patient</h1>
+        <p class="th-section-sub mb-0">Step <span id="stepNow">1</span> of 6 · hospital number is generated automatically.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to patients</a>
+</div>
+
+<div class="th-wizard-steps" id="thSteps">
+    <div class="step active" data-step="1"><span class="num">1</span><span class="label">Identity</span></div>
+    <div class="step" data-step="2"><span class="num">2</span><span class="label">Contact &amp; address</span></div>
+    <div class="step" data-step="3"><span class="num">3</span><span class="label">ID documents</span></div>
+    <div class="step" data-step="4"><span class="num">4</span><span class="label">Next of kin</span></div>
+    <div class="step" data-step="5"><span class="num">5</span><span class="label">Payer</span></div>
+    <div class="step" data-step="6"><span class="num">6</span><span class="label">Review</span></div>
+</div>
+
+<form asp-action="Register" method="post" id="thRegisterForm" novalidate asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PatientsRegister">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+    <input type="hidden" asp-for="ConfirmAcceptDuplicate" value="false" />
+
+    @* ---------- Step 1: Identity ---------- *@
+    <div class="th-step active" data-step="1">
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-person me-1 text-primary"></i> Identity</h5></div>
+            <div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" placeholder="Mr" /></div>
+                    <div class="col-9"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" required /><span asp-validation-for="FirstName" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="MiddleName" class="form-label"></label><input asp-for="MiddleName" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" required /><span asp-validation-for="LastName" class="text-danger small"></span></div>
+
+                    <div class="col-6 col-md-3">
+                        <label asp-for="Sex" class="form-label"></label>
+                        <select asp-for="Sex" class="form-select" required>
+                            <option value="">--</option>
+                            <option value="1">Male</option>
+                            <option value="2">Female</option>
+                        </select>
+                        <span asp-validation-for="Sex" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-md-5"><label asp-for="DateOfBirth" class="form-label"></label><input asp-for="DateOfBirth" class="form-control" type="date" /></div>
+                    <div class="col-md-4 d-flex align-items-end pb-2"><div class="form-check"><input asp-for="IsDateOfBirthEstimated" class="form-check-input" /><label asp-for="IsDateOfBirthEstimated" class="form-check-label small"></label></div></div>
+
+                    <div class="col-md-6"><label asp-for="MaritalStatus" class="form-label"></label>
+                        <select asp-for="MaritalStatus" class="form-select">
+                            <option value="">--</option>
+                            <option value="1">Single</option><option value="2">Married</option>
+                            <option value="3">Divorced</option><option value="4">Widowed</option><option value="5">Separated</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Gender" class="form-label">Gender</label>
+                        <select asp-for="Gender" class="form-select">
+                            <option value="">--</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="Religion" class="form-label"></label><input asp-for="Religion" class="form-control" /></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ---------- Step 2: Contact & Address ---------- *@
+    <div class="th-step" data-step="2">
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-telephone me-1 text-primary"></i> Contact</h5></div>
+            <div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" placeholder="+234..." /></div>
+                    <div class="col-md-6"><label asp-for="AlternatePhone" class="form-label"></label><input asp-for="AlternatePhone" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="Email" class="form-label"></label><input asp-for="Email" type="email" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="PreferredLanguage" class="form-label"></label>
+                        <select asp-for="PreferredLanguage" class="form-select">
+                            <option>English</option><option>Pidgin</option>
+                            <option>Hausa</option><option>Yoruba</option><option>Igbo</option>
+                            <option>Fulfulde</option><option>Tiv</option><option>Other</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><div class="form-check"><input asp-for="WhatsAppOptIn" class="form-check-input" /><label asp-for="WhatsAppOptIn" class="form-check-label small"></label></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-geo-alt me-1 text-primary"></i> Address</h5></div>
+            <div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-12"><label asp-for="StreetAddress" class="form-label"></label><input asp-for="StreetAddress" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="Lga" class="form-label">LGA</label><input asp-for="Lga" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="State" class="form-label"></label><input asp-for="State" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="Postcode" class="form-label"></label><input asp-for="Postcode" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="StateOfOrigin" class="form-label"></label><input asp-for="StateOfOrigin" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="EthnicGroup" class="form-label"></label><input asp-for="EthnicGroup" class="form-control" /></div>
+                    <div class="col-12"><label asp-for="Occupation" class="form-label"></label><input asp-for="Occupation" class="form-control" /></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ---------- Step 3: ID documents ---------- *@
+    <div class="th-step" data-step="3">
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-patch-check me-1 text-primary"></i> Verified ID (optional)</h5></div>
+            <div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="Nin" class="form-label">NIN</label><input asp-for="Nin" class="form-control" maxlength="11" /><span asp-validation-for="Nin" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="DriversLicense" class="form-label"></label><input asp-for="DriversLicense" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="VotersCard" class="form-label"></label><input asp-for="VotersCard" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="Passport" class="form-label"></label><input asp-for="Passport" class="form-control" /></div>
+                </div>
+                <small class="text-muted d-block mt-2"><i class="bi bi-info-circle me-1"></i> NIN verification with NIMC will be enabled once integration credentials are configured.</small>
+            </div>
+        </div>
+    </div>
+
+    @* ---------- Step 4: Next of kin ---------- *@
+    <div class="th-step" data-step="4">
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-people me-1 text-primary"></i> Next of kin</h5></div>
+            <div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-md-7"><label asp-for="NextOfKinName" class="form-label">Name</label><input asp-for="NextOfKinName" class="form-control" /></div>
+                    <div class="col-md-5"><label asp-for="NextOfKinRelationship" class="form-label">Relationship</label>
+                        <select asp-for="NextOfKinRelationship" class="form-select">
+                            <option value="">--</option>
+                            <option>Spouse</option><option>Parent</option><option>Sibling</option>
+                            <option>Child</option><option>Friend</option><option>Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="NextOfKinPhone" class="form-label">Phone</label><input asp-for="NextOfKinPhone" class="form-control" /></div>
+                    <div class="col-12"><label asp-for="NextOfKinAddress" class="form-label">Address</label><input asp-for="NextOfKinAddress" class="form-control" /></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ---------- Step 5: Payer ---------- *@
+    <div class="th-step" data-step="5">
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-cash-coin me-1 text-primary"></i> Primary payer</h5></div>
+            <div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="PrimaryPayerType" class="form-label">Type</label>
+                        <select asp-for="PrimaryPayerType" id="PrimaryPayerType" class="form-select">
+                            <option value="1">Out-of-pocket</option>
+                            <option value="2">NHIA</option>
+                            <option value="3">HMO</option>
+                            <option value="4">State insurance</option>
+                            <option value="5">Corporate / Retainership</option>
+                            <option value="6">Donor / NGO</option>
+                            <option value="7">Free maternal &amp; child</option>
+                            <option value="8">BHCPF</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 th-payer-hmo">
+                        <label asp-for="PrimaryHmoId" class="form-label">HMO</label>
+                        <select asp-for="PrimaryHmoId" id="PrimaryHmoId" class="form-select th-hmo-select" style="width:100%">
+                            <option value="">— pick HMO —</option>
+                            @if (hmos != null)
+                            {
+                                foreach (dynamic h in hmos)
+                                {
+                                    <option value="@h.Id">@h.Name @(string.IsNullOrEmpty((string)h.Code) ? "" : "· " + h.Code)</option>
+                                }
+                            }
+                        </select>
+                        <div class="small text-muted mt-1">Add new HMOs under <strong>Finance → Payers</strong>.</div>
+                    </div>
+
+                    <div class="col-12 th-payer-name">
+                        <label asp-for="PrimaryPayerName" class="form-label">Payer name</label>
+                        <input asp-for="PrimaryPayerName" class="form-control" placeholder="e.g. NHIA, Lagos State Health Scheme, Shell Retainership" />
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="PrimaryPayerMembershipNumber" class="form-label">Membership / enrolment #</label>
+                        <input asp-for="PrimaryPayerMembershipNumber" class="form-control" placeholder="Optional" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ---------- Step 6: Review ---------- *@
+    <div class="th-step" data-step="6">
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-clipboard2-check me-1 text-primary"></i> Review &amp; submit</h5></div>
+            <div class="th-card-body">
+                <p class="small text-muted mb-3">Confirm the details below. Click <strong>Register patient</strong> to save. You can use <strong>Back</strong> to make changes.</p>
+                <div class="row g-3 th-review">
+                    <div class="col-sm-6">
+                        <h6 class="text-uppercase small text-muted">Identity</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-5">Name</dt><dd class="col-7" id="rName">—</dd>
+                            <dt class="col-5">Sex</dt><dd class="col-7" id="rSex">—</dd>
+                            <dt class="col-5">DOB</dt><dd class="col-7" id="rDob">—</dd>
+                            <dt class="col-5">Marital status</dt><dd class="col-7" id="rMar">—</dd>
+                        </dl>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-uppercase small text-muted">Contact</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-5">Phone</dt><dd class="col-7" id="rPhone">—</dd>
+                            <dt class="col-5">Email</dt><dd class="col-7" id="rEmail">—</dd>
+                            <dt class="col-5">Address</dt><dd class="col-7" id="rAddr">—</dd>
+                        </dl>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-uppercase small text-muted">Next of kin</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-5">Name</dt><dd class="col-7" id="rNok">—</dd>
+                            <dt class="col-5">Relationship</dt><dd class="col-7" id="rNokRel">—</dd>
+                            <dt class="col-5">Phone</dt><dd class="col-7" id="rNokPhone">—</dd>
+                        </dl>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-uppercase small text-muted">Payer</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-5">Type</dt><dd class="col-7" id="rPayType">—</dd>
+                            <dt class="col-5">Name</dt><dd class="col-7" id="rPayName">—</dd>
+                            <dt class="col-5">Membership #</dt><dd class="col-7" id="rPayMem">—</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between gap-2 mb-4">
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg me-1"></i> Cancel</a>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="thBack" disabled><i class="bi bi-arrow-left me-1"></i> Back</button>
+            <button type="button" class="btn btn-primary" id="thNext">Next <i class="bi bi-arrow-right ms-1"></i></button>
+            <button type="submit" class="btn btn-success d-none" id="thSubmit"><i class="bi bi-check2-circle me-1"></i> Register patient</button>
+        </div>
+    </div>
+</form>
+</div>@* /th-wizard *@
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(function () {
+            // ---- Select2 + payer toggle ----
+            $('.th-hmo-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: '— pick HMO —',
+                allowClear: true,
+                width: '100%'
+            });
+
+            function syncPayerFields() {
+                var t = $('#PrimaryPayerType').val();
+                var isHmo = t === '3';
+                $('.th-payer-hmo').toggle(isHmo);
+                $('.th-payer-name').toggle(!isHmo);
+                if (!isHmo) $('#PrimaryHmoId').val('').trigger('change');
+            }
+            $('#PrimaryPayerType').on('change', syncPayerFields);
+            syncPayerFields();
+
+            // ---- Wizard ----
+            var $form = $('#thRegisterForm');
+            var $steps = $('.th-step');
+            var $stepBtns = $('#thSteps .step');
+            var $back = $('#thBack');
+            var $next = $('#thNext');
+            var $submit = $('#thSubmit');
+            var totalSteps = $steps.length;
+            var current = 1;
+
+            function setStep(n) {
+                current = n;
+                $('#stepNow').text(n);
+                $steps.removeClass('active').filter('[data-step="' + n + '"]').addClass('active');
+                $stepBtns.each(function () {
+                    var s = parseInt($(this).data('step'), 10);
+                    $(this).removeClass('active done');
+                    if (s < n) $(this).addClass('done');
+                    if (s === n) $(this).addClass('active');
+                });
+                $back.prop('disabled', n === 1);
+                if (n === totalSteps) {
+                    $next.addClass('d-none');
+                    $submit.removeClass('d-none');
+                    populateReview();
+                } else {
+                    $next.removeClass('d-none');
+                    $submit.addClass('d-none');
+                }
+                // scroll to top of form so user sees the new step
+                $('html, body').animate({ scrollTop: $form.offset().top - 80 }, 200);
+            }
+
+            function validateCurrentStep() {
+                // Only validate inputs in the active step that have HTML5 constraints set
+                var $active = $steps.filter('.active');
+                var ok = true;
+                $active.find('input, select, textarea').each(function () {
+                    if (!this.checkValidity()) {
+                        this.reportValidity();
+                        ok = false;
+                        return false;
+                    }
+                });
+                return ok;
+            }
+
+            $next.on('click', function () {
+                if (!validateCurrentStep()) return;
+                if (current < totalSteps) setStep(current + 1);
+            });
+            $back.on('click', function () {
+                if (current > 1) setStep(current - 1);
+            });
+            // Allow clicking a previous (done) step to jump back
+            $stepBtns.on('click', function () {
+                var s = parseInt($(this).data('step'), 10);
+                if (s < current) setStep(s);
+            });
+
+            function val(sel) { var v = $(sel).val(); return v && v.toString().trim() ? v : null; }
+            function txtSelected(sel) {
+                var $s = $(sel + ' option:selected'); if (!$s.length) return null;
+                var t = $s.text().trim(); return (t === '--' || !t) ? null : t;
+            }
+            function dash(v) { return v ? v : '—'; }
+
+            function populateReview() {
+                var first = val('[name="FirstName"]') || '';
+                var middle = val('[name="MiddleName"]') || '';
+                var last = val('[name="LastName"]') || '';
+                $('#rName').text(dash([first, middle, last].filter(Boolean).join(' ')));
+                $('#rSex').text(dash(txtSelected('[name="Sex"]')));
+                $('#rDob').text(dash(val('[name="DateOfBirth"]')));
+                $('#rMar').text(dash(txtSelected('[name="MaritalStatus"]')));
+
+                $('#rPhone').text(dash(val('[name="Phone"]')));
+                $('#rEmail').text(dash(val('[name="Email"]')));
+                var addrParts = [val('[name="StreetAddress"]'), val('[name="Lga"]'), val('[name="State"]')].filter(Boolean);
+                $('#rAddr').text(dash(addrParts.join(', ')));
+
+                $('#rNok').text(dash(val('[name="NextOfKinName"]')));
+                $('#rNokRel').text(dash(val('[name="NextOfKinRelationship"]')));
+                $('#rNokPhone').text(dash(val('[name="NextOfKinPhone"]')));
+
+                $('#rPayType').text(dash(txtSelected('[name="PrimaryPayerType"]')));
+                var payType = $('[name="PrimaryPayerType"]').val();
+                if (payType === '3') {
+                    var $h = $('[name="PrimaryHmoId"] option:selected');
+                    $('#rPayName').text(dash($h.val() ? $h.text().trim() : null));
+                } else {
+                    $('#rPayName').text(dash(val('[name="PrimaryPayerName"]')));
+                }
+                $('#rPayMem').text(dash(val('[name="PrimaryPayerMembershipNumber"]')));
+            }
+
+            // Make Enter advance to Next instead of submitting until last step
+            $form.on('keydown', function (e) {
+                if (e.key === 'Enter' && current < totalSteps && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    $next.trigger('click');
+                }
+            });
+
+            setStep(1);
+        });
+    </script>
+}

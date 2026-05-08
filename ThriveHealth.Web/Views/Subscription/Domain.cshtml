@@ -1,0 +1,116 @@
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Custom domain";
+    var tenant = (Tenant)ViewBag.Tenant;
+    var txtHost = (string)ViewBag.TxtRecordHost;
+    var cnameTarget = (string)ViewBag.CnameTarget;
+    var hasDomain = !string.IsNullOrEmpty(tenant.CustomDomain);
+    var isVerified = tenant.CustomDomainVerifiedAt.HasValue;
+}
+
+<h1 class="th-section-title mb-1">Custom domain</h1>
+<p class="th-section-sub mb-3">Sign in to your workspace at your own hostname (for example <code>app.yourhospital.com</code>) instead of the default <code>@(tenant.Slug + ".thrivehealth.ng")</code>.</p>
+
+<p><a asp-action="Index" class="small text-muted"><i class="bi bi-arrow-left"></i> Back to subscription</a></p>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <h5 class="mb-3">1. Choose your domain</h5>
+    <form asp-action="SaveDomain" method="post" class="row g-2 align-items-end">
+        @Html.AntiForgeryToken()
+        <div class="col-md-6">
+            <label class="form-label small">Hostname you control</label>
+            <input name="customDomain" class="form-control" placeholder="app.yourhospital.com"
+                   value="@tenant.CustomDomain" required />
+            <div class="form-text">Pick a subdomain you own, like <code>app.</code>, <code>portal.</code> or <code>care.</code>. The apex (<code>yourhospital.com</code>) works too but isn't recommended.</div>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100">@(hasDomain ? "Update domain" : "Save domain")</button>
+        </div>
+        @if (hasDomain)
+        {
+            <div class="col-md-3">
+                <button class="btn btn-outline-danger w-100" type="submit" formaction="@Url.Action("RemoveDomain")"
+                        onclick="return confirm('Remove the custom domain? Your team will go back to using @(tenant.Slug).thrivehealth.ng.');">
+                    Remove
+                </button>
+            </div>
+        }
+    </form>
+</div></div>
+
+@if (hasDomain)
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h5 class="mb-1">2. Verify ownership</h5>
+                <p class="text-muted small mb-0">Add a TXT record at your DNS provider to prove you control <strong>@tenant.CustomDomain</strong>.</p>
+            </div>
+            @if (isVerified)
+            {
+                <span class="badge bg-success" style="font-size: .85rem; padding: 6px 12px;">
+                    <i class="bi bi-check-circle me-1"></i> Verified @tenant.CustomDomainVerifiedAt?.ToString("dd MMM yyyy")
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-warning text-dark" style="font-size: .85rem; padding: 6px 12px;">
+                    <i class="bi bi-clock me-1"></i> Awaiting verification
+                </span>
+            }
+        </div>
+
+        <div class="border rounded p-3 mb-3" style="background: #f8fafc;">
+            <div class="row g-2 small">
+                <div class="col-md-2 text-muted">Record type</div>
+                <div class="col-md-10"><code>TXT</code></div>
+                <div class="col-md-2 text-muted">Host / Name</div>
+                <div class="col-md-10"><code>@txtHost</code></div>
+                <div class="col-md-2 text-muted">Value</div>
+                <div class="col-md-10"><code style="word-break: break-all;">@tenant.CustomDomainVerificationToken</code></div>
+                <div class="col-md-2 text-muted">TTL</div>
+                <div class="col-md-10"><code>300</code> (or your provider's lowest)</div>
+            </div>
+        </div>
+
+        <form asp-action="VerifyDomain" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-success" @(isVerified ? "" : "")>
+                <i class="bi bi-shield-check me-1"></i> @(isVerified ? "Re-verify" : "Verify TXT record")
+            </button>
+        </form>
+        <span class="text-muted small ms-2">DNS changes can take up to 30 minutes to propagate.</span>
+    </div></div>
+
+    <div class="th-card"><div class="th-card-body">
+        <h5 class="mb-3">3. Point traffic at us</h5>
+        <p class="text-muted small">Once verified, add this CNAME so requests to <strong>@tenant.CustomDomain</strong> reach your workspace.</p>
+
+        <div class="border rounded p-3 mb-3" style="background: #f8fafc;">
+            <div class="row g-2 small">
+                <div class="col-md-2 text-muted">Record type</div>
+                <div class="col-md-10"><code>CNAME</code></div>
+                <div class="col-md-2 text-muted">Host / Name</div>
+                <div class="col-md-10"><code>@tenant.CustomDomain</code></div>
+                <div class="col-md-2 text-muted">Target</div>
+                <div class="col-md-10"><code>@cnameTarget</code></div>
+            </div>
+        </div>
+
+        <div class="alert alert-info small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            We provision a free TLS certificate automatically once the CNAME is live. The first request after the DNS flip may take a few seconds while the cert is issued — after that it's instant.
+            If you're using Cloudflare, set the proxy mode to <strong>DNS only</strong> (grey cloud) for the first 24 hours.
+        </div>
+    </div></div>
+}
+else
+{
+    <div class="th-card"><div class="th-card-body text-center py-4">
+        <i class="bi bi-globe2" style="font-size: 2rem; color: #94a3b8;"></i>
+        <p class="text-muted mt-2 mb-0">Save a domain above to see DNS instructions.</p>
+    </div></div>
+}

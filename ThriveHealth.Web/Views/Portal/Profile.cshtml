@@ -1,0 +1,81 @@
+@model ThriveHealth.Web.Models.ViewModels.PortalProfileViewModel
+@{ ViewData["Title"] = "Hospital profile"; }
+
+<h1 class="th-section-title mb-1">Your hospital profile</h1>
+<p class="text-muted small mb-3">We need a complete record before we can issue a bill or schedule a consult.</p>
+
+@if (Model.MissingFields.Any())
+{
+    <div class="alert alert-warning d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+        <div>
+            <strong>Please complete:</strong>
+            <ul class="mb-0 mt-1 small">
+                @foreach (var f in Model.MissingFields) { <li>@f</li> }
+            </ul>
+        </div>
+    </div>
+}
+
+<form asp-action="Profile" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="RedirectAfter" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Hospital number</label>
+                <input value="@Model.HospitalNumber" class="form-control" readonly />
+                <div class="form-text">Issued by the facility — cannot be changed here.</div>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="FirstName" class="form-label">First name</label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="LastName" class="form-label">Last name</label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DateOfBirth" class="form-label">Date of birth</label>
+                <input asp-for="DateOfBirth" type="date" class="form-control" />
+                <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Sex" class="form-label">Sex</label>
+                <select asp-for="Sex" class="form-select">
+                    <option value="">Select…</option>
+                    <option value="1">Male</option>
+                    <option value="2">Female</option>
+                </select>
+                <span asp-validation-for="Sex" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Phone" class="form-label">Phone</label>
+                <input asp-for="Phone" class="form-control" placeholder="+234..." />
+                <span asp-validation-for="Phone" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="StreetAddress" class="form-label">Address (optional)</label>
+                <input asp-for="StreetAddress" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Lga" class="form-label">LGA</label>
+                <input asp-for="Lga" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="State" class="form-label">State</label>
+                <input asp-for="State" class="form-control" />
+            </div>
+        </div>
+    </div></div>
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-check2 me-1"></i> Save profile</button>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

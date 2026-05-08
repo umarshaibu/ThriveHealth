@@ -1,0 +1,77 @@
+@model ThriveHealth.Web.Models.ViewModels.AncListViewModel
+@using ThriveHealth.Web.Models.Maternity
+@{
+    ViewData["Title"] = "Maternity · ANC";
+
+    string Tone(AnteNatalStatus s) => s switch
+    {
+        AnteNatalStatus.Booked => "th-pill-info",
+        AnteNatalStatus.Delivered => "th-pill-success",
+        AnteNatalStatus.LostToFollowUp => "th-pill-warning",
+        AnteNatalStatus.Transferred => "th-pill-muted",
+        AnteNatalStatus.Aborted => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Antenatal clinic</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count records · @Model.ActiveCount active · @Model.HighRiskCount high-risk</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex"><input type="search" name="q" value="@Model.Search" class="form-control" placeholder="Name, ANC #, hospital #…" /></form>
+        <a asp-action="Book" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AncManage" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Book ANC</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-heart-pulse"></i></div><div class="th-stat-label">Active mothers</div><div class="th-stat-value">@Model.ActiveCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-shield-exclamation"></i></div><div class="th-stat-label">High risk</div><div class="th-stat-value">@Model.HighRiskCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-calendar-event"></i></div><div class="th-stat-label">Due this week</div><div class="th-stat-value">@Model.DueThisWeekCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-people"></i></div><div class="th-stat-label">Total visible</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a asp-action="Index" class="btn btn-sm @(Model.FilterStatus is null ? "btn-primary" : "btn-outline-secondary")">All</a>
+    <a asp-action="Index" asp-route-status="@AnteNatalStatus.Booked" class="btn btn-sm @(Model.FilterStatus == AnteNatalStatus.Booked ? "btn-primary" : "btn-outline-secondary")">Booked</a>
+    <a asp-action="Index" asp-route-status="@AnteNatalStatus.Delivered" class="btn btn-sm @(Model.FilterStatus == AnteNatalStatus.Delivered ? "btn-primary" : "btn-outline-secondary")">Delivered</a>
+    <a asp-action="Index" asp-route-status="@AnteNatalStatus.LostToFollowUp" class="btn btn-sm @(Model.FilterStatus == AnteNatalStatus.LostToFollowUp ? "btn-primary" : "btn-outline-secondary")">Lost</a>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-heart"></i><h5 class="mt-2">No ANC records</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>ANC #</th><th>Mother</th><th>G/P/A</th><th>LMP / EDD</th><th>GA</th><th>Visits</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr class="@(r.IsHighRisk ? "table-warning" : "")">
+                <td><span class="font-monospace">@r.Record.AncNumber</span></td>
+                <td>
+                    <strong>@r.Patient.FullName</strong>@if (r.IsHighRisk) { <span class="th-pill th-pill-danger ms-1">High risk</span> }
+                    <div class="small text-muted">@r.Patient.HospitalNumber · @r.Patient.AgeYears yo</div>
+                </td>
+                <td><small>G@(r.Record.Gravida) · P@(r.Record.Para) · A@(r.Record.Abortions)</small></td>
+                <td>
+                    <small>LMP: @(r.Record.Lmp?.ToString("dd MMM yyyy") ?? "—")</small><br />
+                    <small>EDD: @(r.Record.Edd?.ToString("dd MMM yyyy") ?? "—")</small>
+                </td>
+                <td>@(r.GestationalAgeWeeks?.ToString() ?? "—") wk</td>
+                <td>@r.VisitsCount</td>
+                <td><span class="th-pill @Tone(r.Record.Status)">@r.Record.Status</span></td>
+                <td class="text-end"><a asp-action="Detail" asp-route-id="@r.Record.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

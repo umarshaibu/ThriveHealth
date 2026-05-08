@@ -1,0 +1,101 @@
+@model ThriveHealth.Web.Models.Telemedicine.TeleSession
+@using ThriveHealth.Web.Models.Telemedicine
+@{
+    ViewData["Title"] = $"Tele-session · {Model.SessionNumber}";
+    var intakes = ViewBag.Intakes as List<ThriveHealth.Web.Models.Portal.PortalSymptomIntake> ?? new();
+    string Tone(TeleSessionStatus s) => s switch
+    {
+        TeleSessionStatus.Requested => "th-pill-warning",
+        TeleSessionStatus.Scheduled => "th-pill-info",
+        TeleSessionStatus.PatientWaiting => "th-pill-danger",
+        TeleSessionStatus.InCall => "th-pill-success",
+        TeleSessionStatus.Completed => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">Tele-session <span class="font-monospace">@Model.SessionNumber</span></h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill @Tone(Model.Status)">@Model.Status</span>
+            <span class="th-pill th-pill-muted">@Model.Mode</span>
+            <span class="th-pill th-pill-muted">@Model.Patient?.FullName · @Model.Patient?.HospitalNumber</span>
+            @if (Model.PatientJoinedAt.HasValue) { <span class="th-pill th-pill-info">Patient joined</span> }
+            @if (Model.ClinicianJoinedAt.HasValue) { <span class="th-pill th-pill-success">Clinician joined</span> }
+        </div>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Sessions</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Session</h6>
+            <dl class="row mb-0">
+                <dt class="col-4">Scheduled</dt><dd class="col-8">@Model.ScheduledStartUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+                <dt class="col-4">Patient joined</dt><dd class="col-8">@(Model.PatientJoinedAt?.ToLocalTime().ToString("HH:mm") ?? "—")</dd>
+                <dt class="col-4">Clinician joined</dt><dd class="col-8">@(Model.ClinicianJoinedAt?.ToLocalTime().ToString("HH:mm") ?? "—")</dd>
+                <dt class="col-4">Started</dt><dd class="col-8">@(Model.StartedAt?.ToLocalTime().ToString("HH:mm") ?? "—")</dd>
+                <dt class="col-4">Ended</dt><dd class="col-8">@(Model.EndedAt?.ToLocalTime().ToString("HH:mm") ?? "—") @(Model.StartedAt.HasValue ? $"({Model.DurationMinutes} min)" : "")</dd>
+                <dt class="col-4">Reason</dt><dd class="col-8">@Model.ConsultationReason</dd>
+                <dt class="col-4">Clinician</dt><dd class="col-8">@(Model.Clinician?.FullName ?? "— unassigned —")</dd>
+            </dl>
+        </div></div>
+
+        @if (intakes.Any())
+        {
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard2-pulse me-1"></i> Recent symptom intake</h6>
+                @foreach (var i in intakes)
+                {
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between"><strong>@i.ChiefComplaint</strong><small class="text-muted">@i.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></div>
+                        <div class="small">@i.Symptoms</div>
+                        @if (i.DurationDays.HasValue) { <span class="th-pill th-pill-muted">@i.DurationDays day@(i.DurationDays == 1 ? "" : "s")</span> }
+                        <span class="th-pill @(i.Severity == ThriveHealth.Web.Models.Portal.SymptomSeverity.Severe ? "th-pill-danger" : i.Severity == ThriveHealth.Web.Models.Portal.SymptomSeverity.Moderate ? "th-pill-warning" : "th-pill-info")">@i.Severity</span>
+                    </div>
+                }
+            </div></div>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-arrow-right-circle me-1"></i> Actions</h6>
+            <div class="d-grid gap-2">
+                @if (Model.Status == TeleSessionStatus.Requested && Model.ClinicianId is null)
+                {
+                    <form asp-action="Claim" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><button class="btn btn-outline-primary w-100"><i class="bi bi-hand-thumbs-up me-1"></i> Claim session</button></form>
+                }
+                @if (Model.Status is not TeleSessionStatus.Completed and not TeleSessionStatus.Cancelled)
+                {
+                    var isChat = Model.Mode == TeleSessionMode.Chat;
+                    var joinIcon = isChat ? "bi-chat-dots" : (Model.Mode == TeleSessionMode.Audio ? "bi-telephone" : "bi-camera-video");
+                    var joinLabel = isChat ? "Start chat" : "Join call";
+                    <form asp-action="Join" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><button class="btn btn-success w-100"><i class="bi @joinIcon me-1"></i> @joinLabel</button></form>
+                    <form asp-action="Cancel" method="post" onsubmit="return confirm('Cancel this session?')" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><button class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-x-circle me-1"></i> Cancel</button></form>
+                }
+                @if (Model.Status is TeleSessionStatus.InCall or TeleSessionStatus.PatientWaiting)
+                {
+                    <form asp-action="End" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <textarea name="notes" class="form-control mb-2" rows="3" placeholder="Clinical notes…"></textarea>
+                        <button class="btn btn-outline-secondary w-100"><i class="bi bi-stop-circle me-1"></i> End call</button>
+                    </form>
+                }
+            </div>
+        </div></div>
+
+        @if (!string.IsNullOrEmpty(Model.ClinicianNotes))
+        {
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-journal-text me-1"></i> Clinician notes</h6>
+                <div style="white-space:pre-wrap">@Model.ClinicianNotes</div>
+            </div></div>
+        }
+    </div>
+</div>

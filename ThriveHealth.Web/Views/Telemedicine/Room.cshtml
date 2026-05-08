@@ -1,0 +1,437 @@
+@model ThriveHealth.Web.Models.Telemedicine.TeleSession
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@{
+    ViewData["Title"] = $"Tele-room · {Model.SessionNumber}";
+    var csrfToken = Xsrf.GetAndStoreTokens(Context).RequestToken;
+    var role = ViewBag.Role as string ?? "Clinician";
+    Layout = role == "Patient" ? "_PortalLayout" : "_Layout";
+    var displayName = role == "Clinician"
+        ? (Model.Clinician?.FullName ?? "Clinician")
+        : (Model.Patient?.FullName ?? "Patient");
+    var afterCallUrl = role == "Clinician"
+        ? Url.Action("Detail", "Telemedicine", new { id = Model.Id })
+        : Url.Action("Telemed", "Portal");
+    var liveKitConfigured = (bool?)ViewBag.LiveKitConfigured ?? false;
+    var liveKitUrl = ViewBag.LiveKitUrl as string;
+    var liveKitToken = ViewBag.LiveKitToken as string;
+    var liveKitRoom = ViewBag.LiveKitRoom as string;
+    var modeKey = Model.Mode switch {
+        ThriveHealth.Web.Models.Telemedicine.TeleSessionMode.Audio => "audio",
+        ThriveHealth.Web.Models.Telemedicine.TeleSessionMode.Chat => "chat",
+        _ => "video"
+    };
+    var confirmJoinUrl = role == "Clinician"
+        ? Url.Action("ConfirmJoin", "Telemedicine", new { id = Model.Id })
+        : Url.Action("ConfirmJoin", "Portal", new { teleSessionId = Model.Id });
+}
+
+<style>
+    .th-tele-stage { position: relative; height: 70vh; min-height: 480px; background: #0b1020; border-radius: 12px; overflow: hidden; color: #fff; }
+    .th-tele-remote { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; background: #0b1020; }
+    .th-tele-remote video { flex: 1 1 0; min-width: 0; height: 100%; object-fit: contain; }
+    .th-tele-remote .placeholder { width: 100%; height: 100%; object-fit: contain; }
+    .th-tele-remote .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; opacity: .8; }
+    .th-tele-remote .placeholder i { font-size: 4rem; opacity: 0.5; }
+    .th-tele-self { position: absolute; bottom: 84px; right: 16px; width: 200px; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.1); }
+    .th-tele-self video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .th-tele-bar { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: .5rem; padding: .5rem; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); border-radius: 999px; }
+    .th-tele-bar .btn { width: 44px; height: 44px; padding: 0; border-radius: 999px; }
+    .th-tele-banner { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.55); padding: .25rem .75rem; border-radius: 999px; font-size: .8rem; }
+    .th-tele-status { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.55); padding: .25rem .75rem; border-radius: 999px; font-size: .8rem; }
+    .th-tele-quality { position: absolute; top: 12px; right: 130px; background: rgba(0,0,0,.55); padding: .25rem .5rem; border-radius: 999px; font-size: .75rem; display: flex; align-items: center; gap: 4px; }
+    .th-tele-quality .dot { width: 8px; height: 8px; border-radius: 50%; background: #6c757d; display: inline-block; }
+    .th-tele-quality.q-excellent .dot { background: #198754; }
+    .th-tele-quality.q-good .dot { background: #ffc107; }
+    .th-tele-quality.q-poor .dot { background: #dc3545; }
+    .th-consent-overlay { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(11,16,32,.92); padding: 24px; }
+    .th-consent-overlay .card { max-width: 540px; width: 100%; padding: 24px; border-radius: 12px; background: #fff; }
+    .th-tele-stage.mode-chat .th-tele-remote { display: none; }
+    .th-tele-stage.mode-chat .th-tele-self { display: none !important; }
+    .th-tele-stage.mode-audio .th-tele-self { display: none !important; }
+    .th-tele-stage.mode-audio .th-tele-remote video { display: none; }
+    .th-tele-bar.mode-chat #th-tele-mic, .th-tele-bar.mode-chat #th-tele-cam, .th-tele-bar.mode-chat #th-tele-screen { display: none; }
+    .th-tele-bar.mode-audio #th-tele-cam, .th-tele-bar.mode-audio #th-tele-screen { display: none; }
+    .th-tele-chat { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16px; gap: 8px; color: #fff; }
+    .th-tele-chat-list { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+    .th-tele-chat-list .msg { background: rgba(255,255,255,.08); padding: 8px 12px; border-radius: 12px; max-width: 78%; word-break: break-word; }
+    .th-tele-chat-list .msg.me { align-self: flex-end; background: #0d6efd; }
+    .th-tele-chat-list .msg .who { font-size: .7rem; opacity: .7; margin-bottom: 2px; }
+    .th-tele-chat-list .system { align-self: center; font-size: .75rem; opacity: .65; }
+    .th-tele-chat-form { display: flex; gap: 8px; }
+    .th-tele-chat-form input { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.15); }
+    .th-tele-chat-form input::placeholder { color: rgba(255,255,255,.5); }
+    @@media (max-width: 768px) {
+        .th-tele-stage { height: 60vh; min-height: 360px; }
+        .th-tele-self { width: 120px; bottom: 80px; right: 12px; }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">Tele-consultation</h1>
+        <small class="text-muted">@Model.SessionNumber · @Model.Mode · @role · with @displayName</small>
+    </div>
+    <div class="d-flex gap-2">
+        @if (role == "Clinician")
+        {
+            <a asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Session</a>
+            <form asp-action="End" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button class="btn btn-danger btn-sm" onclick="return confirm('End the call?')"><i class="bi bi-telephone-x me-1"></i> End call</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-danger btn-sm" asp-controller="Portal" asp-action="Telemed"><i class="bi bi-telephone-x me-1"></i> Leave call</a>
+        }
+    </div>
+</div>
+
+@if (!liveKitConfigured)
+{
+    <div class="alert alert-warning d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+        <div>
+            <strong>Tele-medicine is not yet configured.</strong>
+            <div class="small mb-0">
+                Set <code>Telemedicine:LiveKit:Url</code>, <code>ApiKey</code> and <code>ApiSecret</code> in
+                <code>appsettings.json</code> (or user-secrets) to enable live video. Use LiveKit Cloud
+                (livekit.io) for the free tier, or point at a self-hosted LiveKit server.
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-@(role == "Clinician" ? "8" : "12")">
+        <div class="th-card h-100"><div class="th-card-body p-0">
+            <div id="th-tele-stage" class="th-tele-stage mode-@modeKey"
+                 data-livekit-url="@liveKitUrl"
+                 data-livekit-token="@liveKitToken"
+                 data-livekit-room="@liveKitRoom"
+                 data-mode="@modeKey"
+                 data-confirm-url="@confirmJoinUrl"
+                 data-csrf="@csrfToken"
+                 data-after-call-url="@(afterCallUrl ?? "/")"
+                 data-display-name="@displayName">
+                <div id="th-tele-remote" class="th-tele-remote">
+                    <div class="placeholder" id="th-tele-remote-placeholder">
+                        @switch (modeKey)
+                        {
+                            case "audio":
+                                <i class="bi bi-mic-fill"></i>
+                                <div class="text-center"><div class="h5 mb-1">Audio call</div><small class="opacity-75">Connecting…</small></div>
+                                break;
+                            case "chat":
+                                <i class="bi bi-chat-dots"></i>
+                                <div class="text-center"><div class="h5 mb-1">Chat session</div><small class="opacity-75">Connecting…</small></div>
+                                break;
+                            default:
+                                <i class="bi bi-camera-video"></i>
+                                <div class="text-center"><div class="h5 mb-1">Connecting…</div><small class="opacity-75">Waiting for the other side to join</small></div>
+                                break;
+                        }
+                    </div>
+                </div>
+                <div class="th-tele-self d-none" id="th-tele-self">
+                    <video id="th-tele-self-video" autoplay playsinline muted></video>
+                </div>
+                @if (modeKey == "chat")
+                {
+                    <div class="th-tele-chat" id="th-tele-chat">
+                        <div class="th-tele-chat-list" id="th-tele-chat-list"></div>
+                        <form id="th-tele-chat-form" class="th-tele-chat-form">
+                            <input type="text" class="form-control" id="th-tele-chat-input" placeholder="Type a message and press Enter…" autocomplete="off" maxlength="500" />
+                            <button class="btn btn-primary" type="submit" title="Send"><i class="bi bi-send"></i></button>
+                        </form>
+                    </div>
+                }
+                <div class="th-tele-banner"><i class="bi bi-shield-lock me-1"></i> End-to-end encrypted</div>
+                <div class="th-tele-quality d-none" id="th-tele-quality"><span class="dot"></span><span class="label">—</span></div>
+                <div class="th-tele-status" id="th-tele-status">Initialising…</div>
+                <div class="th-consent-overlay" id="th-consent-overlay" data-session-id="@Model.Id" data-role="@role">
+                    <div class="card text-dark">
+                        <h5 class="mb-2"><i class="bi bi-shield-check me-1 text-success"></i> Consent to consult</h5>
+                        <p class="small mb-2">By joining this tele-consultation you understand and accept that:</p>
+                        <ul class="small mb-3">
+                            <li>Notes, prescriptions and orders captured during the call become part of your medical record.</li>
+                            <li>The video and audio stream is end-to-end encrypted and is not stored.</li>
+                            @if (role == "Clinician")
+                            {
+                                <li>You are bound by your professional code of conduct and medical-council guidelines on tele-medicine practice.</li>
+                            }
+                            else
+                            {
+                                <li>Tele-medicine has limitations — some examinations require an in-person visit. The clinician will tell you if a face-to-face follow-up is needed.</li>
+                            }
+                        </ul>
+                        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="th-consent-check" /><label class="form-check-label small" for="th-consent-check">I have read and agree to the above.</label></div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="@(afterCallUrl ?? "/")" class="btn btn-outline-secondary btn-sm">Decline &amp; leave</a>
+                            <button class="btn btn-success btn-sm" id="th-consent-accept" disabled><i class="bi bi-camera-video me-1"></i> Join the call</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="th-tele-bar mode-@modeKey">
+                    <button id="th-tele-mic" class="btn btn-light" type="button" title="Mute / unmute"><i class="bi bi-mic-fill"></i></button>
+                    <button id="th-tele-cam" class="btn btn-light" type="button" title="Camera on / off"><i class="bi bi-camera-video-fill"></i></button>
+                    <button id="th-tele-screen" class="btn btn-light" type="button" title="Share screen"><i class="bi bi-display"></i></button>
+                    <button id="th-tele-hangup" class="btn btn-danger" type="button" title="Leave"><i class="bi bi-telephone-x"></i></button>
+                </div>
+            </div>
+        </div></div>
+    </div>
+
+    @if (role == "Clinician")
+    {
+        var soap = Model.Encounter?.Soap;
+        <div class="col-lg-4">
+            <div class="th-card h-100"><div class="th-card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-journal-text me-1"></i> Consult notes</h6>
+                    <span id="th-notes-status" class="small text-muted">—</span>
+                </div>
+                <form id="th-notes-form" data-session-id="@Model.Id" data-csrf="@csrfToken">
+                    <div class="mb-2">
+                        <label class="form-label small mb-1">Subjective <span class="text-muted">(history, symptoms)</span></label>
+                        <textarea class="form-control form-control-sm" name="Subjective" rows="3" placeholder="HPI, ICE, allergies, current meds…">@(soap?.Subjective)</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small mb-1">Objective <span class="text-muted">(exam findings)</span></label>
+                        <textarea class="form-control form-control-sm" name="Objective" rows="3" placeholder="Vitals reported, observations on video…">@(soap?.Objective)</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small mb-1">Assessment <span class="text-muted">(diagnosis)</span></label>
+                        <textarea class="form-control form-control-sm" name="Assessment" rows="3" placeholder="Working dx, differentials…">@(soap?.Assessment)</textarea>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label small mb-1">Plan <span class="text-muted">(rx, follow-up)</span></label>
+                        <textarea class="form-control form-control-sm" name="Plan" rows="3" placeholder="Medications, investigations, advice, follow-up…">@(soap?.Plan)</textarea>
+                    </div>
+                    <div class="form-text small">Auto-saves every few seconds. End the call to sign off.</div>
+                </form>
+            </div></div>
+        </div>
+    }
+</div>
+
+@if (role == "Clinician")
+{
+    var prescriptions = Model.Encounter?.Prescriptions?.SelectMany(p => p.Items).ToList() ?? new();
+    var labs = Model.Encounter?.LabOrders?.ToList() ?? new();
+    var imagings = Model.Encounter?.ImagingOrders?.ToList() ?? new();
+    var certs = (ViewBag.Certificates as List<ThriveHealth.Web.Models.Clinical.MedicalCertificate>) ?? new();
+    var refs = (ViewBag.Referrals as List<ThriveHealth.Web.Models.Clinical.Referral>) ?? new();
+    var followUps = (ViewBag.FollowUps as List<ThriveHealth.Web.Models.Scheduling.Appointment>) ?? new();
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-clipboard2-pulse me-1"></i> Consult actions</h6>
+            <span id="th-actions-status" class="small text-muted">—</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#thRxModal"><i class="bi bi-prescription2 me-1"></i> Prescribe</button>
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#thLabModal"><i class="bi bi-droplet-half me-1"></i> Order lab</button>
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#thImgModal"><i class="bi bi-image me-1"></i> Order imaging</button>
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#thSickModal"><i class="bi bi-file-earmark-medical me-1"></i> Sick note</button>
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#thReferModal"><i class="bi bi-person-arms-up me-1"></i> Refer</button>
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#thFollowModal"><i class="bi bi-calendar-plus me-1"></i> Follow-up</button>
+        </div>
+
+        <div class="row g-3 small">
+            <div class="col-md-6">
+                <div class="text-uppercase text-muted small mb-1">Prescriptions</div>
+                <ul class="list-unstyled mb-0" id="th-rx-list">
+                    @foreach (var item in prescriptions)
+                    {
+                        <li class="border-bottom py-1"><strong>@item.DrugName</strong> @item.Dose · @item.Frequency · @item.Duration @if (!string.IsNullOrEmpty(item.Instructions)) { <text>— <span class="text-muted">@item.Instructions</span></text> }</li>
+                    }
+                    @if (!prescriptions.Any()) { <li class="text-muted">None issued yet.</li> }
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="text-uppercase text-muted small mb-1">Lab orders</div>
+                <ul class="list-unstyled mb-0" id="th-lab-list">
+                    @foreach (var lo in labs)
+                    {
+                        <li class="border-bottom py-1"><strong>@lo.TestName</strong> · <span class="text-muted">@lo.Urgency</span> @if (!string.IsNullOrEmpty(lo.ClinicalIndication)) { <text>— @lo.ClinicalIndication</text> }</li>
+                    }
+                    @if (!labs.Any()) { <li class="text-muted">None ordered yet.</li> }
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="text-uppercase text-muted small mb-1">Imaging orders</div>
+                <ul class="list-unstyled mb-0" id="th-img-list">
+                    @foreach (var io in imagings)
+                    {
+                        <li class="border-bottom py-1"><strong>@io.Modality — @io.StudyDescription</strong> · <span class="text-muted">@io.Urgency</span> @if (!string.IsNullOrEmpty(io.ClinicalIndication)) { <text>— @io.ClinicalIndication</text> }</li>
+                    }
+                    @if (!imagings.Any()) { <li class="text-muted">None ordered yet.</li> }
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="text-uppercase text-muted small mb-1">Sick notes</div>
+                <ul class="list-unstyled mb-0" id="th-sick-list">
+                    @foreach (var c in certs)
+                    {
+                        <li class="border-bottom py-1">
+                            <strong>@c.CertificateNumber</strong> — @c.DaysOff day(s) (@c.StartDate.ToString("dd MMM") – @c.EndDate.ToString("dd MMM"))
+                            <a class="ms-2" target="_blank" asp-action="SickNote" asp-route-certId="@c.Id"><i class="bi bi-printer"></i> Print</a>
+                        </li>
+                    }
+                    @if (!certs.Any()) { <li class="text-muted">None issued yet.</li> }
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="text-uppercase text-muted small mb-1">Referrals</div>
+                <ul class="list-unstyled mb-0" id="th-ref-list">
+                    @foreach (var r in refs)
+                    {
+                        <li class="border-bottom py-1"><strong>@r.ReferralNumber</strong> — @(r.ReferredToClinician?.FullName ?? r.Specialty) @if (!string.IsNullOrEmpty(r.Reason)) { <text>· @r.Reason</text> }</li>
+                    }
+                    @if (!refs.Any()) { <li class="text-muted">None made yet.</li> }
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="text-uppercase text-muted small mb-1">Follow-up appointments</div>
+                <ul class="list-unstyled mb-0" id="th-follow-list">
+                    @foreach (var f in followUps)
+                    {
+                        <li class="border-bottom py-1"><strong>@f.Type</strong> · @f.ScheduledStartUtc.ToLocalTime().ToString("ddd dd MMM HH:mm") @if (!string.IsNullOrEmpty(f.ReasonForVisit)) { <text>— @f.ReasonForVisit</text> }</li>
+                    }
+                    @if (!followUps.Any()) { <li class="text-muted">None booked yet.</li> }
+                </ul>
+            </div>
+        </div>
+    </div></div>
+
+    @* ─── Modals ─────────────────────────────────────────────────────────── *@
+    <div class="modal fade" id="thRxModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Add prescription item</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <form id="th-rx-form" autocomplete="off">
+                <div class="mb-2"><label class="form-label small">Medication</label>
+                    <input type="text" class="form-control" name="DrugName" data-search-url="/Telemedicine/SearchDrugs" placeholder="Type to search the formulary…" required />
+                    <input type="hidden" name="DrugId" />
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-3"><label class="form-label small">Dose</label><input class="form-control" name="Dose" placeholder="500 mg" /></div>
+                    <div class="col-md-3"><label class="form-label small">Route</label><select class="form-select" name="Route"><option value="">—</option><option>PO</option><option>IV</option><option>IM</option><option>SC</option><option>Topical</option><option>PR</option></select></div>
+                    <div class="col-md-3"><label class="form-label small">Frequency</label><select class="form-select" name="Frequency"><option value="">—</option><option>OD (daily)</option><option>BD (twice daily)</option><option>TDS (3× daily)</option><option>QDS (4× daily)</option><option>PRN (as needed)</option><option>STAT (one-off)</option></select></div>
+                    <div class="col-md-3"><label class="form-label small">Duration</label><input class="form-control" name="Duration" placeholder="5 days" /></div>
+                    <div class="col-md-3"><label class="form-label small">Quantity</label><input type="number" min="1" class="form-control" name="Quantity" /></div>
+                    <div class="col-md-9"><label class="form-label small">Instructions</label><input class="form-control" name="Instructions" placeholder="Take after meals" /></div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-th-submit="rx">Add to prescription</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="thLabModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Order a lab test</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="th-lab-form" autocomplete="off">
+            <div class="mb-2"><label class="form-label small">Test</label>
+                <input class="form-control" name="TestName" data-search-url="/Telemedicine/SearchLabTests" placeholder="Type to search lab tests…" required />
+                <input type="hidden" name="LabTestId" />
+            </div>
+            <div class="row g-2">
+                <div class="col-md-9"><label class="form-label small">Clinical indication</label><input class="form-control" name="ClinicalIndication" placeholder="Why this test?" /></div>
+                <div class="col-md-3"><label class="form-label small">Urgency</label><select class="form-select" name="Urgency"><option value="1">Routine</option><option value="2">Urgent</option><option value="3">STAT</option></select></div>
+            </div>
+        </form></div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-th-submit="lab">Order test</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="thImgModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Order imaging</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="th-img-form" autocomplete="off">
+            <div class="row g-2">
+                <div class="col-md-3"><label class="form-label small">Modality</label><select class="form-select" name="Modality">
+                    <option value="1">X-Ray</option><option value="2">Ultrasound</option><option value="3">CT</option><option value="4">MRI</option><option value="5">Mammography</option><option value="6">Fluoroscopy</option><option value="99">Other</option>
+                </select></div>
+                <div class="col-md-9"><label class="form-label small">Study description</label><input class="form-control" name="StudyDescription" placeholder="e.g. Chest X-ray PA view" required /></div>
+                <div class="col-md-9"><label class="form-label small">Clinical indication</label><input class="form-control" name="ClinicalIndication" placeholder="Why this study?" /></div>
+                <div class="col-md-3"><label class="form-label small">Urgency</label><select class="form-select" name="Urgency"><option value="1">Routine</option><option value="2">Urgent</option><option value="3">STAT</option></select></div>
+            </div>
+        </form></div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-th-submit="img">Order study</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="thSickModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Issue medical certificate</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="th-sick-form" autocomplete="off">
+            <div class="row g-2">
+                <div class="col-md-4"><label class="form-label small">From</label><input type="date" class="form-control" name="StartDate" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required /></div>
+                <div class="col-md-4"><label class="form-label small">Until</label><input type="date" class="form-control" name="EndDate" value="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd")" required /></div>
+                <div class="col-md-4"><label class="form-label small">ICD-10 (optional)</label><input class="form-control" name="IcdCode" placeholder="J06.9" /></div>
+                <div class="col-12"><label class="form-label small">Diagnosis</label><input class="form-control" name="Diagnosis" placeholder="e.g. Acute upper respiratory tract infection" /></div>
+                <div class="col-12"><label class="form-label small">Recommendations</label><textarea class="form-control" name="Recommendations" rows="2" placeholder="Bed rest, increased fluids, return if symptoms worsen."></textarea></div>
+            </div>
+        </form></div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-th-submit="sick">Issue certificate</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="thReferModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Refer to a specialist</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="th-ref-form" autocomplete="off">
+            <div class="row g-2">
+                <div class="col-md-6"><label class="form-label small">Refer to</label>
+                    <input class="form-control" name="ReferredToName" data-search-url="/Telemedicine/SearchSpecialists" placeholder="Type a name or department…" />
+                    <input type="hidden" name="ReferredToClinicianId" />
+                </div>
+                <div class="col-md-6"><label class="form-label small">Specialty (if no specific clinician)</label><input class="form-control" name="Specialty" placeholder="Cardiology, Gynaecology…" /></div>
+                <div class="col-12"><label class="form-label small">Reason</label><input class="form-control" name="Reason" placeholder="Concise reason for the referral" /></div>
+                <div class="col-12"><label class="form-label small">Clinical summary</label><textarea class="form-control" name="ClinicalSummary" rows="3" placeholder="HPI, exam, current management, what you'd like the specialist to do…"></textarea></div>
+            </div>
+        </form></div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-th-submit="ref">Send referral</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="thFollowModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Book follow-up</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="th-follow-form" autocomplete="off">
+            <div class="row g-2">
+                <div class="col-md-4"><label class="form-label small">When</label><input type="datetime-local" class="form-control" name="ScheduledStartUtc" value="@DateTime.UtcNow.AddDays(14).ToString("yyyy-MM-ddTHH:mm")" required /></div>
+                <div class="col-md-4"><label class="form-label small">Type</label><select class="form-select" name="Type"><option value="2">In-person follow-up</option><option value="6">Tele-medicine</option></select></div>
+                <div class="col-md-4"><label class="form-label small">Duration (mins)</label><input type="number" min="5" max="120" class="form-control" name="DurationMinutes" value="15" /></div>
+                <div class="col-12"><label class="form-label small">Reason</label><input class="form-control" name="ReasonForVisit" placeholder="Review treatment response, repeat labs, etc." /></div>
+            </div>
+        </form></div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-th-submit="follow">Book follow-up</button></div>
+    </div></div></div>
+
+    <input type="hidden" id="th-csrf" value="@csrfToken" />
+    <input type="hidden" id="th-session-id" value="@Model.Id" />
+}
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Reason for consultation</h6>
+            <p class="mb-0">@(string.IsNullOrEmpty(Model.ConsultationReason) ? "—" : Model.ConsultationReason)</p>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-shield-check me-1"></i> Privacy</h6>
+            <p class="mb-0 small text-muted">
+                Powered by LiveKit over end-to-end encrypted WebRTC. Allow camera and microphone
+                when prompted. Your access is scoped to this session only and tokens expire automatically.
+            </p>
+        </div></div>
+    </div>
+</div>
+
+@section Scripts {
+@if (liveKitConfigured)
+{
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+    <script src="~/js/tele-room.js" asp-append-version="true"></script>
+}
+@if (role == "Clinician")
+{
+    <script src="~/js/tele-notes.js" asp-append-version="true"></script>
+    <script src="~/js/tele-actions.js" asp-append-version="true"></script>
+}
+}

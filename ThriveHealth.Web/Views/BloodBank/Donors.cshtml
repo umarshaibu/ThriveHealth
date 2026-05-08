@@ -1,0 +1,52 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.BloodBank.BloodDonor>
+@{
+    ViewData["Title"] = "Blood donors";
+    var search = ViewBag.Search as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Donors</h1>
+        <p class="th-section-sub mb-0">@Model.Count donor record@(Model.Count == 1 ? "" : "s")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex"><input type="search" name="q" value="@search" class="form-control" placeholder="Name / donor #…" /></form>
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bank</a>
+        <a asp-action="NewDonor" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Register donor</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-person-plus"></i><h5 class="mt-2">No donors</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Donor #</th><th>Name</th><th>Group</th><th>Type</th><th>Status</th><th>Last donation</th><th>Donations</th><th>Screening</th></tr></thead>
+        <tbody>
+        @foreach (var d in Model)
+        {
+            <tr>
+                <td><span class="font-monospace small">@d.DonorNumber</span></td>
+                <td><strong>@d.FullName</strong>@if (!string.IsNullOrEmpty(d.Phone)) { <div class="small text-muted">@d.Phone</div> }</td>
+                <td>@d.BloodGroup @(d.RhesusPositive == true ? "+" : d.RhesusPositive == false ? "−" : "")</td>
+                <td><small>@d.DonorType</small></td>
+                <td><span class="th-pill @(d.Status == ThriveHealth.Web.Models.BloodBank.DonationStatus.Accepted ? "th-pill-success" : d.Status == ThriveHealth.Web.Models.BloodBank.DonationStatus.Deferred ? "th-pill-warning" : "th-pill-danger")">@d.Status</span></td>
+                <td>@(d.LastDonationDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                <td>@d.TotalDonations</td>
+                <td><small>
+                    @if (d.HivNegative == true) { <span class="badge bg-success">HIV−</span> }
+                    @if (d.HepBNegative == true) { <span class="badge bg-success">HBV−</span> }
+                    @if (d.HepCNegative == true) { <span class="badge bg-success">HCV−</span> }
+                    @if (d.VdrlNegative == true) { <span class="badge bg-success">VDRL−</span> }
+                </small></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

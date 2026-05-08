@@ -1,0 +1,130 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.Telemedicine.TeleSession>
+@using ThriveHealth.Web.Models.Telemedicine
+@using ThriveHealth.Web.Models.Billing
+@{
+    ViewData["Title"] = "Tele-consultations";
+    string Tone(TeleSessionStatus s) => s switch
+    {
+        TeleSessionStatus.Requested => "th-pill-warning",
+        TeleSessionStatus.Scheduled => "th-pill-info",
+        TeleSessionStatus.PatientWaiting => "th-pill-warning",
+        TeleSessionStatus.InCall => "th-pill-success",
+        TeleSessionStatus.Completed => "th-pill-muted",
+        TeleSessionStatus.Cancelled => "th-pill-muted",
+        TeleSessionStatus.NoShowPatient => "th-pill-danger",
+        TeleSessionStatus.NoShowClinician => "th-pill-danger",
+        _ => "th-pill-muted"
+    };
+    bool CanJoin(TeleSession s) =>
+        s.Status is TeleSessionStatus.Requested or TeleSessionStatus.Scheduled or TeleSessionStatus.PatientWaiting or TeleSessionStatus.InCall;
+    bool CanCancel(TeleSession s) =>
+        s.Status is TeleSessionStatus.Requested or TeleSessionStatus.Scheduled or TeleSessionStatus.PatientWaiting;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">Tele-consultations</h1>
+    <a asp-action="RequestTelemed" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Request</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
+@if (TempData["Info"] != null) { <div class="alert alert-info">@TempData["Info"]</div> }
+
+@if (!Model.Any())
+{
+    <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-camera-video"></i><h5 class="mt-2">No tele-sessions yet</h5><a asp-action="RequestTelemed" class="btn btn-primary mt-2"><i class="bi bi-plus-circle me-1"></i> Request a consultation</a></div></div>
+}
+else
+{
+    foreach (var s in Model)
+    {
+        <div class="th-card mb-3"><div class="th-card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <strong>@s.ConsultationReason</strong>
+                    <div class="small text-muted">@s.SessionNumber · @s.Mode · @s.ScheduledStartUtc.ToLocalTime().ToString("ddd dd MMM HH:mm")</div>
+                </div>
+                <span class="th-pill @Tone(s.Status)">@s.Status</span>
+            </div>
+            @if (s.Clinician != null) { <div class="small">With Dr @s.Clinician.FullName</div> }
+            @{ var unpaid = s.Bill is not null && s.Bill.Status != ThriveHealth.Web.Models.Billing.BillStatus.Paid; }
+            @if (unpaid)
+            {
+                <div class="alert alert-warning small mt-2 mb-2 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-exclamation-triangle me-1"></i> Bill <strong>@s.Bill!.BillNumber</strong> outstanding — @s.Bill.Balance.ToString("N2") due.</span>
+                    <a asp-action="Pay" asp-route-teleSessionId="@s.Id" class="btn btn-warning btn-sm"><i class="bi bi-credit-card me-1"></i> Pay now</a>
+                </div>
+            }
+            else if (CanJoin(s))
+            {
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    @if (s.Mode == TeleSessionMode.Chat)
+                    {
+                        <a asp-action="Chat" class="btn btn-success btn-sm"><i class="bi bi-chat-dots me-1"></i> Start chat</a>
+                    }
+                    else
+                    {
+                        <a asp-action="Room" asp-route-token="@s.RoomToken" class="btn btn-success btn-sm"><i class="bi bi-@(s.Mode == TeleSessionMode.Audio ? "telephone" : "camera-video") me-1"></i> Join @(s.Mode == TeleSessionMode.Audio ? "call" : "call")</a>
+                    }
+                    <a asp-action="Intake" asp-route-teleSessionId="@s.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil-square me-1"></i> Symptom intake</a>
+                    @if (CanCancel(s))
+                    {
+                        var hours = (s.ScheduledStartUtc - DateTime.UtcNow).TotalHours;
+                        var refundLabel = hours >= 2 ? "(full refund)" : "(50% refund — late cancel)";
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#thCancel-@s.Id"><i class="bi bi-x-circle me-1"></i> Cancel @refundLabel</button>
+
+                        <div class="modal fade" id="thCancel-@s.Id" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                            <form asp-action="CancelTele" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="teleSessionId" value="@s.Id" />
+                                <div class="modal-header"><h5 class="modal-title">Cancel @s.SessionNumber</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+                                <div class="modal-body">
+                                    <p class="small mb-2">Cancel your tele-consult @refundLabel.</p>
+                                    <div class="mb-2"><label class="form-label small">Reason (optional)</label><input class="form-control" name="reason" placeholder="Feeling better, scheduling conflict…" /></div>
+                                    <div class="alert alert-info small mb-0">
+                                        <strong>Cancellation policy:</strong> 100% refund if cancelled at least 2 hours before the scheduled time. 50% refund within the 2-hour window. No-shows forfeit the consult fee.
+                                    </div>
+                                </div>
+                                <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal" type="button">Keep consult</button><button class="btn btn-danger">Confirm cancellation</button></div>
+                            </form>
+                        </div></div></div>
+                    }
+                </div>
+            }
+            else if (s.Status == TeleSessionStatus.Completed && !s.PatientRating.HasValue)
+            {
+                <form asp-action="RateTele" method="post" class="mt-3 border-top pt-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="teleSessionId" value="@s.Id" />
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="text-muted small">Rate this consult:</span>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Rating">
+                            @for (var n = 1; n <= 5; n++)
+                            {
+                                <input type="radio" class="btn-check" name="rating" id="r@(s.Id)-@n" value="@n" autocomplete="off" />
+                                <label class="btn btn-outline-warning" for="r@(s.Id)-@n">@n ★</label>
+                            }
+                        </div>
+                        <input class="form-control form-control-sm flex-grow-1" name="feedback" placeholder="Anything we can improve? (optional)" maxlength="500" />
+                        <button class="btn btn-primary btn-sm">Submit</button>
+                    </div>
+                </form>
+            }
+            else if (s.Status == TeleSessionStatus.Completed && s.PatientRating.HasValue)
+            {
+                <div class="small text-muted mt-2">You rated this consult @s.PatientRating★@(string.IsNullOrEmpty(s.PatientFeedback) ? "" : " — \"" + s.PatientFeedback + "\"")</div>
+            }
+            else if (s.Status is TeleSessionStatus.Cancelled or TeleSessionStatus.NoShowPatient or TeleSessionStatus.NoShowClinician)
+            {
+                <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>
+                    @(s.Status switch {
+                        TeleSessionStatus.Cancelled => "Cancelled",
+                        TeleSessionStatus.NoShowPatient => "Marked no-show — fee forfeited",
+                        TeleSessionStatus.NoShowClinician => "Clinician unavailable — refund processed",
+                        _ => "Closed"
+                    })
+                </div>
+            }
+        </div></div>
+    }
+}

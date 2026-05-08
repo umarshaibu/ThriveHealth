@@ -1,0 +1,173 @@
+@model ThriveHealth.Web.Models.ViewModels.PurchaseOrderEditViewModel
+@{
+    ViewData["Title"] = "New PO";
+    var suppliers = ViewBag.Suppliers as List<ThriveHealth.Web.Models.Inventory.Supplier>;
+    var stores = ViewBag.Stores as List<ThriveHealth.Web.Models.Pharmacy.PharmacyStore>;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">New purchase order</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
+</div>
+
+<form asp-action="Create" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-3">Supplier &amp; delivery</h6>
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label asp-for="SupplierId" class="form-label">Supplier</label>
+                <select asp-for="SupplierId" class="form-select">
+                    <option value="">--</option>
+                    @foreach (var s in suppliers ?? new()) { <option value="@s.Id">@s.Name (@s.Code)</option> }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="StoreId" class="form-label">Delivery store</label>
+                <select asp-for="StoreId" class="form-select">
+                    <option value="">--</option>
+                    @foreach (var s in stores ?? new()) { <option value="@s.Id">@s.Code · @s.Name</option> }
+                </select>
+            </div>
+            <div class="col-md-2"><label asp-for="ExpectedDate" class="form-label">Expected</label><input asp-for="ExpectedDate" type="date" class="form-control" /></div>
+            <div class="col-md-2"><label asp-for="PaymentTerms" class="form-label">Terms</label><input asp-for="PaymentTerms" class="form-control" placeholder="Net 30" /></div>
+            <div class="col-md-12"><label asp-for="Notes" class="form-label">Notes</label><input asp-for="Notes" class="form-control" /></div>
+        </div>
+    </div></div>
+
+    <div class="th-card mb-3">
+        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-list-ul me-1 text-primary"></i> Lines</h5></div>
+        <div class="th-card-body">
+            <div id="lines"></div>
+            <button type="button" id="addDrugLine" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-capsule me-1"></i> Add drug line</button>
+            <button type="button" id="addItemLine" class="btn btn-sm btn-outline-primary"><i class="bi bi-box me-1"></i> Add inventory line</button>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Save draft PO</button>
+    </div>
+</form>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+let i = 0;
+const $lines = document.getElementById('lines');
+
+function row(html) {
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 po-line border-bottom pb-2';
+    div.innerHTML = html;
+    $lines.appendChild(div);
+    bindAutocompletes();
+}
+
+function drugRow() {
+    row(`
+        <input type="hidden" name="Lines[${i}].DrugId" class="drug-id" />
+        <div class="col-md-5 position-relative">
+            <input class="form-control drug-search" placeholder="Search drug…" autocomplete="off" />
+            <input type="hidden" name="Lines[${i}].Description" class="line-desc" />
+            <input type="hidden" name="Lines[${i}].UnitOfIssue" class="line-uoi" />
+            <div class="results list-group position-absolute w-100" style="z-index:50;"></div>
+        </div>
+        <div class="col-md-2"><input class="form-control" name="Lines[${i}].Quantity" type="number" placeholder="Qty" value="0" /></div>
+        <div class="col-md-3"><input class="form-control line-price" name="Lines[${i}].UnitPrice" type="number" step="0.01" placeholder="Unit price" value="0" /></div>
+        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-line"><i class="bi bi-trash"></i></button></div>
+    `);
+    i++;
+}
+
+function itemRow() {
+    row(`
+        <input type="hidden" name="Lines[${i}].InventoryItemId" class="item-id" />
+        <div class="col-md-5 position-relative">
+            <input class="form-control item-search" placeholder="Search inventory item…" autocomplete="off" />
+            <input type="hidden" name="Lines[${i}].Description" class="line-desc" />
+            <input type="hidden" name="Lines[${i}].UnitOfIssue" class="line-uoi" />
+            <div class="results list-group position-absolute w-100" style="z-index:50;"></div>
+        </div>
+        <div class="col-md-2"><input class="form-control" name="Lines[${i}].Quantity" type="number" placeholder="Qty" value="0" /></div>
+        <div class="col-md-3"><input class="form-control line-price" name="Lines[${i}].UnitPrice" type="number" step="0.01" placeholder="Unit price" value="0" /></div>
+        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-line"><i class="bi bi-trash"></i></button></div>
+    `);
+    i++;
+}
+
+document.getElementById('addDrugLine').addEventListener('click', drugRow);
+document.getElementById('addItemLine').addEventListener('click', itemRow);
+
+function bindAutocompletes() {
+    document.querySelectorAll('.drug-search').forEach(input => {
+        if (input.dataset.bound) return;
+        input.dataset.bound = '1';
+        let t;
+        input.addEventListener('input', () => {
+            clearTimeout(t);
+            const q = input.value.trim();
+            const $r = input.parentElement.querySelector('.results');
+            if (q.length < 2) { $r.innerHTML = ''; return; }
+            t = setTimeout(async () => {
+                const r = await fetch('/Drugs/Search?q=' + encodeURIComponent(q));
+                const items = await r.json();
+                $r.innerHTML = items.map(d =>
+                    `<a href="#" class="list-group-item list-group-item-action small" data-id="${d.id}" data-name="${d.generic} ${d.strength}" data-uoi="" data-price="${d.unitPrice ?? 0}">
+                        <strong>${d.generic}</strong> ${d.strength} <small class="text-muted">${d.form}</small>
+                    </a>`).join('');
+                $r.querySelectorAll('a').forEach(el => el.addEventListener('click', e => {
+                    e.preventDefault();
+                    input.value = el.dataset.name;
+                    const wrap = input.closest('.po-line');
+                    wrap.querySelector('.drug-id').value = el.dataset.id;
+                    wrap.querySelector('.line-desc').value = el.dataset.name;
+                    wrap.querySelector('.line-uoi').value = el.dataset.uoi || '';
+                    if (parseFloat(wrap.querySelector('.line-price').value || '0') === 0)
+                        wrap.querySelector('.line-price').value = el.dataset.price;
+                    $r.innerHTML = '';
+                }));
+            }, 200);
+        });
+    });
+    document.querySelectorAll('.item-search').forEach(input => {
+        if (input.dataset.bound) return;
+        input.dataset.bound = '1';
+        let t;
+        input.addEventListener('input', () => {
+            clearTimeout(t);
+            const q = input.value.trim();
+            const $r = input.parentElement.querySelector('.results');
+            if (q.length < 2) { $r.innerHTML = ''; return; }
+            t = setTimeout(async () => {
+                const r = await fetch('/InventoryItems/Search?q=' + encodeURIComponent(q));
+                const items = await r.json();
+                $r.innerHTML = items.map(it =>
+                    `<a href="#" class="list-group-item list-group-item-action small" data-id="${it.id}" data-name="${it.name}" data-uoi="${it.unit ?? ''}" data-price="${it.price ?? 0}">
+                        <strong>${it.name}</strong> <small class="text-muted">${it.code} · ${it.category}</small>${it.unit ? ' · ' + it.unit : ''}
+                    </a>`).join('');
+                $r.querySelectorAll('a').forEach(el => el.addEventListener('click', e => {
+                    e.preventDefault();
+                    input.value = el.dataset.name;
+                    const wrap = input.closest('.po-line');
+                    wrap.querySelector('.item-id').value = el.dataset.id;
+                    wrap.querySelector('.line-desc').value = el.dataset.name;
+                    wrap.querySelector('.line-uoi').value = el.dataset.uoi || '';
+                    if (parseFloat(wrap.querySelector('.line-price').value || '0') === 0)
+                        wrap.querySelector('.line-price').value = el.dataset.price;
+                    $r.innerHTML = '';
+                }));
+            }, 200);
+        });
+    });
+    document.querySelectorAll('.remove-line').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', () => btn.closest('.po-line').remove());
+    });
+}
+
+drugRow();
+</script>
+}

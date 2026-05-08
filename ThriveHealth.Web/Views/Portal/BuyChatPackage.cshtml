@@ -1,0 +1,36 @@
+@{
+    ViewData["Title"] = "Buy chat package";
+    var price = (decimal?)ViewBag.Price ?? 2_500m;
+}
+
+<h1 class="th-section-title mb-1">24-hour chat package</h1>
+<p class="text-muted small mb-3">Best for back-and-forth questions, follow-ups and quick check-ins.</p>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <div class="row g-3 align-items-center">
+        <div class="col-md-7">
+            <ul class="mb-0 small">
+                <li><strong>Unlimited messages</strong> with the on-call clinician for 24 hours.</li>
+                <li>No need to request a new consult each time you have a question.</li>
+                <li>Replaces the per-consult fee while active.</li>
+                <li>Auto-expires after 24 hours; renew if needed.</li>
+            </ul>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <div class="display-6 fw-bold">NGN @price.ToString("N0")</div>
+            <div class="small text-muted">One-time, 24 hours of access</div>
+        </div>
+    </div>
+</div></div>
+
+<form asp-action="BuyChatPackage" method="post">
+    @Html.AntiForgeryToken()
+    <div class="alert alert-info small d-flex align-items-start gap-2">
+        <i class="bi bi-info-circle-fill mt-1"></i>
+        <div>You'll be redirected to the secure payment page. Your chat package activates immediately after payment confirms.</div>
+    </div>
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Chat" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-stars me-1"></i> Pay NGN @price.ToString("N0")</button>
+    </div>
+</form>

@@ -1,0 +1,52 @@
+@model ThriveHealth.Web.Models.Telemedicine.TeleSession
+@{
+    ViewData["Title"] = "Payment result";
+    var paid = (bool?)ViewBag.Paid ?? false;
+}
+
+<h1 class="th-section-title mb-3">@(paid ? "Payment confirmed" : "Payment incomplete")</h1>
+
+@if (paid)
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="d-flex align-items-start gap-3">
+            <div class="flex-shrink-0"><i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i></div>
+            <div class="flex-grow-1">
+                <h5 class="mb-1">You're all set</h5>
+                <p class="mb-0 text-muted">
+                    Bill <strong>@Model.Bill?.BillNumber</strong> has been settled. Your tele-consult
+                    <strong>@Model.SessionNumber</strong> is now scheduled for
+                    <strong>@Model.ScheduledStartUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</strong>.
+                </p>
+                <p class="mb-0 small text-muted mt-2">
+                    A clinician will pick up the consult shortly before the scheduled time. You'll see a
+                    <em>Join</em> button next to this session on your tele-medicine page when the call is ready.
+                </p>
+            </div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="Telemed" class="btn btn-primary"><i class="bi bi-camera-video me-1"></i> Back to tele-consults</a>
+        @{ var receiptId = (int?)ViewBag.LatestPaymentId; }
+        @if (receiptId.HasValue)
+        {
+            <a asp-action="Receipt" asp-route-paymentId="@receiptId.Value" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i> Print receipt</a>
+        }
+        <a asp-action="Bills" class="btn btn-outline-secondary"><i class="bi bi-receipt me-1"></i> All bills &amp; receipts</a>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+        <div>
+            <strong>Payment was not completed.</strong>
+            <div class="small mb-0">Your consult is still pending payment. Try again, or contact billing if you were charged.</div>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Pay" asp-route-teleSessionId="@Model.Id" class="btn btn-primary"><i class="bi bi-arrow-clockwise me-1"></i> Retry payment</a>
+        <a asp-action="Telemed" class="btn btn-outline-secondary">Back to tele-consults</a>
+    </div>
+}

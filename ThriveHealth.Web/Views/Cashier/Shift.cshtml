@@ -1,0 +1,107 @@
+@{
+    ViewData["Title"] = "Cashier shift";
+    var open = (bool)(ViewBag.Open ?? false);
+    var shift = ViewBag.Shift as ThriveHealth.Web.Models.Billing.CashierShift;
+    var summary = ViewBag.Summary as ThriveHealth.Web.Services.ShiftSummary;
+    var openModel = Model as ThriveHealth.Web.Models.ViewModels.OpenShiftViewModel;
+    var closeModel = Model as ThriveHealth.Web.Models.ViewModels.CloseShiftViewModel;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">My cashier shift</h1>
+        @if (open)
+        {
+            <p class="th-section-sub mb-0">Shift <span class="font-monospace">@shift?.ShiftNumber</span> · opened @shift?.OpenedAt.ToLocalTime().ToString("dd MMM HH:mm")</p>
+        }
+        else
+        {
+            <p class="th-section-sub mb-0">No open shift — open one to start taking payments</p>
+        }
+    </div>
+    <a asp-action="Bills" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bills</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+@if (!open)
+{
+    <form asp-action="OpenShift" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.CashierShiftManage">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="th-card"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-cash-stack me-1"></i> Open shift</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Opening cash float (₦)</label>
+                        <input name="OpeningFloat" type="number" step="0.01" min="0" class="form-control" value="@(openModel?.OpeningFloat ?? 5000m)" />
+                    </div>
+                    <button class="btn btn-primary"><i class="bi bi-unlock me-1"></i> Open shift</button>
+                </div></div>
+            </div>
+        </div>
+    </form>
+}
+else if (closeModel != null)
+{
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-graph-up me-1"></i> Shift takings</h6>
+                <div class="row g-2">
+                    <div class="col-md-4"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-cash"></i></div><div class="th-stat-label">Cash</div><div class="th-stat-value">₦@summary?.Cash.ToString("N0")</div></div></div>
+                    <div class="col-md-4"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-credit-card"></i></div><div class="th-stat-label">POS</div><div class="th-stat-value">₦@summary?.Pos.ToString("N0")</div></div></div>
+                    <div class="col-md-4"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-bank"></i></div><div class="th-stat-label">Transfer</div><div class="th-stat-value">₦@summary?.Transfer.ToString("N0")</div></div></div>
+                    <div class="col-md-4"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-phone"></i></div><div class="th-stat-label">Mobile</div><div class="th-stat-value">₦@summary?.MobileMoney.ToString("N0")</div></div></div>
+                    <div class="col-md-4"><div class="th-stat tone-muted"><div class="th-stat-icon"><i class="bi bi-paperclip"></i></div><div class="th-stat-label">Cheque</div><div class="th-stat-value">₦@summary?.Cheque.ToString("N0")</div></div></div>
+                    <div class="col-md-4"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-receipt"></i></div><div class="th-stat-label">Receipts</div><div class="th-stat-value">@summary?.Receipts</div></div></div>
+                </div>
+                <dl class="row mt-3 mb-0">
+                    <dt class="col-8 fw-bold">Total received</dt><dd class="col-4 text-end fw-bold fs-5">₦@summary?.Total.ToString("N2")</dd>
+                </dl>
+            </div></div>
+        </div>
+
+        <div class="col-lg-5">
+            <form asp-action="CloseShift" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.CashierShiftManage">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ShiftId" value="@closeModel.ShiftId" />
+                <input type="hidden" name="ExpectedCash" value="@closeModel.ExpectedCash" />
+                <div class="th-card"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-lock me-1"></i> Close shift</h6>
+                    <dl class="row mb-3">
+                        <dt class="col-7">Opening float</dt><dd class="col-5 text-end">₦@shift?.OpeningFloat.ToString("N2")</dd>
+                        <dt class="col-7">Cash takings</dt><dd class="col-5 text-end">₦@summary?.Cash.ToString("N2")</dd>
+                        <dt class="col-7 border-top pt-2 fw-bold">Expected cash</dt><dd class="col-5 text-end border-top pt-2 fw-bold">₦@closeModel.ExpectedCash.ToString("N2")</dd>
+                    </dl>
+                    <div class="mb-3">
+                        <label class="form-label">Counted cash on hand (₦)</label>
+                        <input name="CountedCash" type="number" step="0.01" min="0" class="form-control" id="countedCash" value="@closeModel.CountedCash" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Variance</label>
+                        <div class="form-control bg-light text-end" id="varianceVal">₦0.00</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Notes</label><textarea name="Notes" class="form-control" rows="2">@closeModel.Notes</textarea></div>
+                    <button class="btn btn-warning w-100" onclick="return confirm('Close this shift? This will lock further payments under this shift.')"><i class="bi bi-lock me-1"></i> Close shift</button>
+                </div></div>
+            </form>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            var expected = @closeModel.ExpectedCash;
+            function r() {
+                var c = parseFloat(document.getElementById('countedCash').value || 0);
+                var v = c - expected;
+                var el = document.getElementById('varianceVal');
+                el.textContent = (v < 0 ? '−' : v > 0 ? '+' : '') + '₦' + Math.abs(v).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                el.className = 'form-control text-end ' + (Math.abs(v) < 0.01 ? 'bg-light' : v < 0 ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle');
+            }
+            document.getElementById('countedCash').addEventListener('input', r);
+            r();
+        </script>
+    }
+}

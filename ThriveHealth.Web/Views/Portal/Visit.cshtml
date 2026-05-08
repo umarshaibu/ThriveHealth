@@ -1,0 +1,179 @@
+@model ThriveHealth.Web.Models.Clinical.Encounter
+@using ThriveHealth.Web.Models.Clinical
+@{
+    ViewData["Title"] = $"Visit · {Model.StartedAt.ToLocalTime():dd MMM yyyy}";
+    var soap = Model.Soap;
+    var certs = (ViewBag.Certificates as List<MedicalCertificate>) ?? new();
+    var refs = (ViewBag.Referrals as List<Referral>) ?? new();
+    var tele = ViewBag.TeleSession as ThriveHealth.Web.Models.Telemedicine.TeleSession;
+    var rxItems = Model.Prescriptions.SelectMany(p => p.Items).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">Visit details</h1>
+        <p class="text-muted small mb-0">@Model.StartedAt.ToLocalTime().ToString("dddd dd MMMM yyyy 'at' HH:mm") · @Model.Type · @(Model.Clinic?.Name ?? "—")</p>
+    </div>
+    <a asp-action="Visits" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to visits</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="th-card h-100"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person-badge me-1"></i> Clinician</h6>
+            <div class="fw-semibold">Dr @(Model.Clinician?.FullName ?? "—")</div>
+            <div class="small text-muted">@Model.Clinician?.Designation @(string.IsNullOrEmpty(Model.Clinician?.LicenseBody) ? "" : "· " + Model.Clinician?.LicenseBody + " " + Model.Clinician?.LicenseNumber)</div>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card h-100"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Reason</h6>
+            <p class="mb-0">@(Model.ChiefComplaint ?? "—")</p>
+            @if (tele != null)
+            {
+                <div class="small text-muted mt-1">Tele-session @tele.SessionNumber · @tele.Mode · @tele.DurationMinutes min</div>
+            }
+        </div></div>
+    </div>
+</div>
+
+@if (soap != null && (!string.IsNullOrEmpty(soap.Subjective) || !string.IsNullOrEmpty(soap.Objective) || !string.IsNullOrEmpty(soap.Assessment) || !string.IsNullOrEmpty(soap.Plan)))
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-journal-text me-1"></i> Clinician's notes</h6>
+        <dl class="row mb-0 small">
+            @if (!string.IsNullOrEmpty(soap.Subjective)) { <dt class="col-sm-3 text-muted">History</dt><dd class="col-sm-9" style="white-space: pre-wrap;">@soap.Subjective</dd> }
+            @if (!string.IsNullOrEmpty(soap.Objective)) { <dt class="col-sm-3 text-muted">Examination</dt><dd class="col-sm-9" style="white-space: pre-wrap;">@soap.Objective</dd> }
+            @if (!string.IsNullOrEmpty(soap.Assessment)) { <dt class="col-sm-3 text-muted">Assessment</dt><dd class="col-sm-9" style="white-space: pre-wrap;">@soap.Assessment</dd> }
+            @if (!string.IsNullOrEmpty(soap.Plan)) { <dt class="col-sm-3 text-muted">Plan</dt><dd class="col-sm-9" style="white-space: pre-wrap;">@soap.Plan</dd> }
+        </dl>
+    </div></div>
+}
+
+@if (Model.Diagnoses.Any())
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard-pulse me-1"></i> Diagnoses</h6>
+        <ul class="list-unstyled mb-0">
+            @foreach (var d in Model.Diagnoses.OrderByDescending(x => x.IsPrimary))
+            {
+                <li class="border-bottom py-2 d-flex justify-content-between align-items-center">
+                    <div><strong>@d.Description</strong> <span class="small text-muted">(ICD-10 @d.IcdCode)</span></div>
+                    <div class="d-flex gap-1">
+                        @if (d.IsPrimary) { <span class="th-pill th-pill-info">Primary</span> }
+                        <span class="th-pill th-pill-muted">@d.Status</span>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div></div>
+}
+
+@if (rxItems.Any())
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-prescription2 me-1"></i> Prescriptions</h6>
+        <ul class="list-unstyled mb-0">
+            @foreach (var item in rxItems)
+            {
+                <li class="border-bottom py-2">
+                    <strong>@item.DrugName</strong>
+                    <div class="small text-muted">
+                        @item.Dose · @item.Route · @item.Frequency · @item.Duration
+                        @if (item.Quantity.HasValue) { <text> · qty @item.Quantity</text> }
+                    </div>
+                    @if (!string.IsNullOrEmpty(item.Instructions))
+                    {
+                        <div class="small">@item.Instructions</div>
+                    }
+                </li>
+            }
+        </ul>
+    </div></div>
+}
+
+@if (Model.LabOrders.Any() || Model.ImagingOrders.Any())
+{
+    <div class="row g-3 mb-3">
+        @if (Model.LabOrders.Any())
+        {
+            <div class="col-md-6">
+                <div class="th-card h-100"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-droplet-half me-1"></i> Lab orders</h6>
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach (var o in Model.LabOrders)
+                        {
+                            <li class="border-bottom py-2 d-flex justify-content-between">
+                                <a class="text-decoration-none" asp-action="LabResult" asp-route-orderId="@o.Id">@o.TestName</a>
+                                <span class="th-pill th-pill-@(o.Status == OrderStatus.Completed ? "success" : "warning")">@o.Status</span>
+                            </li>
+                        }
+                    </ul>
+                </div></div>
+            </div>
+        }
+        @if (Model.ImagingOrders.Any())
+        {
+            <div class="col-md-6">
+                <div class="th-card h-100"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-image me-1"></i> Imaging</h6>
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach (var o in Model.ImagingOrders)
+                        {
+                            <li class="border-bottom py-2 d-flex justify-content-between">
+                                <a class="text-decoration-none" asp-action="ImagingReport" asp-route-orderId="@o.Id">@o.Modality — @o.StudyDescription</a>
+                                <span class="th-pill th-pill-@(o.Status == OrderStatus.Completed ? "success" : "warning")">@o.Status</span>
+                            </li>
+                        }
+                    </ul>
+                </div></div>
+            </div>
+        }
+    </div>
+}
+
+@if (certs.Any() || refs.Any())
+{
+    <div class="row g-3 mb-3">
+        @if (certs.Any())
+        {
+            <div class="col-md-6">
+                <div class="th-card h-100"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-file-earmark-medical me-1"></i> Sick notes</h6>
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach (var c in certs)
+                        {
+                            <li class="border-bottom py-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@c.CertificateNumber</strong> — @c.DaysOff day(s)
+                                    <div class="text-muted">@c.StartDate.ToString("dd MMM") – @c.EndDate.ToString("dd MMM")</div>
+                                </div>
+                                <a class="btn btn-outline-secondary btn-sm" target="_blank" asp-controller="Telemedicine" asp-action="SickNote" asp-route-certId="@c.Id"><i class="bi bi-printer"></i> View</a>
+                            </li>
+                        }
+                    </ul>
+                </div></div>
+            </div>
+        }
+        @if (refs.Any())
+        {
+            <div class="col-md-6">
+                <div class="th-card h-100"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person-arms-up me-1"></i> Referrals</h6>
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach (var r in refs)
+                        {
+                            <li class="border-bottom py-2">
+                                <strong>@r.ReferralNumber</strong> — @(r.ReferredToClinician?.FullName ?? r.Specialty)
+                                @if (!string.IsNullOrEmpty(r.Reason))
+                                {
+                                    <div class="text-muted">@r.Reason</div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div></div>
+            </div>
+        }
+    </div>
+}

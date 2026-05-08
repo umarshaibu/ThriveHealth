@@ -1,0 +1,37 @@
+@{ ViewData["Title"] = "Adherence parser"; }
+
+<div class="row"><div class="col-lg-8">
+    <h1 class="th-section-title"><i class="bi bi-chat-square-text text-primary me-1"></i> Medication adherence parser <span class="th-pill th-pill-info ms-2">SUGGESTION — clinician decides escalation</span></h1>
+    <p class="th-section-sub">Paste a patient's free-text SMS reply about their medication. The assistant classifies adherence, flags side-effects, and drafts a reassuring reply (≤160 chars).</p>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Drug name</label><input id="aDrug" class="form-control" placeholder="e.g. amlodipine 10 mg daily" /></div>
+            <div class="col-md-6"><label class="form-label">Patient (age/sex, optional)</label><input id="aPatient" class="form-control" placeholder="55y female" /></div>
+            <div class="col-12"><label class="form-label">Patient SMS reply</label><textarea id="aSms" class="form-control" rows="4" placeholder="e.g. The drug is making me dizzy so I stopped after 3 days"></textarea></div>
+        </div>
+        <div class="text-end mt-3"><button class="btn btn-primary" onclick="runAdherence()"><i class="bi bi-stars me-1"></i> Classify</button></div>
+    </div></div>
+
+    <div class="th-card" id="aCard" style="display:none">
+        <div class="th-card-header"><h5 class="th-card-title mb-0">AI classification</h5></div>
+        <div class="th-card-body"><pre id="aOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
+    </div>
+</div></div>
+
+@section Scripts {
+<script>
+async function runAdherence() {
+    var drug = document.getElementById('aDrug').value.trim();
+    var sms = document.getElementById('aSms').value.trim();
+    if (!drug || !sms) return;
+    var card = document.getElementById('aCard'); var out = document.getElementById('aOut');
+    card.style.display = 'block'; out.textContent = 'Classifying…';
+    try {
+        var r = await fetch('/Ai/AdherenceParseRun', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drugName: drug, smsReply: sms, patientAgeSex: document.getElementById('aPatient').value || null }) });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

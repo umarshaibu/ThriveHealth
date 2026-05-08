@@ -1,0 +1,90 @@
+@model ThriveHealth.Web.Models.ViewModels.HrProfileEditViewModel
+@{ ViewData["Title"] = $"HR profile · {Model.FullName}"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">HR profile · @Model.FullName</h1>
+        <p class="th-section-sub mb-0">Staff @Model.StaffNumber · @Model.Designation</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Staff list</a>
+</div>
+
+<form asp-action="Profile" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.HrRead">
+    <input type="hidden" asp-for="UserId" />
+    <input type="hidden" asp-for="FullName" />
+    <input type="hidden" asp-for="StaffNumber" />
+    <input type="hidden" asp-for="Designation" />
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-check me-1"></i> Licence</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="LicenseBody" class="form-label"></label>
+                        <select asp-for="LicenseBody" class="form-select">
+                            <option value="">—</option>
+                            <option>MDCN</option><option>NMCN</option><option>PCN</option>
+                            <option>MLSCN</option><option>RRBN</option><option>MRTBN</option>
+                            <option>ODORBN</option><option>DRCN</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label asp-for="LicenseNumber" class="form-label"></label><input asp-for="LicenseNumber" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="LicenseExpiry" class="form-label"></label><input asp-for="LicenseExpiry" type="date" class="form-control" /></div>
+                </div>
+            </div></div>
+
+            <div class="th-card mt-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-briefcase me-1"></i> Employment</h6>
+                <div class="row g-3">
+                    <div class="col-md-4"><label asp-for="EmploymentType" class="form-label"></label>
+                        <select asp-for="EmploymentType" class="form-select">
+                            <option value="1">Permanent</option><option value="2">Contract</option>
+                            <option value="3">Locum</option><option value="4">Volunteer</option><option value="5">Intern</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label asp-for="Status" class="form-label"></label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="1">Active</option><option value="2">On leave</option><option value="3">Suspended</option>
+                            <option value="4">Resigned</option><option value="5">Dismissed</option><option value="6">Retired</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label asp-for="GradeLevel" class="form-label"></label><input asp-for="GradeLevel" class="form-control" placeholder="GL10" /></div>
+                    <div class="col-md-4"><label asp-for="HireDate" class="form-label"></label><input asp-for="HireDate" type="date" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label"></label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="Position" class="form-label"></label><input asp-for="Position" class="form-control" /></div>
+                    <div class="col-md-12"><label asp-for="UnitOrSection" class="form-label"></label><input asp-for="UnitOrSection" class="form-control" /></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-cash me-1"></i> Payroll</h6>
+                <div class="row g-3">
+                    <div class="col-md-12"><label asp-for="GrossMonthlySalary" class="form-label"></label><input asp-for="GrossMonthlySalary" type="number" step="0.01" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="PfaPin" class="form-label"></label><input asp-for="PfaPin" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="NhfNumber" class="form-label"></label><input asp-for="NhfNumber" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="PayeTin" class="form-label"></label><input asp-for="PayeTin" class="form-control" /></div>
+                    <div class="col-md-7"><label asp-for="BankName" class="form-label"></label><input asp-for="BankName" class="form-control" /></div>
+                    <div class="col-md-5"><label asp-for="BankAccountNumber" class="form-label"></label><input asp-for="BankAccountNumber" class="form-control" /></div>
+                </div>
+            </div></div>
+
+            <div class="th-card mt-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person-vcard me-1"></i> Emergency contact</h6>
+                <div class="row g-3">
+                    <div class="col-md-7"><label asp-for="EmergencyContactName" class="form-label">Name</label><input asp-for="EmergencyContactName" class="form-control" /></div>
+                    <div class="col-md-5"><label asp-for="EmergencyContactPhone" class="form-label">Phone</label><input asp-for="EmergencyContactPhone" class="form-control" /></div>
+                </div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save profile</button>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

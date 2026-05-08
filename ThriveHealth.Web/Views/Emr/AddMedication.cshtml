@@ -1,0 +1,81 @@
+@model ThriveHealth.Web.Models.ViewModels.MedicationEditViewModel
+@{
+    ViewData["Title"] = "Add medication";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <h1 class="th-section-title">Record a medication</h1>
+        <p class="th-section-sub">For drugs the patient is currently taking — including OTC, herbal, and externally prescribed.</p>
+
+        <form asp-action="AddMedication" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+            <div class="th-card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+                <input type="hidden" asp-for="PatientId" />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="DrugName" class="form-label"></label>
+                        <input asp-for="DrugName" class="form-control" placeholder="Amlodipine, Metformin..." />
+                        <span asp-validation-for="DrugName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Dose" class="form-label"></label>
+                        <input asp-for="Dose" class="form-control" placeholder="10 mg" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Route" class="form-label"></label>
+                        <select asp-for="Route" class="form-select">
+                            <option value="">--</option>
+                            <option>PO</option><option>IV</option><option>IM</option>
+                            <option>SC</option><option>PR</option><option>Inhaled</option><option>Topical</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Frequency" class="form-label"></label>
+                        <select asp-for="Frequency" class="form-select">
+                            <option value="">--</option>
+                            <option>OD (once daily)</option><option>BD (twice daily)</option>
+                            <option>TDS (thrice daily)</option><option>QDS (four times)</option>
+                            <option>PRN (as needed)</option><option>STAT</option><option>Weekly</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Source" class="form-label"></label>
+                        <select asp-for="Source" class="form-select">
+                            <option value="1">Prescribed (this facility)</option>
+                            <option value="2">OTC</option>
+                            <option value="3">External Rx</option>
+                            <option value="4">Herbal / Traditional</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="StartDate" class="form-label"></label>
+                        <input asp-for="StartDate" class="form-control" type="date" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="EndDate" class="form-label"></label>
+                        <input asp-for="EndDate" class="form-control" type="date" />
+                    </div>
+                    <div class="col-md-12 d-flex align-items-center">
+                        <div class="form-check">
+                            <input asp-for="IsCurrent" class="form-check-input" />
+                            <label asp-for="IsCurrent" class="form-check-label">Currently taking</label>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" rows="2" class="form-control"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">Cancel</a>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Save medication</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

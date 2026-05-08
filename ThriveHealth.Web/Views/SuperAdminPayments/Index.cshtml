@@ -1,0 +1,64 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.Tenancy.TenantPayment>
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Pending payments";
+    var current = (PaymentReceiptStatus)ViewBag.Status;
+}
+
+<h1 class="sa-h1">Bank-transfer review</h1>
+<p class="sa-sub">Tenants who paid by bank transfer upload their receipt here for verification. Approve to flip them to <strong>Active</strong>.</p>
+
+<div class="d-flex gap-2 mb-3">
+    <a class="btn btn-sm btn-@(current == PaymentReceiptStatus.Pending ? "primary" : "outline-primary")" asp-action="Index" asp-route-status="@PaymentReceiptStatus.Pending">Pending</a>
+    <a class="btn btn-sm btn-@(current == PaymentReceiptStatus.Approved ? "primary" : "outline-primary")" asp-action="Index" asp-route-status="@PaymentReceiptStatus.Approved">Approved</a>
+    <a class="btn btn-sm btn-@(current == PaymentReceiptStatus.Rejected ? "primary" : "outline-primary")" asp-action="Index" asp-route-status="@PaymentReceiptStatus.Rejected">Rejected</a>
+</div>
+
+<div class="sa-card p-0">
+    <table class="table mb-0">
+        <thead><tr><th>Tenant</th><th>Amount</th><th>Reference</th><th>Bank</th><th>Paid</th><th>Receipt</th><th>Submitted</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td><strong>@p.Tenant?.LegalName</strong><div class="small text-muted">@p.Tenant?.Slug</div></td>
+                    <td>@p.Currency @p.Amount.ToString("N0")<div class="small text-muted">@p.Subscription?.Plan?.Name · @p.Subscription?.Cycle</div></td>
+                    <td class="small">@p.Reference</td>
+                    <td class="small">@p.BankAccountUsed</td>
+                    <td class="small">@p.PaidAt?.ToString("dd MMM")</td>
+                    <td>@if (!string.IsNullOrEmpty(p.ReceiptUrl)) { <a href="@p.ReceiptUrl" target="_blank" class="small">View receipt</a> }</td>
+                    <td class="small">@p.SubmittedAt:dd MMM HH:mm</td>
+                    <td>
+                        @if (p.Status == PaymentReceiptStatus.Pending)
+                        {
+                            <div class="d-flex gap-1">
+                                <form asp-action="Approve" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@p.Id" />
+                                    <button class="btn btn-sm btn-success" title="Approve"><i class="bi bi-check-lg"></i></button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rej-@p.Id"><i class="bi bi-x-lg"></i></button>
+                                <div class="modal fade" id="rej-@p.Id" tabindex="-1">
+                                    <div class="modal-dialog"><div class="modal-content text-dark">
+                                        <form asp-action="Reject" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@p.Id" />
+                                            <div class="modal-header"><h5 class="modal-title">Reject payment</h5></div>
+                                            <div class="modal-body"><label class="form-label">Reason (visible to tenant)</label><textarea name="reason" class="form-control text-dark" rows="2" required placeholder="e.g. Reference number does not match our records"></textarea></div>
+                                            <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal" type="button">Cancel</button><button class="btn btn-danger">Reject</button></div>
+                                        </form>
+                                    </div></div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="small text-muted">@p.ReviewedAt?.ToString("dd MMM HH:mm")</span>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="8" class="text-center py-4 text-muted">Nothing in this queue.</td></tr> }
+        </tbody>
+    </table>
+</div>

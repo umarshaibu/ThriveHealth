@@ -1,0 +1,123 @@
+@model ThriveHealth.Web.Models.BloodBank.BloodCrossMatch
+@using ThriveHealth.Web.Models.BloodBank
+@{
+    ViewData["Title"] = $"Cross-match · {Model.CrossMatchNumber}";
+    var compatible = ViewBag.Compatible as List<BloodUnit> ?? new();
+    string Tone(CrossMatchStatus s) => s switch
+    {
+        CrossMatchStatus.Requested => "th-pill-warning",
+        CrossMatchStatus.Compatible => "th-pill-info",
+        CrossMatchStatus.Incompatible => "th-pill-danger",
+        CrossMatchStatus.Issued => "th-pill-success",
+        _ => "th-pill-muted"
+    };
+    var matched = Model.Units.Where(u => u.Status == BloodUnitStatus.CrossMatched || u.Status == BloodUnitStatus.Issued).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">Cross-match <span class="font-monospace">@Model.CrossMatchNumber</span></h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill @Tone(Model.Status)">@Model.Status</span>
+            <span class="th-pill th-pill-muted">@Model.Patient?.FullName · @Model.Patient?.HospitalNumber</span>
+            <span class="th-pill th-pill-info">@Model.PatientBloodGroup@(Model.PatientRhesusPositive ? "+" : "−") · @Model.Component</span>
+            <span class="th-pill th-pill-warning">@matched.Count / @Model.UnitsRequested unit(s)</span>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="CrossMatches" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Cross-matches</a>
+        @if (matched.Any(u => u.Status == BloodUnitStatus.CrossMatched) && Model.Status == CrossMatchStatus.Compatible)
+        {
+            <form asp-action="IssueUnits" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="crossMatchId" value="@Model.Id" />
+                <button class="btn btn-success" onclick="return confirm('Issue cross-matched unit(s) to ward?')"><i class="bi bi-box-arrow-up me-1"></i> Issue units</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Request details</h6>
+            <dl class="row mb-0">
+                <dt class="col-5">Indication</dt><dd class="col-7">@(Model.Indication ?? "—")</dd>
+                <dt class="col-5">Required by</dt><dd class="col-7">@Model.RequiredBy.ToString("dd MMM yyyy")</dd>
+                <dt class="col-5">Requested by</dt><dd class="col-7">@(Model.RequestedBy?.FullName ?? "—") · @Model.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</dd>
+                @if (Model.IssuedAt.HasValue) { <dt class="col-5">Issued at</dt><dd class="col-7">@Model.IssuedAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</dd> }
+                @if (!string.IsNullOrEmpty(Model.Notes)) { <dt class="col-5">Notes</dt><dd class="col-7">@Model.Notes</dd> }
+            </dl>
+        </div></div>
+
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-bookmark me-1"></i> Cross-matched units (@matched.Count)</h6></div>
+            @if (!matched.Any())
+            {
+                <div class="th-empty m-4"><i class="bi bi-droplet"></i><h5 class="mt-2">No units yet</h5></div>
+            }
+            else
+            {
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Unit #</th><th>Group</th><th>Comp</th><th>Volume</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var u in matched)
+                    {
+                        <tr>
+                            <td><span class="font-monospace small">@u.UnitNumber</span></td>
+                            <td>@u.BloodGroup@(u.RhesusPositive ? "+" : "−")</td>
+                            <td><small>@u.Component</small></td>
+                            <td>@u.VolumeMl mL</td>
+                            <td><span class="th-pill @(u.Status == BloodUnitStatus.Issued ? "th-pill-success" : "th-pill-info")">@u.Status</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-search me-1"></i> Compatible units available</h6>
+                <small class="text-muted">@compatible.Count match(es)</small>
+            </div>
+            @if (!compatible.Any())
+            {
+                <div class="th-empty m-4"><i class="bi bi-droplet-half"></i><h5 class="mt-2">No compatible units in stock</h5></div>
+            }
+            else
+            {
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Unit #</th><th>Group</th><th>Volume</th><th>Expiry</th><th class="text-end"></th></tr></thead>
+                    <tbody>
+                    @foreach (var u in compatible)
+                    {
+                        <tr>
+                            <td><span class="font-monospace small">@u.UnitNumber</span></td>
+                            <td>@u.BloodGroup@(u.RhesusPositive ? "+" : "−")</td>
+                            <td>@u.VolumeMl mL</td>
+                            <td><small>@u.ExpiryDate.ToString("dd MMM yyyy")</small></td>
+                            <td class="text-end">
+                                @if (Model.Status is CrossMatchStatus.Requested or CrossMatchStatus.Compatible)
+                                {
+                                    <form asp-action="ReserveUnit" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="crossMatchId" value="@Model.Id" />
+                                        <input type="hidden" name="unitId" value="@u.Id" />
+                                        <button class="btn btn-sm btn-outline-success"><i class="bi bi-bookmark-plus me-1"></i> Reserve</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+    </div>
+</div>

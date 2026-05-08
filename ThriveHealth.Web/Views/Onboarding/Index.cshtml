@@ -1,0 +1,103 @@
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Modern hospital management for Nigerian healthcare";
+    var plans = (List<Plan>)ViewBag.Plans;
+}
+
+<style>
+    .th-hero { background: radial-gradient(900px 500px at 100% 0%, rgba(20, 184, 166, .15), transparent 60%), linear-gradient(135deg, #0a2a66 0%, #0f3a8a 50%, #1f6feb 100%); color: #fff; padding: 96px 24px 120px; }
+    .th-hero h1 { font-size: clamp(2.2rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; max-width: 880px; margin: 0 auto 18px; text-align: center; }
+    .th-hero p.lead { font-size: 1.2rem; line-height: 1.55; opacity: .9; max-width: 720px; margin: 0 auto; text-align: center; }
+    .th-hero .cta-row { display: flex; gap: 12px; justify-content: center; margin-top: 36px; flex-wrap: wrap; }
+    .th-hero .btn-cta { background: #fff; color: var(--th-primary); padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; box-shadow: 0 12px 36px rgba(0,0,0,.25); }
+    .th-hero .btn-ghost { background: transparent; color: #fff; padding: 14px 28px; border-radius: 12px; font-weight: 600; text-decoration: none; border: 1.5px solid rgba(255,255,255,.4); }
+    .th-section { padding: 80px 24px; }
+    .th-section h2 { font-size: 2.2rem; font-weight: 800; letter-spacing: -.02em; text-align: center; margin-bottom: 14px; }
+    .th-section p.sub { font-size: 1.05rem; color: #64748b; text-align: center; max-width: 640px; margin: 0 auto 48px; }
+    .th-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; max-width: 1200px; margin: 0 auto; }
+    .th-feature { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; }
+    .th-feature .icon { width: 44px; height: 44px; background: rgba(15,58,138,.08); color: var(--th-primary); border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 14px; }
+    .th-feature h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: 6px; }
+    .th-feature p { color: #64748b; font-size: .9rem; line-height: 1.5; margin: 0; }
+    .th-pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 1200px; margin: 0 auto; }
+    .th-plan { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; }
+    .th-plan.featured { border-color: var(--th-primary); box-shadow: 0 16px 40px rgba(15,58,138,.12); position: relative; }
+    .th-plan.featured::before { content: "Most popular"; position: absolute; top: -12px; right: 16px; background: var(--th-primary); color: #fff; font-size: .7rem; font-weight: 700; letter-spacing: .05em; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }
+    .th-plan h4 { font-weight: 800; font-size: 1.2rem; margin-bottom: 4px; }
+    .th-plan .tagline { color: #64748b; font-size: .85rem; min-height: 36px; margin-bottom: 14px; }
+    .th-plan .price { font-size: 2rem; font-weight: 800; color: var(--th-primary); margin-bottom: 2px; }
+    .th-plan .price small { font-size: .9rem; font-weight: 500; color: #64748b; }
+    .th-plan ul { list-style: none; padding: 0; margin: 18px 0; flex: 1; font-size: .85rem; }
+    .th-plan ul li { padding: 6px 0; color: #475569; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; gap: 8px; }
+    .th-plan ul li i { color: #14b8a6; }
+    .th-plan ul li.no i { color: #cbd5e1; }
+    .th-plan ul li.no { color: #cbd5e1; }
+    .th-plan .pick { display: block; text-align: center; padding: 12px; border-radius: 10px; background: #f1f5f9; color: var(--th-primary); font-weight: 600; text-decoration: none; transition: background .15s; }
+    .th-plan.featured .pick { background: linear-gradient(135deg, var(--th-primary), var(--th-primary-dark)); color: #fff; }
+    .th-plan .pick:hover { background: #e2e8f0; }
+    .th-plan.featured .pick:hover { filter: brightness(1.1); }
+</style>
+
+<section class="th-hero">
+    <h1>The operating system for modern hospitals.</h1>
+    <p class="lead">Patient records · Telemedicine · Lab &amp; pharmacy · HMO claims · AI triage. One platform, built for Nigerian healthcare. 30-day free trial — no credit card required.</p>
+    <div class="cta-row">
+        <a class="btn-cta" href="/signup">Start your free trial <i class="bi bi-arrow-right ms-1"></i></a>
+        <a class="btn-ghost" href="/pricing">See pricing</a>
+    </div>
+</section>
+
+<section class="th-section" id="features">
+    <h2>Everything your hospital runs on, in one place.</h2>
+    <p class="sub">Replace the patchwork of paper, Excel and ad-hoc tools. ThriveHealth ties patient registration, clinical care, billing and claims into one auditable system.</p>
+    <div class="th-features">
+        <div class="th-feature"><div class="icon"><i class="bi bi-person-badge"></i></div><h5>Patient EMR</h5><p>Single source of truth — visits, prescriptions, allergies, results, all linked to the patient's hospital number.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-camera-video"></i></div><h5>Telemedicine</h5><p>Video, audio &amp; chat consults built in. Pay-per-consult or 24-hour chat package. Encrypted, no signup for the patient.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-droplet-half"></i></div><h5>Lab &amp; imaging</h5><p>Order from any encounter; results post back automatically. Critical-value alerts. Patient sees their results on the portal.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-prescription2"></i></div><h5>Pharmacy</h5><p>Formulary, dispensing, stock movement, allergy checks. Pre-built drug interaction warnings.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-cash-stack"></i></div><h5>Billing &amp; claims</h5><p>Cash, POS, transfer, mobile money. NHIA/HMO claims auto-built from completed encounters.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-stars"></i></div><h5>AI assists</h5><p>Symptom triage, lab interpretation, ICD coding, drug-interaction checks — gated, audited, never replaces a clinician.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-shield-lock"></i></div><h5>NDPA-ready</h5><p>PHI scrubbed before any AI call. Full audit log. Fine-grained role permissions edited by hospital admin.</p></div>
+        <div class="th-feature"><div class="icon"><i class="bi bi-people"></i></div><h5>Patient portal</h5><p>Your patients book, pay, chat, view results, download receipts. PWA installable on Android &amp; iOS.</p></div>
+    </div>
+</section>
+
+<section class="th-section" id="pricing" style="background: #fff;">
+    <h2>Simple pricing, no surprises.</h2>
+    <p class="sub">Pay monthly or save 20% with annual billing. All plans include the 30-day free trial. Teaching hospitals are free — just verify your status during signup.</p>
+    <div class="th-pricing-grid">
+        @foreach (var p in plans.Where(x => x.Code != "trial"))
+        {
+            var featured = p.Code == "standard";
+            <div class="th-plan @(featured ? "featured" : "")">
+                <h4>@p.Name</h4>
+                <div class="tagline">@p.Tagline</div>
+                @if (p.IsCustomQuote)
+                {
+                    <div class="price">Custom <small>contact sales</small></div>
+                }
+                else
+                {
+                    <div class="price">₦@p.MonthlyNgn.ToString("N0") <small>/ month</small></div>
+                    <div class="small text-muted">or ₦@p.AnnualNgn.ToString("N0")/yr (save 20%)</div>
+                }
+                <ul>
+                    <li><i class="bi bi-check2"></i> Up to @(p.MaxStaff?.ToString("N0") ?? "Unlimited") staff</li>
+                    <li><i class="bi bi-check2"></i> @(p.MaxPatientsPerMonth?.ToString("N0") ?? "Unlimited") patients/mo</li>
+                    <li class="@(p.TelemedicineEnabled ? "" : "no")"><i class="bi @(p.TelemedicineEnabled ? "bi-check2" : "bi-x")"></i> Telemedicine</li>
+                    <li class="@(p.AiEnabled ? "" : "no")"><i class="bi @(p.AiEnabled ? "bi-check2" : "bi-x")"></i> AI features</li>
+                    <li class="@(p.MultiFacilityEnabled ? "" : "no")"><i class="bi @(p.MultiFacilityEnabled ? "bi-check2" : "bi-x")"></i> Multi-facility</li>
+                    <li class="@(p.ClaimsEnabled ? "" : "no")"><i class="bi @(p.ClaimsEnabled ? "bi-check2" : "bi-x")"></i> HMO/NHIA claims</li>
+                    <li class="@(p.PrioritySupport ? "" : "no")"><i class="bi @(p.PrioritySupport ? "bi-check2" : "bi-x")"></i> Priority support</li>
+                </ul>
+                <a class="pick" asp-action="SignUp" asp-route-plan="@p.Code">@(p.IsCustomQuote ? "Talk to sales" : "Start free trial")</a>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="th-section" id="contact" style="background: linear-gradient(135deg, #0a2a66 0%, #0f3a8a 100%); color: #fff; text-align: center;">
+    <h2 style="color: #fff;">Ready to modernise your hospital?</h2>
+    <p style="opacity: .85; max-width: 540px; margin: 0 auto 28px;">30-day free trial, no credit card. Sign up in 2 minutes — your workspace is ready instantly.</p>
+    <a class="btn-cta" href="/signup">Start your free trial</a>
+</section>

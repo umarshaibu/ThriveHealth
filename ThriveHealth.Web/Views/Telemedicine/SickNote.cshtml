@@ -1,0 +1,92 @@
+@model ThriveHealth.Web.Models.Clinical.MedicalCertificate
+@{
+    ViewData["Title"] = $"Medical Certificate {Model.CertificateNumber}";
+    Layout = null;
+    var facility = ViewBag.Facility as ThriveHealth.Web.Models.Identity.Facility;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.css" />
+    <style>
+        body { background: #f5f7fa; padding: 24px; font-family: 'Times New Roman', Georgia, serif; color: #111; }
+        .doc { max-width: 760px; margin: 0 auto; background: #fff; padding: 48px 56px; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+        .doc h1 { font-family: system-ui, -apple-system, sans-serif; font-weight: 700; font-size: 1.6rem; margin-bottom: 0.25rem; }
+        .doc .facility-meta { font-family: system-ui, -apple-system, sans-serif; font-size: .85rem; color: #555; }
+        .doc h2 { text-align: center; font-family: system-ui, -apple-system, sans-serif; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; margin: 24px 0 8px; font-size: 1.05rem; }
+        .doc .ribbon { text-align: center; color: #888; font-family: system-ui, -apple-system, sans-serif; font-size: .8rem; letter-spacing: 2px; margin-bottom: 32px; }
+        .doc p { line-height: 1.7; margin-bottom: 1rem; font-size: 1.02rem; }
+        .field { padding-bottom: 2px; border-bottom: 1px dotted #999; padding-left: 4px; padding-right: 4px; font-weight: 500; }
+        .signature { margin-top: 56px; }
+        .signature .line { margin-top: 36px; border-top: 1px solid #333; width: 300px; padding-top: 4px; }
+        .meta { font-family: system-ui, -apple-system, sans-serif; font-size: .78rem; color: #555; }
+        @@media print { body { background: white; padding: 0; } .doc { box-shadow: none; padding: 32px; } .no-print { display: none !important; } }
+    </style>
+</head>
+<body>
+    <div class="doc">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <h1>@(facility?.Name ?? "ThriveHealth Hospital")</h1>
+                <div class="facility-meta">@facility?.Address · @facility?.Phone · @facility?.Email</div>
+                @if (!string.IsNullOrEmpty(facility?.RegistrationNumber))
+                {
+                    <div class="facility-meta">Reg: @facility?.RegistrationNumber</div>
+                }
+            </div>
+            <div class="text-end meta">
+                <div><strong>Cert №</strong> @Model.CertificateNumber</div>
+                <div>Issued @Model.IssuedAt.ToLocalTime():dd MMM yyyy</div>
+            </div>
+        </div>
+
+        <h2>Medical Certificate</h2>
+        <div class="ribbon">FITNESS TO WORK / SICK LEAVE</div>
+
+        <p>
+            This is to certify that <span class="field">@Model.Patient?.FullName</span>
+            (Hospital № <span class="field">@Model.Patient?.HospitalNumber</span>)
+            was attended to via tele-medicine consultation on
+            <span class="field">@Model.IssuedAt.ToLocalTime().ToString("dd MMMM yyyy")</span>.
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.Diagnosis))
+        {
+            <p>
+                <strong>Clinical impression:</strong> @Model.Diagnosis
+                @if (!string.IsNullOrEmpty(Model.IcdCode)) { <text>(ICD-10 <span class="field">@Model.IcdCode</span>)</text> }
+            </p>
+        }
+
+        <p>
+            On clinical grounds, the patient is advised to be excused from work / school for a period of
+            <strong>@Model.DaysOff day(s)</strong>, from
+            <span class="field">@Model.StartDate.ToString("dd MMMM yyyy")</span>
+            to <span class="field">@Model.EndDate.ToString("dd MMMM yyyy")</span> (both dates inclusive).
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.Recommendations))
+        {
+            <p><strong>Recommendations:</strong> @Model.Recommendations</p>
+        }
+
+        <p class="meta mt-4">
+            This certificate is issued in good faith following a recorded tele-consultation. It does not
+            constitute insurance authorisation and may be subject to verification by the issuing facility.
+        </p>
+
+        <div class="signature">
+            <div class="line">Dr @(Model.IssuedBy?.FullName ?? "—")</div>
+            <div class="meta">@Model.IssuedBy?.Designation @if (!string.IsNullOrEmpty(Model.IssuedBy?.LicenseBody)) { <text> · @Model.IssuedBy?.LicenseBody @Model.IssuedBy?.LicenseNumber</text> }</div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 no-print">
+            <a class="btn btn-outline-secondary btn-sm" href="javascript:history.back()"><i class="bi bi-arrow-left me-1"></i> Back</a>
+            <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print / Save as PDF</button>
+        </div>
+    </div>
+</body>
+</html>

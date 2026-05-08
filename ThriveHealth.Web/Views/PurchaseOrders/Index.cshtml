@@ -1,0 +1,66 @@
+@model ThriveHealth.Web.Models.ViewModels.PurchaseOrderWorklistViewModel
+@{ ViewData["Title"] = "Purchase orders"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-cart text-primary me-1"></i> Purchase orders</h1>
+        <p class="th-section-sub mb-0">@Model.DraftCount drafts · @Model.IssuedCount issued · @Model.PartiallyReceivedCount partially received</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get">
+            <select name="status" class="form-select" onchange="this.form.submit()">
+                <option value="">All statuses</option>
+                @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus>())
+                { <option value="@((int)s)" selected="@(Model.FilterStatus == s)">@s</option> }
+            </select>
+        </form>
+        <a asp-action="Create" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> New PO</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-pencil-square"></i></div><div class="th-stat-label">Draft</div><div class="th-stat-value">@Model.DraftCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-send"></i></div><div class="th-stat-label">Issued / waiting</div><div class="th-stat-value">@Model.IssuedCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-truck"></i></div><div class="th-stat-label">Partially received</div><div class="th-stat-value">@Model.PartiallyReceivedCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-cash-stack"></i></div><div class="th-stat-label">Outstanding ₦</div><div class="th-stat-value">@Model.OutstandingValue.ToString("N0")</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-cart"></i><h5 class="mt-2">No purchase orders</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>PO #</th><th>Created</th><th>Supplier</th><th>Store</th><th>Lines</th><th>Outstanding</th><th>Total ₦</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            var p = r.PurchaseOrder;
+            var statusTone = p.Status switch
+            {
+                ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus.Draft => "th-pill-info",
+                ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus.Approved => "th-pill-warning",
+                ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus.Issued => "th-pill-warning",
+                ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus.PartiallyReceived => "th-pill-warning",
+                ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus.Received => "th-pill-success",
+                ThriveHealth.Web.Models.Inventory.PurchaseOrderStatus.Cancelled => "th-pill-muted",
+                _ => "th-pill-muted"
+            };
+            <tr>
+                <td><span class="font-monospace">@p.PoNumber</span></td>
+                <td><small>@p.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</small></td>
+                <td><strong>@p.Supplier?.Name</strong></td>
+                <td>@p.Store?.Code</td>
+                <td>@r.LineCount</td>
+                <td>@r.OutstandingQuantity</td>
+                <td>@p.TotalAmount.ToString("N2")</td>
+                <td><span class="th-pill @statusTone">@p.Status</span></td>
+                <td class="text-end"><a asp-action="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

@@ -1,0 +1,79 @@
+@model ThriveHealth.Web.Models.ViewModels.InventoryStockListViewModel
+@{
+    ViewData["Title"] = "Inventory stock";
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var soon = today.AddDays(90);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-box-seam text-primary me-1"></i> Inventory stock</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count batch line@(Model.Rows.Count == 1 ? "" : "s") · consumables, reagents, equipment.</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="storeId" class="form-select" onchange="this.form.submit()">
+            <option value="">All stores</option>
+            @foreach (var s in Model.Stores) { <option value="@s.Id" selected="@(Model.FilterStoreId == s.Id)">@s.Code · @s.Name</option> }
+        </select>
+        <input type="search" name="q" value="@Model.Search" class="form-control" placeholder="Item, code, batch…" />
+        <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-exclamation-triangle"></i></div><div class="th-stat-label">Low stock</div><div class="th-stat-value">@Model.LowStockCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-calendar-x"></i></div><div class="th-stat-label">Expiring within 90 days</div><div class="th-stat-value">@Model.ExpiringSoonCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-x-octagon"></i></div><div class="th-stat-label">Expired</div><div class="th-stat-value">@Model.ExpiredCount</div></div></div>
+</div>
+
+<div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiInventoryForecast">
+    <div class="th-card-header d-flex justify-content-between align-items-center">
+        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI demand forecast <span class="th-pill th-pill-info ms-2">SUGGESTION — verify before ordering</span></h5>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="aiForecast()"><i class="bi bi-arrow-clockwise me-1"></i> Run 30-day forecast</button>
+    </div>
+    <div class="th-card-body">
+        <pre id="aiForecastOut" class="small text-muted mb-0" style="white-space:pre-wrap;font-family:inherit">Click run to scan top-30 items by 90-day issue volume against on-hand stock.</pre>
+    </div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-box-seam"></i><h5 class="mt-2">No stock matches</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Item</th><th>Category</th><th>Store</th><th>Batch</th><th>Expiry</th><th>On hand</th><th>Cost ₦</th><th>Reorder</th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr class="@(r.IsExpired ? "table-danger" : r.IsExpiringSoon ? "table-warning" : "")">
+                <td><strong>@r.Stock.InventoryItem?.Name</strong>@if (!string.IsNullOrEmpty(r.Stock.InventoryItem?.Manufacturer)) { <small class="text-muted ms-1">· @r.Stock.InventoryItem.Manufacturer</small> }</td>
+                <td><span class="th-pill th-pill-muted">@r.Stock.InventoryItem?.Category</span></td>
+                <td><span class="font-monospace small">@r.Stock.Store?.Code</span></td>
+                <td><span class="font-monospace small">@(r.Stock.BatchNumber ?? "—")</span></td>
+                <td>@(r.Stock.ExpiryDate.HasValue ? r.Stock.ExpiryDate.Value.ToString("MMM yyyy") : "—") @if (r.IsExpired) { <span class="th-pill th-pill-danger ms-1">Expired</span> } else if (r.IsExpiringSoon) { <span class="th-pill th-pill-warning ms-1">Soon</span> }</td>
+                <td>@r.Stock.QuantityOnHand</td>
+                <td>@r.Stock.UnitCost?.ToString("N0")</td>
+                <td>@if (r.IsLow) { <span class="th-pill th-pill-danger">Reorder</span> } else { <small class="text-muted">@r.Stock.InventoryItem?.ReorderLevel</small> }</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>
+
+@section Scripts {
+<script>
+async function aiForecast() {
+    var out = document.getElementById('aiForecastOut');
+    out.textContent = 'Forecasting…';
+    try {
+        var r = await fetch('/Inventory/ForecastDemand', { method: 'POST' });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

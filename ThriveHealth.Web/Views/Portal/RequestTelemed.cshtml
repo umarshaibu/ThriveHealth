@@ -1,0 +1,32 @@
+@model ThriveHealth.Web.Models.ViewModels.PortalRequestTeleViewModel
+@{ ViewData["Title"] = "Request tele-consultation"; }
+
+<h1 class="th-section-title mb-1">Request a consultation</h1>
+<p class="text-muted small mb-3">A bill will be raised after you submit; the call is scheduled once you settle it.</p>
+
+<form asp-action="RequestTelemed" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Mode" class="form-label">Type</label>
+                <select asp-for="Mode" class="form-select">
+                    <option value="1">Video call — @Model.Currency @Model.VideoFee.ToString("N0")</option>
+                    <option value="2">Audio call — @Model.Currency @Model.AudioFee.ToString("N0")</option>
+                    <option value="3">Text chat — @Model.Currency @Model.ChatFee.ToString("N0")</option>
+                </select>
+                <div class="form-text">One-time consult fee, payable before the call starts.</div>
+            </div>
+            <div class="col-md-6"><label asp-for="ScheduledStartUtc" class="form-label">Preferred time</label><input asp-for="ScheduledStartUtc" type="datetime-local" class="form-control" /></div>
+            <div class="col-12"><label asp-for="ConsultationReason" class="form-label">Why are you reaching out?</label><textarea asp-for="ConsultationReason" class="form-control" rows="3" placeholder="e.g. Persistent cough for 5 days, fever resolved"></textarea></div>
+            <div class="col-12"><label asp-for="Symptoms" class="form-label">Symptoms (optional)</label><textarea asp-for="Symptoms" class="form-control" rows="3" placeholder="Anything you'd like the doctor to know — onset, severity, what you've tried."></textarea></div>
+        </div>
+    </div></div>
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Telemed" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-send me-1"></i> Submit request</button>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

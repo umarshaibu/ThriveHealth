@@ -1,0 +1,149 @@
+@model ThriveHealth.Web.Models.ViewModels.RosterGridViewModel
+@using ThriveHealth.Web.Models.Hr
+@{
+    ViewData["Title"] = "Duty roster";
+    var prevWeek = Model.WeekStart.AddDays(-7);
+    var nextWeek = Model.WeekStart.AddDays(7);
+
+    string ShiftTone(ShiftType t) => t switch
+    {
+        ShiftType.Morning => "th-pill-info",
+        ShiftType.Afternoon => "th-pill-warning",
+        ShiftType.Night => "th-pill-primary",
+        ShiftType.OnCall => "th-pill-danger",
+        ShiftType.FullDay => "th-pill-success",
+        _ => "th-pill-muted"
+    };
+    string ShiftAbbr(ShiftType t) => t switch
+    {
+        ShiftType.Morning => "AM",
+        ShiftType.Afternoon => "PM",
+        ShiftType.Night => "Nite",
+        ShiftType.OnCall => "Call",
+        ShiftType.FullDay => "Full",
+        _ => "—"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Duty roster</h1>
+        <p class="th-section-sub mb-0">Week of @Model.WeekStart.ToString("dd MMM yyyy") · @Model.Rows.Count clinician@(Model.Rows.Count == 1 ? "" : "s")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Roster" asp-route-weekStart="@prevWeek.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+        <a asp-action="Roster" class="btn btn-outline-secondary">This week</a>
+        <a asp-action="Roster" asp-route-weekStart="@nextWeek.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="th-card"><div class="th-card-body p-0">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="min-width:220px">Staff</th>
+                    @foreach (var d in Model.Days)
+                    {
+                        <th class="text-center" style="min-width:120px">
+                            <div class="small text-muted">@d.ToString("ddd")</div>
+                            <div class="fw-semibold">@d.ToString("dd MMM")</div>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            <strong>@row.Staff.FullName</strong>
+                            <div class="small text-muted">@row.Staff.Designation</div>
+                        </td>
+                        @foreach (var d in Model.Days)
+                        {
+                            var shifts = row.ByDay[d];
+                            <td class="text-center">
+                                @foreach (var s in shifts)
+                                {
+                                    <div class="d-inline-flex align-items-center gap-1 mb-1">
+                                        <span class="th-pill @ShiftTone(s.ShiftType)">@ShiftAbbr(s.ShiftType)</span>
+                                        @if (!string.IsNullOrEmpty(s.Assignment)) { <small class="text-muted">@s.Assignment</small> }
+                                        <form asp-action="RemoveShift" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.HrRead">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@s.Id" />
+                                            <input type="hidden" name="weekStart" value="@Model.WeekStart.ToString("yyyy-MM-dd")" />
+                                            <button class="btn btn-link btn-sm p-0 text-danger" title="Remove" onclick="return confirm('Remove shift?')"><i class="bi bi-x-circle"></i></button>
+                                        </form>
+                                    </div>
+                                }
+                                <button type="button" class="btn btn-sm btn-link p-0 d-block mx-auto" data-bs-toggle="modal"
+                                        data-bs-target="#addShift"
+                                        data-staff-id="@row.Staff.Id" data-staff-name="@row.Staff.FullName"
+                                        data-date="@d.ToString("yyyy-MM-dd")">
+                                    <i class="bi bi-plus-circle"></i>
+                                </button>
+                            </td>
+                        }
+                    </tr>
+                }
+                @if (!Model.Rows.Any())
+                {
+                    <tr><td colspan="@(Model.Days.Count + 1)"><div class="th-empty m-4"><i class="bi bi-calendar-week"></i><h5 class="mt-2">No clinicians assigned</h5></div></td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<div class="modal fade" id="addShift" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="AddShift" method="post" class="modal-content" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.HrRead">
+            @Html.AntiForgeryToken()
+            <div class="modal-header"><h5 class="modal-title">Add shift</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="StaffId" id="StaffId" />
+                <div class="mb-2"><strong id="staffName"></strong> · <span id="dateLabel" class="text-muted"></span></div>
+                <input type="hidden" name="Date" id="Date" />
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Shift type</label>
+                        <select name="ShiftType" class="form-select">
+                            <option value="1">Morning (AM)</option>
+                            <option value="2">Afternoon (PM)</option>
+                            <option value="3">Night</option>
+                            <option value="4">On call</option>
+                            <option value="5">Full day</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Assignment</label>
+                        <input name="Assignment" class="form-control" placeholder="Ward, clinic, theatre…" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notes</label>
+                        <textarea name="Notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Add shift</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById('addShift').addEventListener('show.bs.modal', function (e) {
+        var btn = e.relatedTarget;
+        document.getElementById('StaffId').value = btn.dataset.staffId;
+        document.getElementById('Date').value = btn.dataset.date;
+        document.getElementById('staffName').textContent = btn.dataset.staffName;
+        document.getElementById('dateLabel').textContent = new Date(btn.dataset.date).toDateString();
+    });
+</script>
+}

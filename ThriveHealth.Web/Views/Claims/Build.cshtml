@@ -1,0 +1,77 @@
+@model ThriveHealth.Web.Models.ViewModels.BuildClaimViewModel
+@{ ViewData["Title"] = "Build claim"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Build claim from encounter</h1>
+        <p class="th-section-sub mb-0">@Model.PatientName · @Model.EncounterSummary</p>
+    </div>
+    <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@Model.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-arrow-left me-1"></i> Back to encounter</a>
+</div>
+
+<form asp-action="Build" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClaimsManage">
+    <input type="hidden" asp-for="EncounterId" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-building me-1"></i> Choose payer</h6>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="PayerId" class="form-label">Payer</label>
+                <select asp-for="PayerId" id="payerSelect" class="form-select">
+                    <option value="">--</option>
+                    @foreach (var p in Model.Payers)
+                    {
+                        <option value="@p.Id" selected="@(Model.PayerId == p.Id)">@p.Name (@p.Code · @p.OrgType)</option>
+                    }
+                </select>
+                @if (Model.SuggestedPayerId.HasValue)
+                {
+                    <small class="text-muted"><i class="bi bi-info-circle"></i> Suggested from patient's primary payer</small>
+                }
+            </div>
+            <div class="col-md-6">
+                <label asp-for="PayerPlanId" class="form-label">Plan</label>
+                <select asp-for="PayerPlanId" id="planSelect" class="form-select">
+                    <option value="">--</option>
+                    @foreach (var p in Model.Payers)
+                    {
+                        foreach (var pl in p.Plans)
+                        {
+                            <option value="@pl.Id" data-payer="@p.Id" selected="@(Model.PayerPlanId == pl.Id)">@pl.Name (× @pl.TariffMultiplier.ToString("F2"), copay @pl.DefaultCopayPercent.ToString("F0")%)</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="alert alert-info mt-3 small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            Charges from this encounter (consultation, labs, imaging, procedures, dispenses) will be priced at the plan's tariff multiplier × facility list price. Drugs are checked against the plan's formulary; uncovered drugs become out-of-pocket. The draft can be reviewed before submission.
+        </div>
+    </div></div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@Model.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-file-earmark-plus me-1"></i> Generate draft claim</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+const $payer = document.getElementById('payerSelect');
+const $plan = document.getElementById('planSelect');
+function filterPlans() {
+    const pid = $payer.value;
+    $plan.querySelectorAll('option').forEach(o => {
+        if (!o.value) return;
+        o.hidden = pid && o.dataset.payer !== pid;
+    });
+    if (pid) {
+        const current = $plan.options[$plan.selectedIndex];
+        if (current && current.dataset.payer && current.dataset.payer !== pid) $plan.value = '';
+    }
+}
+$payer.addEventListener('change', filterPlans);
+filterPlans();
+</script>
+}

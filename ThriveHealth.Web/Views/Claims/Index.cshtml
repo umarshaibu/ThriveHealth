@@ -1,0 +1,70 @@
+@model ThriveHealth.Web.Models.ViewModels.ClaimsWorklistViewModel
+@{ ViewData["Title"] = "Claims"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-file-earmark-medical text-primary me-1"></i> Claims worklist</h1>
+        <p class="th-section-sub mb-0">@Model.DraftCount drafts · @Model.SubmittedCount submitted · @Model.OutstandingCount outstanding</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="payerId" class="form-select" onchange="this.form.submit()">
+            <option value="">All payers</option>
+            @foreach (var p in Model.Payers)
+            { <option value="@p.Id" selected="@(Model.FilterPayerId == p.Id)">@p.Code · @p.Name</option> }
+        </select>
+        <select name="status" class="form-select" onchange="this.form.submit()">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Insurance.ClaimStatus>())
+            { <option value="@((int)s)" selected="@(Model.FilterStatus == s)">@s</option> }
+        </select>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-file-earmark"></i></div><div class="th-stat-label">Draft</div><div class="th-stat-value">@Model.DraftCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-send"></i></div><div class="th-stat-label">Submitted / outstanding</div><div class="th-stat-value">@Model.OutstandingCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-cash-stack"></i></div><div class="th-stat-label">Outstanding ₦</div><div class="th-stat-value">@Model.OutstandingAmount.ToString("N0")</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Paid this month ₦</div><div class="th-stat-value">@Model.PaidThisMonth.ToString("N0")</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-file-earmark-medical"></i><h5 class="mt-2">No claims match the filter</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Created</th><th>Reference</th><th>Patient</th><th>Payer / plan</th><th>Service date</th><th>Gross ₦</th><th>Claimable ₦</th><th>Paid ₦</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            var c = r.Claim;
+            var statusTone = c.Status switch
+            {
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.Draft => "th-pill-info",
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.Submitted => "th-pill-warning",
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.Acknowledged => "th-pill-warning",
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.PartiallyPaid => "th-pill-warning",
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.Paid => "th-pill-success",
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.Denied => "th-pill-danger",
+                ThriveHealth.Web.Models.Insurance.ClaimStatus.Disputed => "th-pill-danger",
+                _ => "th-pill-muted"
+            };
+            <tr>
+                <td><small>@c.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td>
+                <td><span class="font-monospace small">@c.ClaimReference</span></td>
+                <td><strong>@r.Patient.FullName</strong><br /><small class="font-monospace text-muted">@r.Patient.HospitalNumber</small></td>
+                <td><strong>@c.Payer?.Name</strong>@if (c.PayerPlan != null) { <br /><small class="text-muted">@c.PayerPlan.Name</small> }</td>
+                <td>@c.ServiceDate.ToString("dd MMM yyyy")</td>
+                <td>@c.GrossAmount.ToString("N2")</td>
+                <td>@c.ClaimableAmount.ToString("N2")</td>
+                <td>@c.PaidAmount.ToString("N2")</td>
+                <td><span class="th-pill @statusTone">@c.Status</span></td>
+                <td class="text-end"><a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

@@ -1,0 +1,55 @@
+@model ThriveHealth.Web.Models.ViewModels.ControlledRegisterViewModel
+@{ ViewData["Title"] = "Controlled drug register"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-shield-lock text-danger me-1"></i> Controlled drug register</h1>
+        <p class="th-section-sub mb-0">PCN / NAFDAC reportable register of all Schedule 1–4 dispenses.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <label class="small text-muted">From</label>
+            <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" class="form-control" />
+            <label class="small text-muted">to</label>
+            <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" class="form-control" />
+            <button class="btn btn-primary"><i class="bi bi-funnel"></i></button>
+        </form>
+        <button onclick="window.print()" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Entries.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-shield-check"></i><h5 class="mt-2">No controlled-drug dispenses in range</h5></div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr>
+                <th>Date / Time</th><th>Drug</th><th>Schedule</th>
+                <th>Patient</th><th>Qty</th>
+                <th>Prescriber (MDCN)</th><th>Pharmacist (PCN)</th>
+                <th>Rx #</th><th>Disp #</th>
+            </tr></thead>
+            <tbody>
+            @foreach (var i in Model.Entries)
+            {
+                <tr>
+                    <td><small class="text-nowrap">@i.Dispense!.DispensedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</small></td>
+                    <td><strong>@i.DrugName</strong> <small class="text-muted">@i.Strength</small></td>
+                    <td><span class="th-pill th-pill-danger">@i.Drug?.Schedule</span></td>
+                    <td>@i.Dispense.Patient?.FullName<br /><small class="font-monospace text-muted">@i.Dispense.Patient?.HospitalNumber</small></td>
+                    <td><strong>@i.QuantityDispensed</strong> @i.Drug?.UnitOfIssue</td>
+                    <td>@i.Dispense.Prescription?.PrescribedBy?.FullName<br /><small class="text-muted">@i.Dispense.Prescription?.PrescribedBy?.LicenseBody @i.Dispense.Prescription?.PrescribedBy?.LicenseNumber</small></td>
+                    <td>@i.Dispense.DispensedBy?.FullName<br /><small class="text-muted">@i.Dispense.DispensedBy?.LicenseBody @i.Dispense.DispensedBy?.LicenseNumber</small></td>
+                    <td><a asp-controller="Pharmacy" asp-action="Dispense" asp-route-prescriptionId="@i.Dispense.PrescriptionId" class="font-monospace">#@i.Dispense.PrescriptionId</a></td>
+                    <td><a asp-controller="Pharmacy" asp-action="DispenseDetail" asp-route-id="@i.DispenseId" class="font-monospace">#@i.DispenseId</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+</div></div>

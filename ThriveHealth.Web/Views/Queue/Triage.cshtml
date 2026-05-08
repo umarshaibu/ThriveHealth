@@ -1,0 +1,54 @@
+@model ThriveHealth.Web.Models.ViewModels.TriageViewModel
+@{
+    ViewData["Title"] = "Triage";
+    var entry = (ThriveHealth.Web.Models.Scheduling.QueueEntry)ViewBag.Entry;
+}
+
+<div class="row"><div class="col-lg-8">
+    <h1 class="th-section-title">Triage</h1>
+    <p class="th-section-sub">Set priority based on patient condition. Emergency cases jump the queue.</p>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="font-monospace fs-4">@entry.TicketNumber</span>
+                <h4 class="mb-1 mt-1">@entry.Patient!.FullName</h4>
+                <small class="text-muted font-monospace">@entry.Patient.HospitalNumber</small>
+                @if (!string.IsNullOrEmpty(entry.Complaint))
+                { <div class="mt-2 small"><strong>Complaint:</strong> @entry.Complaint</div> }
+            </div>
+            <a asp-controller="Patients" asp-action="Profile" asp-route-id="@entry.PatientId" class="btn btn-sm btn-outline-primary">Open chart</a>
+        </div>
+    </div></div>
+
+    <form asp-action="Triage" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TriageCreate">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <input type="hidden" asp-for="QueueEntryId" />
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="Priority" class="form-label"></label>
+                    <select asp-for="Priority" class="form-select">
+                        <option value="1">Routine</option>
+                        <option value="2">Urgent</option>
+                        <option value="3">Emergency</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Mews" class="form-label">MEWS (0–14)</label>
+                    <input asp-for="Mews" type="number" min="0" max="14" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label">Triage notes</label>
+                    <textarea asp-for="Notes" rows="3" class="form-control"></textarea>
+                </div>
+            </div>
+            <div class="mt-4 d-flex justify-content-end gap-2">
+                <a asp-action="Board" asp-route-clinicId="@entry.ClinicId" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Save triage</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

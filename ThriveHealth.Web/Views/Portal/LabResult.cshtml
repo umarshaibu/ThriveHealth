@@ -1,0 +1,120 @@
+@model ThriveHealth.Web.Models.Clinical.LabOrder
+@using ThriveHealth.Web.Models.Diagnostics
+@{
+    ViewData["Title"] = $"Lab result · {Model.LabTest?.Name ?? Model.TestName}";
+    var result = Model.Result;
+    string FlagPill(AnalyteFlag f) => f switch
+    {
+        AnalyteFlag.Normal => "th-pill-muted",
+        AnalyteFlag.Low or AnalyteFlag.High => "th-pill-warning",
+        AnalyteFlag.CriticalLow or AnalyteFlag.CriticalHigh => "th-pill-danger",
+        AnalyteFlag.Abnormal => "th-pill-warning",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@(Model.LabTest?.Name ?? Model.TestName)</h1>
+        <p class="text-muted small mb-0">Order placed @Model.OrderedAt.ToLocalTime().ToString("dd MMM yyyy") · @Model.Urgency</p>
+    </div>
+    <a asp-action="Results" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to results</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="th-card h-100"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Clinical indication</h6>
+            <p class="mb-0">@(Model.ClinicalIndication ?? "—")</p>
+            <div class="small text-muted mt-1">Ordered by Dr @(Model.OrderedBy?.LastName ?? "—")</div>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card h-100"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-flask me-1"></i> Sample</h6>
+            <div>@(Model.Specimen ?? Model.LabTest?.Specimen ?? "—")</div>
+            @if (Model.CollectedAt.HasValue)
+            {
+                <div class="small text-muted">Collected @Model.CollectedAt.Value.ToLocalTime():dd MMM yyyy HH:mm</div>
+            }
+            @if (!string.IsNullOrEmpty(Model.AccessionNumber))
+            {
+                <div class="small text-muted">Accession # @Model.AccessionNumber</div>
+            }
+        </div></div>
+    </div>
+</div>
+
+@if (result is null)
+{
+    <div class="alert alert-warning d-flex align-items-start gap-2">
+        <i class="bi bi-hourglass-split mt-1"></i>
+        <div>
+            <strong>Result not yet available.</strong>
+            <div class="small mb-0">Current status: <strong>@Model.Status</strong>. We'll notify you when it's ready.</div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-clipboard2-data me-1"></i> Analyte values</h6>
+            <span class="th-pill @(result.Status == LabResultStatus.Authorized ? "th-pill-success" : "th-pill-info")">@result.Status</span>
+        </div>
+        @if (!result.Values.Any())
+        {
+            <p class="text-muted mb-0">No analyte values reported.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="text-muted small text-uppercase"><tr><th>Analyte</th><th class="text-end">Value</th><th>Unit</th><th>Ref. range</th><th>Flag</th></tr></thead>
+                    <tbody>
+                        @foreach (var v in result.Values)
+                        {
+                            <tr>
+                                <td>@v.AnalyteName</td>
+                                <td class="text-end fw-semibold">@v.Value</td>
+                                <td class="text-muted small">@v.Unit</td>
+                                <td class="text-muted small">@v.RefRangeDisplay</td>
+                                <td><span class="th-pill @FlagPill(v.Flag)">@v.Flag</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(result.GeneralComment))
+        {
+            <div class="border-top pt-3 mt-3">
+                <h6 class="text-uppercase text-muted small mb-1">Comment</h6>
+                <p class="mb-0" style="white-space: pre-wrap;">@result.GeneralComment</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(result.Methodology))
+        {
+            <div class="border-top pt-3 mt-3 small text-muted"><strong>Methodology:</strong> @result.Methodology</div>
+        }
+        @if (result.AuthorizedAt.HasValue)
+        {
+            <div class="border-top pt-3 mt-3 small text-muted">
+                Authorised by Dr @(result.AuthorizedBy?.FullName ?? "—") on @result.AuthorizedAt.Value.ToLocalTime():dd MMM yyyy HH:mm
+            </div>
+        }
+    </div></div>
+
+    @if (result.HasCriticalValue)
+    {
+        <div class="alert alert-danger d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-octagon-fill mt-1"></i>
+            <div>
+                <strong>Critical value flagged.</strong>
+                <div class="small mb-0">Your clinician has been alerted. Please follow their instructions.</div>
+            </div>
+        </div>
+    }
+}
+
+<p class="small text-muted"><i class="bi bi-info-circle me-1"></i> These values must be interpreted by a clinician in the context of your symptoms and history. Don't change your medications based on a result alone.</p>

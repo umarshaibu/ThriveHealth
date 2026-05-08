@@ -1,0 +1,110 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.Telemedicine.TeleSession>
+@using ThriveHealth.Web.Models.Telemedicine
+@using ThriveHealth.Web.Services
+@{
+    ViewData["Title"] = "My chats";
+    var pkg = ViewBag.Package as ChatPackageInfo;
+    var lastByThread = ViewBag.LastMessages as IDictionary<int, dynamic> ?? new Dictionary<int, dynamic>();
+    string Initials(string n) {
+        var parts = (n ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch { 0 => "?", 1 => parts[0][..1].ToUpper(), _ => (parts[0][..1] + parts[^1][..1]).ToUpper() };
+    }
+    string RelTime(DateTime utc) {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d";
+        return utc.ToLocalTime().ToString("dd MMM");
+    }
+    string Tone(TeleSessionStatus s) => s switch
+    {
+        TeleSessionStatus.Completed => "th-pill-muted",
+        TeleSessionStatus.Cancelled => "th-pill-muted",
+        TeleSessionStatus.NoShowPatient or TeleSessionStatus.NoShowClinician => "th-pill-danger",
+        TeleSessionStatus.InCall or TeleSessionStatus.PatientWaiting => "th-pill-success",
+        _ => "th-pill-info"
+    };
+}
+<link rel="stylesheet" href="~/css/tele-chat.css" asp-append-version="true" />
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">My chats</h1>
+        <p class="text-muted small mb-0">Your chat conversations with the clinic, newest first.</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        @if (pkg?.IsActive == true)
+        {
+            <span class="th-pill th-pill-success">
+                <i class="bi bi-check-circle me-1"></i>
+                Package active · expires @pkg.ExpiresAt!.Value.ToLocalTime().ToString("dd MMM HH:mm")
+            </span>
+            <a asp-action="Chat" class="btn btn-primary btn-sm"><i class="bi bi-chat-dots me-1"></i> Open active chat</a>
+        }
+        else
+        {
+            <a asp-action="BuyChatPackage" class="btn btn-warning btn-sm"><i class="bi bi-stars me-1"></i> Buy chat package</a>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
+@if (TempData["Info"] != null) { <div class="alert alert-info">@TempData["Info"]</div> }
+
+@if (!Model.Any())
+{
+    <div class="th-card"><div class="th-card-body th-empty">
+        <i class="bi bi-chat-dots"></i>
+        <h5 class="mt-2">No chats yet</h5>
+        <p class="small mb-3">Start a conversation with the clinic — buy a 24h chat package or request a one-off chat consult.</p>
+        <a asp-action="BuyChatPackage" class="btn btn-primary"><i class="bi bi-stars me-1"></i> Buy chat package</a>
+        <a asp-action="RequestTelemed" class="btn btn-outline-primary ms-2"><i class="bi bi-plus-circle me-1"></i> Request a chat consult</a>
+    </div></div>
+}
+else
+{
+    <div class="th-card"><div class="th-card-body p-0">
+        <ul class="list-group list-group-flush">
+            @foreach (var s in Model)
+            {
+                lastByThread.TryGetValue(s.Id, out var last);
+                var preview = last is null ? "(no messages yet)" : (string?)last.LastBody ?? "(no messages yet)";
+                if (preview.Length > 100) preview = preview[..100] + "…";
+                var lastAt = last is null ? (DateTime?)null : (DateTime?)last.LastAt;
+                var unread = last is null ? 0 : (int)last.UnreadByPatient;
+                var lastRoleClinician = last is not null && (ChatSenderRole)last.LastRole == ChatSenderRole.Clinician;
+                <li class="list-group-item p-0">
+                    <a class="text-decoration-none text-body" asp-action="Chat" asp-route-sessionId="@s.Id">
+                        <div class="th-inbox-row @(unread > 0 ? "unread" : "")">
+                            <div class="avatar">@Initials(s.Clinician?.FullName ?? "?")</div>
+                            <div class="preview">
+                                <div class="d-flex justify-content-between align-items-baseline">
+                                    <strong>@(s.Clinician?.FullName != null ? "Dr " + s.Clinician.FullName : "Awaiting clinician")</strong>
+                                    <span class="small text-muted">@(lastAt.HasValue ? RelTime(lastAt.Value) : "")</span>
+                                </div>
+                                <div class="last">
+                                    @if (lastRoleClinician) { <span class="text-muted">Doctor: </span> }
+                                    else if (last is not null) { <span class="text-muted">You: </span> }
+                                    @preview
+                                </div>
+                                <div class="small text-muted">@s.SessionNumber · <span class="th-pill @Tone(s.Status)">@s.Status</span></div>
+                            </div>
+                            <div class="meta">
+                                @if (unread > 0)
+                                {
+                                    <span class="badge rounded-pill">@unread</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div></div>
+}

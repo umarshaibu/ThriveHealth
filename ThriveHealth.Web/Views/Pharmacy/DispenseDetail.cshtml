@@ -1,0 +1,61 @@
+@model ThriveHealth.Web.Models.Pharmacy.Dispense
+@{ ViewData["Title"] = "Dispense receipt"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="th-pill th-pill-success"><i class="bi bi-check2-circle"></i> Dispensed</span>
+        <h1 class="th-section-title mt-2">Dispense #@Model.Id</h1>
+        <p class="th-section-sub mb-0">@Model.DispensedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm") · by @Model.DispensedBy?.FullName · from @Model.Store?.Name</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Worklist" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
+        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i> Print medication card</button>
+    </div>
+</div>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <div class="row">
+        <div class="col-md-6">
+            <h5 class="mb-1">@Model.Patient!.FullName</h5>
+            <div class="small text-muted">@Model.Patient.Sex @if (Model.Patient.AgeYears.HasValue) { <span> · @Model.Patient.AgeYears y</span> } · <span class="font-monospace">@Model.Patient.HospitalNumber</span></div>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <div class="small text-muted">Rx #@Model.PrescriptionId</div>
+            <div class="small">Prescriber: @Model.Prescription?.PrescribedBy?.FullName <small>@Model.Prescription?.PrescribedBy?.LicenseBody @Model.Prescription?.PrescribedBy?.LicenseNumber</small></div>
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(Model.CounsellingNotes))
+    {
+        <hr />
+        <div><strong>Counselling:</strong> @Model.CounsellingNotes</div>
+    }
+</div></div>
+
+<div class="th-card mb-3"><div class="th-card-header"><h5 class="th-card-title">Items dispensed</h5></div><div class="th-card-body p-0">
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Drug</th><th>Strength</th><th>NAFDAC</th><th>Qty</th><th>Batch</th><th>Expiry</th><th>Unit price</th><th class="text-end">Line total</th></tr></thead>
+        <tbody>
+        @foreach (var i in Model.Items)
+        {
+            <tr>
+                <td><strong>@i.DrugName</strong>
+                    @if (i.IsSubstitution) { <span class="th-pill th-pill-warning ms-1">Substituted</span> }
+                    @if (!string.IsNullOrEmpty(i.PatientInstructions)) { <div class="small text-muted">@i.PatientInstructions</div> }
+                </td>
+                <td>@i.Strength</td>
+                <td><span class="font-monospace small">@i.NafdacNumber</span></td>
+                <td>@i.QuantityDispensed</td>
+                <td><span class="font-monospace small">@i.BatchNumber</span></td>
+                <td>@i.ExpiryDate?.ToString("MMM yyyy")</td>
+                <td>₦@i.UnitPrice?.ToString("N2")</td>
+                <td class="text-end">₦@i.LineTotal.ToString("N2")</td>
+            </tr>
+        }
+        </tbody>
+        <tfoot><tr><th colspan="7" class="text-end">Total</th><th class="text-end">₦@Model.TotalAmount.ToString("N2")</th></tr></tfoot>
+    </table>
+</div></div>
+
+<div class="small text-muted">
+    <i class="bi bi-info-circle me-1"></i> Billing of dispensed items to the patient's bill is wired in Batch 7. HMO formulary enforcement lands in Batch 9.
+</div>

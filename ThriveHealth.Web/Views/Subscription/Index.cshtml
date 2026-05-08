@@ -1,0 +1,150 @@
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Subscription & billing";
+    var tenant = (Tenant)ViewBag.Tenant;
+    var sub = ViewBag.Subscription as TenantSubscription;
+    var plans = (List<Plan>)ViewBag.Plans;
+    var payments = (List<TenantPayment>)ViewBag.Payments;
+    var statusTone = tenant.Status switch
+    {
+        TenantStatus.Trialing => "info",
+        TenantStatus.Active => "success",
+        TenantStatus.PendingPayment => "warning",
+        TenantStatus.PastDue => "danger",
+        _ => "secondary"
+    };
+}
+
+<h1 class="th-section-title mb-1">Subscription &amp; billing</h1>
+<p class="th-section-sub mb-3">Manage your plan, view invoices, and submit bank-transfer receipts.</p>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="th-card h-100"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-2">Status</h6>
+        <span class="badge bg-@statusTone" style="font-size: .9rem; padding: 6px 12px;">@tenant.Status</span>
+        @if (tenant.IsTeachingHospital) { <div class="small text-info mt-2"><i class="bi bi-mortarboard"></i> Verified teaching hospital — free of charge</div> }
+        @if (tenant.TrialEndsAt.HasValue && tenant.Status == TenantStatus.Trialing)
+        {
+            var daysLeft = (int)((tenant.TrialEndsAt.Value - DateTime.UtcNow).TotalDays);
+            <div class="small text-muted mt-2">Trial ends in @daysLeft days (@tenant.TrialEndsAt.Value.ToString("dd MMM yyyy"))</div>
+        }
+    </div></div></div>
+    <div class="col-md-4"><div class="th-card h-100"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-2">Current plan</h6>
+        @if (sub is null)
+        {
+            <p class="text-muted mb-0">No subscription.</p>
+        }
+        else
+        {
+            <div class="fw-semibold" style="font-size: 1.2rem;">@sub.Plan?.Name</div>
+            <div class="small text-muted">@sub.Cycle · @sub.PriceCurrency @sub.PriceAmount.ToString("N0")</div>
+            <div class="small text-muted">Renews @sub.CurrentPeriodEnd.ToString("dd MMM yyyy")</div>
+        }
+    </div></div></div>
+    <div class="col-md-4"><div class="th-card h-100"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-2">Workspace</h6>
+        @if (!string.IsNullOrEmpty(tenant.CustomDomain) && tenant.CustomDomainVerifiedAt.HasValue)
+        {
+            <div class="fw-semibold">@tenant.CustomDomain</div>
+            <div class="small text-muted">also at @(tenant.Slug + ".thrivehealth.ng")</div>
+        }
+        else
+        {
+            <div class="fw-semibold">@(tenant.Slug + ".thrivehealth.ng")</div>
+            <div class="small text-muted">@tenant.LegalName</div>
+        }
+        <a asp-action="Domain" class="small d-inline-block mt-2"><i class="bi bi-globe2 me-1"></i>@(string.IsNullOrEmpty(tenant.CustomDomain) ? "Add a custom domain" : "Manage custom domain")</a>
+    </div></div></div>
+</div>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <h5 class="mb-3">Change plan</h5>
+    <div class="row g-3">
+        @foreach (var p in plans.Where(x => x.Code != "trial"))
+        {
+            var isCurrent = sub?.PlanId == p.Id;
+            <div class="col-md-3">
+                <div class="border rounded-3 p-3 h-100 d-flex flex-column @(isCurrent ? "border-primary bg-light" : "")">
+                    <h6 class="mb-1">@p.Name</h6>
+                    <div class="small text-muted mb-2">@p.Tagline</div>
+                    @if (p.IsCustomQuote)
+                    {
+                        <div class="fw-bold">Contact sales</div>
+                    }
+                    else
+                    {
+                        <div class="fw-bold">₦@p.MonthlyNgn.ToString("N0")<span class="small text-muted">/mo</span></div>
+                        <div class="small text-muted">₦@p.AnnualNgn.ToString("N0")/yr</div>
+                    }
+                    <div class="mt-auto pt-2">
+                        @if (isCurrent) { <span class="badge bg-primary w-100">Current</span> }
+                        else if (!p.IsCustomQuote)
+                        {
+                            <form asp-action="ChangePlan" method="post" class="d-flex flex-column gap-1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="planId" value="@p.Id" />
+                                <select name="cycle" class="form-select form-select-sm">
+                                    <option value="@((int)BillingCycle.Monthly)">Monthly</option>
+                                    <option value="@((int)BillingCycle.Annual)">Annual</option>
+                                </select>
+                                <button class="btn btn-outline-primary btn-sm" onclick="return confirm('Switch to @p.Name?')">Switch</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div></div>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <h5 class="mb-1">Pay by bank transfer</h5>
+    <p class="text-muted small mb-3">Pay to our account, then upload the receipt below. Our team will verify within one working day and your account will activate immediately on approval.</p>
+    <div class="alert alert-info small mb-3">
+        <strong>Bank details:</strong> Guaranty Trust Bank · 0123456789 · ThriveHealth Limited<br/>
+        <strong>Reference:</strong> Use your subdomain <code>@tenant.Slug</code> as the transfer reference.
+    </div>
+    <form asp-action="SubmitBankTransfer" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div class="row g-2">
+            <div class="col-md-3"><label class="form-label small">Amount paid</label><input type="number" step="0.01" min="0" name="Amount" class="form-control" required /></div>
+            <div class="col-md-3"><label class="form-label small">Bank reference</label><input name="Reference" class="form-control" placeholder="e.g. FT22343XYZ" required /></div>
+            <div class="col-md-3"><label class="form-label small">Bank used</label><input name="BankAccountUsed" class="form-control" placeholder="GTB · 0123456789" /></div>
+            <div class="col-md-3"><label class="form-label small">Date paid</label><input type="date" name="PaidAt" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-9"><label class="form-label small">Notes (optional)</label><input name="Notes" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label small">Receipt (JPG, PNG, PDF)</label><input type="file" name="receipt" accept="image/*,application/pdf" class="form-control" /></div>
+        </div>
+        <button class="btn btn-primary mt-3"><i class="bi bi-cloud-upload me-1"></i> Submit transfer for review</button>
+    </form>
+</div></div>
+
+<div class="th-card"><div class="th-card-body">
+    <h5 class="mb-3">Payment history</h5>
+    @if (!payments.Any())
+    {
+        <p class="text-muted mb-0">No payments yet.</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead class="text-uppercase text-muted small"><tr><th>Method</th><th>Amount</th><th>Status</th><th>Reference</th><th>Submitted</th><th>Receipt</th></tr></thead>
+            <tbody>
+                @foreach (var p in payments)
+                {
+                    <tr>
+                        <td>@p.Method</td>
+                        <td>@p.Currency @p.Amount.ToString("N0")</td>
+                        <td><span class="th-pill th-pill-@(p.Status == PaymentReceiptStatus.Approved ? "success" : p.Status == PaymentReceiptStatus.Pending ? "warning" : "danger")">@p.Status</span></td>
+                        <td class="small">@p.Reference</td>
+                        <td class="small">@p.SubmittedAt.ToString("dd MMM HH:mm")</td>
+                        <td>@if (!string.IsNullOrEmpty(p.ReceiptUrl)) { <a href="@p.ReceiptUrl" target="_blank" class="small">View</a> }</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div></div>

@@ -1,0 +1,107 @@
+@model ThriveHealth.Web.Models.ViewModels.IdsrListViewModel
+@using ThriveHealth.Web.Models.Reporting
+@{
+    ViewData["Title"] = "IDSR · notifiable diseases";
+    string CTone(CaseClassification c) => c switch
+    {
+        CaseClassification.Confirmed => "th-pill-danger",
+        CaseClassification.Probable => "th-pill-warning",
+        CaseClassification.Discarded => "th-pill-muted",
+        _ => "th-pill-info"
+    };
+    string OTone(CaseOutcome o) => o switch
+    {
+        CaseOutcome.Died => "th-pill-danger",
+        CaseOutcome.Recovered => "th-pill-success",
+        CaseOutcome.LostToFollowUp => "th-pill-warning",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">IDSR · notifiable disease cases</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count visible · @Model.OpenCount open · @Model.ImmediateUnnotifiedCount immediate cases not yet notified</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" onclick="aiOutbreak()" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiIdsrOutbreak"><i class="bi bi-stars me-1"></i> AI outbreak scan</button>
+        <a asp-action="Nhmis" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-bar-graph me-1"></i> NHMIS</a>
+        <a asp-action="NewIdsr" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IdsrReport" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Report case</a>
+    </div>
+</div>
+
+<div id="aiOutbreakCard" class="th-card mb-3" style="display:none">
+    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI outbreak likelihood scan <span class="th-pill th-pill-info ms-2">SUGGESTION — public-health team decides</span></h5></div>
+    <div class="th-card-body"><pre id="aiOutbreakOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (Model.ImmediateUnnotifiedCount > 0)
+{
+    <div class="alert alert-danger"><strong><i class="bi bi-exclamation-triangle me-1"></i>@Model.ImmediateUnnotifiedCount immediate-notification case(s) have not yet been reported to NCDC.</strong></div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-exclamation-octagon"></i></div><div class="th-stat-label">Open cases</div><div class="th-stat-value">@Model.OpenCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-broadcast"></i></div><div class="th-stat-label">Immediate not notified</div><div class="th-stat-value">@Model.ImmediateUnnotifiedCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-check-square"></i></div><div class="th-stat-label">Confirmed (month)</div><div class="th-stat-value">@Model.ConfirmedThisMonthCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-muted"><div class="th-stat-icon"><i class="bi bi-archive"></i></div><div class="th-stat-label">Deaths (month)</div><div class="th-stat-value">@Model.DeathsThisMonthCount</div></div></div>
+</div>
+
+<form method="get" class="d-flex gap-2 mb-3">
+    <select name="diseaseId" class="form-select" style="max-width:340px" onchange="this.form.submit()">
+        <option value="">All diseases</option>
+        @foreach (var d in Model.Diseases)
+        {
+            <option value="@d.Id" selected="@(Model.FilterDiseaseId == d.Id)">@d.Code · @d.Name</option>
+        }
+    </select>
+</form>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-shield-shaded"></i><h5 class="mt-2">No IDSR cases reported</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Case #</th><th>Disease</th><th>Patient</th><th>Onset</th><th>Classification</th><th>Outcome</th><th>NCDC</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            var c = r.Case;
+            <tr class="@(c.Status == IdsrCaseStatus.Open && r.Disease.Window == NotificationWindow.Immediate && !c.NotifiedNcdc ? "table-danger" : "")">
+                <td><span class="font-monospace small">@c.CaseNumber</span></td>
+                <td><strong>@r.Disease.Code</strong> <small class="text-muted">@r.Disease.Name</small></td>
+                <td>@c.PatientName<div class="small text-muted">@(c.AgeYears?.ToString() ?? "—")y · @c.Sex · @c.Lga</div></td>
+                <td>@c.OnsetDate.ToString("dd MMM yyyy")</td>
+                <td><span class="th-pill @CTone(c.Classification)">@c.Classification</span></td>
+                <td><span class="th-pill @OTone(c.Outcome)">@c.Outcome</span></td>
+                <td>
+                    @if (c.NotifiedNcdc) { <i class="bi bi-check-circle-fill text-success" title="Notified"></i> }
+                    else if (r.Disease.Window == NotificationWindow.Immediate) { <i class="bi bi-exclamation-triangle-fill text-danger" title="Immediate notification required"></i> }
+                </td>
+                <td class="text-end"><a asp-action="IdsrDetail" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>
+
+@section Scripts {
+<script>
+async function aiOutbreak() {
+    var card = document.getElementById('aiOutbreakCard');
+    var out = document.getElementById('aiOutbreakOut');
+    card.style.display = 'block';
+    out.textContent = 'Scanning last 14 days…';
+    try {
+        var r = await fetch('/Reporting/AssessIdsrOutbreak?windowDays=14', { method: 'POST' });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

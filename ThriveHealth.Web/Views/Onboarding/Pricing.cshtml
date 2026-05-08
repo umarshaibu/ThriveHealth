@@ -1,0 +1,88 @@
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Pricing";
+    var plans = (List<Plan>)ViewBag.Plans;
+}
+
+<style>
+    .th-pricing-hero { padding: 64px 24px 32px; text-align: center; }
+    .th-pricing-hero h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+    .th-pricing-hero p { color: #64748b; max-width: 640px; margin: 0 auto; font-size: 1.05rem; }
+    .th-pricing-table { max-width: 1200px; margin: 32px auto 64px; padding: 0 24px; }
+    .th-pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .th-plan { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; }
+    .th-plan.featured { border-color: var(--th-primary); box-shadow: 0 16px 40px rgba(15,58,138,.12); }
+    .th-plan h4 { font-weight: 800; font-size: 1.15rem; margin-bottom: 4px; }
+    .th-plan .tagline { color: #64748b; font-size: .85rem; min-height: 36px; margin-bottom: 14px; }
+    .th-plan .price { font-size: 1.8rem; font-weight: 800; color: var(--th-primary); margin-bottom: 2px; }
+    .th-plan .price small { font-size: .85rem; font-weight: 500; color: #64748b; }
+    .th-plan ul { list-style: none; padding: 0; margin: 16px 0; flex: 1; font-size: .85rem; }
+    .th-plan ul li { padding: 5px 0; color: #475569; display: flex; align-items: center; gap: 8px; }
+    .th-plan ul li i { color: #14b8a6; font-size: 1rem; }
+    .th-plan ul li.no i { color: #cbd5e1; }
+    .th-plan ul li.no { color: #cbd5e1; text-decoration: line-through; }
+    .th-plan .pick { display: block; text-align: center; padding: 12px; border-radius: 10px; background: #f1f5f9; color: var(--th-primary); font-weight: 600; text-decoration: none; }
+    .th-plan.featured .pick { background: linear-gradient(135deg, var(--th-primary), var(--th-primary-dark)); color: #fff; }
+    .th-faq { max-width: 760px; margin: 0 auto 64px; padding: 0 24px; }
+    .th-faq h2 { text-align: center; font-weight: 800; margin-bottom: 24px; }
+    .th-faq dt { font-weight: 700; color: var(--th-text); margin-top: 18px; }
+    .th-faq dd { color: #64748b; margin-bottom: 12px; line-height: 1.6; }
+</style>
+
+<div class="th-pricing-hero">
+    <h1>Pricing</h1>
+    <p>Plans for every size of hospital. 30-day free trial on every plan, no credit card. Teaching hospitals — verified through their official letterhead — get the platform free.</p>
+</div>
+
+<div class="th-pricing-table">
+    <div class="th-pricing-grid">
+        @foreach (var p in plans.Where(x => x.Code != "trial"))
+        {
+            var featured = p.Code == "standard";
+            <div class="th-plan @(featured ? "featured" : "")">
+                <h4>@p.Name</h4>
+                <div class="tagline">@p.Tagline</div>
+                @if (p.IsCustomQuote)
+                {
+                    <div class="price">Custom <small>contact sales</small></div>
+                }
+                else
+                {
+                    <div class="price">₦@p.MonthlyNgn.ToString("N0") <small>/ month</small></div>
+                    <div class="small text-muted">or ₦@p.AnnualNgn.ToString("N0")/yr (save 20%)</div>
+                }
+                <ul>
+                    <li><i class="bi bi-check2"></i> @(p.MaxStaff?.ToString("N0") ?? "Unlimited") staff</li>
+                    <li><i class="bi bi-check2"></i> @(p.MaxPatientsPerMonth?.ToString("N0") ?? "Unlimited") patients/month</li>
+                    <li><i class="bi bi-check2"></i> @(p.MaxFacilities?.ToString("N0") ?? "Unlimited") facilities</li>
+                    <li class="@(p.TelemedicineEnabled ? "" : "no")"><i class="bi @(p.TelemedicineEnabled ? "bi-check2" : "bi-x")"></i> Telemedicine</li>
+                    <li class="@(p.AiEnabled ? "" : "no")"><i class="bi @(p.AiEnabled ? "bi-check2" : "bi-x")"></i> AI features</li>
+                    <li class="@(p.ClaimsEnabled ? "" : "no")"><i class="bi @(p.ClaimsEnabled ? "bi-check2" : "bi-x")"></i> HMO/NHIA claims</li>
+                    <li class="@(p.AnalyticsEnabled ? "" : "no")"><i class="bi @(p.AnalyticsEnabled ? "bi-check2" : "bi-x")"></i> Analytics dashboards</li>
+                    <li class="@(p.SsoEnabled ? "" : "no")"><i class="bi @(p.SsoEnabled ? "bi-check2" : "bi-x")"></i> SSO / SAML</li>
+                    <li class="@(p.OnPremiseAvailable ? "" : "no")"><i class="bi @(p.OnPremiseAvailable ? "bi-check2" : "bi-x")"></i> On-premise option</li>
+                    <li class="@(p.PrioritySupport ? "" : "no")"><i class="bi @(p.PrioritySupport ? "bi-check2" : "bi-x")"></i> Priority support</li>
+                </ul>
+                <a class="pick" asp-action="SignUp" asp-route-plan="@p.Code">@(p.IsCustomQuote ? "Talk to sales" : "Start free trial")</a>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="th-faq">
+    <h2>Frequently asked</h2>
+    <dl>
+        <dt>How does the free trial work?</dt>
+        <dd>30 days, full Standard-tier features (capped at 100 patients · 5 staff · 25 tele-consults). No card needed. After day 30, your data is preserved for 90 days even if you don't subscribe — plenty of time to evaluate at your own pace.</dd>
+        <dt>How can we pay?</dt>
+        <dd>Two ways. <strong>Online</strong> via Paystack (card / bank transfer / USSD) — instant access. <strong>Bank transfer</strong> — pay to our account, upload the receipt, our team verifies and activates within one working day.</dd>
+        <dt>Can we change plan or cancel?</dt>
+        <dd>Yes — upgrade or downgrade anytime from your tenant settings. Pro-rated charges. Cancel anytime; we keep your data for 90 days then offer a one-click export (PDF · Excel · CSV) before purge.</dd>
+        <dt>Are teaching hospitals really free?</dt>
+        <dd>Yes. Public teaching hospitals (UCH, LUTH, ABUTH, etc.) get the Premium tier free of charge in perpetuity. Verify your status during signup with your official letterhead.</dd>
+        <dt>Is our patient data safe?</dt>
+        <dd>Hosted in Nigeria, encrypted at rest and in transit. Patient PHI is scrubbed before any AI provider call. Every privileged action is audit-logged. NDPA compliance is built in.</dd>
+        <dt>Will it work offline?</dt>
+        <dd>Most clinical workflows degrade gracefully on flaky connections. Critical paths (queue, triage, basic charting) keep working with periodic sync. Full offline mode is on the roadmap for the mobile app.</dd>
+    </dl>
+</div>

@@ -1,0 +1,31 @@
+@model ThriveHealth.Web.Models.ViewModels.PortalIntakeViewModel
+@{ ViewData["Title"] = "Symptom intake"; }
+
+<h1 class="th-section-title mb-3">Symptom intake</h1>
+<p class="text-muted small">Help your clinician prepare by sharing what you're experiencing.</p>
+
+<form asp-action="Intake" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="TeleSessionId" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="mb-3"><label asp-for="ChiefComplaint" class="form-label">Main concern</label><input asp-for="ChiefComplaint" class="form-control" maxlength="500" /></div>
+        <div class="mb-3"><label asp-for="Symptoms" class="form-label">Detailed symptoms</label><textarea asp-for="Symptoms" class="form-control" rows="4"></textarea></div>
+        <div class="row g-3">
+            <div class="col-6"><label asp-for="DurationDays" class="form-label">For how long? (days)</label><input asp-for="DurationDays" type="number" min="0" class="form-control" /></div>
+            <div class="col-6">
+                <label asp-for="Severity" class="form-label">Severity</label>
+                <select asp-for="Severity" class="form-select"><option value="1">Mild</option><option value="2">Moderate</option><option value="3">Severe</option></select>
+            </div>
+        </div>
+        <div class="mb-3 mt-3"><label asp-for="CurrentMedications" class="form-label">Current medications</label><textarea asp-for="CurrentMedications" class="form-control" rows="2"></textarea></div>
+        <div class="mb-3"><label asp-for="KnownAllergies" class="form-label">Known allergies</label><textarea asp-for="KnownAllergies" class="form-control" rows="2"></textarea></div>
+        <div class="mb-0"><label asp-for="Notes" class="form-label">Anything else?</label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+    </div></div>
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-send me-1"></i> Submit</button>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

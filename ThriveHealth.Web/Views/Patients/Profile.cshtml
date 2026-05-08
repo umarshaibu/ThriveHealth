@@ -1,0 +1,393 @@
+@model ThriveHealth.Web.Models.ViewModels.PatientProfileViewModel
+@{
+    var p = Model.Patient;
+    ViewData["Title"] = p.FullName;
+    var hasSevereAllergy = Model.Allergies.Any(a => a.Severity >= ThriveHealth.Web.Models.Patients.AllergySeverity.Severe);
+    var primaryPayer = Model.Payers.FirstOrDefault(x => x.IsPrimary) ?? Model.Payers.FirstOrDefault();
+    var nok = Model.NextOfKin.FirstOrDefault();
+    var latest = Model.Vitals.FirstOrDefault();
+}
+
+@if (Model.Allergies.Any())
+{
+    <div class="alert @(hasSevereAllergy ? "alert-danger" : "alert-warning") d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+        <div>
+            <strong>Allergies:</strong>
+            @foreach (var a in Model.Allergies)
+            {
+                <span class="me-2"><strong>@a.Substance</strong> <small>(@a.Severity)</small></span>
+            }
+        </div>
+    </div>
+}
+
+<div class="th-card mb-3">
+    <div class="th-card-body">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+            <div class="th-avatar" style="width:64px;height:64px;font-size:1.4rem;">
+                @(p.FirstName.Length > 0 ? p.FirstName[0].ToString() : "")@(p.LastName.Length > 0 ? p.LastName[0].ToString() : "")
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h3 class="mb-0">@p.FullName</h3>
+                    @if (p.NinVerified)
+                    {
+                        <span class="th-pill th-pill-success"><i class="bi bi-patch-check-fill"></i> NIN verified</span>
+                    }
+                    @if (p.IsDeceased)
+                    {
+                        <span class="th-pill th-pill-danger">Deceased</span>
+                    }
+                </div>
+                <div class="text-muted small mt-1">
+                    <span class="font-monospace">@p.HospitalNumber</span>
+                    · @p.Sex
+                    @if (p.AgeYears.HasValue) { <span> · @p.AgeYears years</span> }
+                    @if (p.DateOfBirth.HasValue) { <span> · DOB @p.DateOfBirth.Value.ToString("dd MMM yyyy") @(p.IsDateOfBirthEstimated ? "(est.)" : "")</span> }
+                    @if (!string.IsNullOrEmpty(p.Phone)) { <span> · <i class="bi bi-telephone"></i> @p.Phone</span> }
+                    @if (!string.IsNullOrEmpty(p.State)) { <span> · @p.State</span> }
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-controller="Emr" asp-action="AddVitals" asp-route-patientId="@p.Id" class="btn btn-outline-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-heart-pulse me-1"></i> Vitals</a>
+                <a asp-controller="Encounters" asp-action="ListByPatient" asp-route-patientId="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-clipboard-data me-1"></i> Encounters</a>
+                <a asp-controller="Lab" asp-action="Patient" asp-route-id="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.LabRead"><i class="bi bi-droplet-half me-1"></i> Labs</a>
+                <a asp-controller="Imaging" asp-action="Patient" asp-route-id="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ImagingRead"><i class="bi bi-radioactive me-1"></i> Imaging</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="th-card h-100">
+            <div class="th-card-body">
+                <div class="th-stat-label"><i class="bi bi-cash-coin"></i> Primary payer</div>
+                <div class="fw-bold mt-1">@(primaryPayer?.Name ?? "—")</div>
+                @if (primaryPayer != null && !string.IsNullOrEmpty(primaryPayer.MembershipNumber))
+                {
+                    <small class="text-muted">@primaryPayer.MembershipNumber</small>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="th-card h-100">
+            <div class="th-card-body">
+                <div class="th-stat-label"><i class="bi bi-people"></i> Next of kin</div>
+                <div class="fw-bold mt-1">@(nok?.Name ?? "—")</div>
+                @if (nok != null) { <small class="text-muted">@nok.Relationship · @nok.Phone</small> }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="th-card h-100">
+            <div class="th-card-body">
+                <div class="th-stat-label"><i class="bi bi-heart-pulse"></i> Latest vitals</div>
+                @if (latest is null)
+                {
+                    <div class="text-muted mt-1">No vitals recorded</div>
+                }
+                else
+                {
+                    <div class="fw-bold mt-1">
+                        @if (latest.SystolicBp.HasValue && latest.DiastolicBp.HasValue) { <span>@latest.SystolicBp/@latest.DiastolicBp mmHg</span> }
+                        @if (latest.HeartRate.HasValue) { <span class="ms-2">· @latest.HeartRate bpm</span> }
+                    </div>
+                    @if (latest.Mews.HasValue)
+                    {
+                        var mews = latest.Mews.Value;
+                        var tone = mews <= 1 ? "th-pill-success" : mews <= 3 ? "th-pill-warning" : "th-pill-danger";
+                        <span class="th-pill @tone mt-1">MEWS @mews</span>
+                    }
+                    <small class="d-block text-muted">@latest.RecordedAt.ToLocalTime().ToString("dd MMM HH:mm")</small>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="th-card h-100">
+            <div class="th-card-body">
+                <div class="th-stat-label"><i class="bi bi-clipboard2-pulse"></i> Active problems</div>
+                <div class="fw-bold mt-1">@Model.Problems.Count(x => x.Status != ThriveHealth.Web.Models.Patients.ProblemStatus.Resolved)</div>
+                <small class="text-muted">@Model.Medications.Count(x => x.IsCurrent) current medications</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="patientTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-summary" type="button">Summary</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-allergies" type="button">Allergies <span class="th-pill th-pill-muted ms-1">@Model.Allergies.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-problems" type="button">Problems <span class="th-pill th-pill-muted ms-1">@Model.Problems.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-meds" type="button">Medications <span class="th-pill th-pill-muted ms-1">@Model.Medications.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-vitals" type="button">Vitals <span class="th-pill th-pill-muted ms-1">@Model.Vitals.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-docs" type="button">Documents <span class="th-pill th-pill-muted ms-1">@Model.Documents.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-encounters" type="button">Encounters <span class="th-pill th-pill-muted ms-1">@Model.Encounters.Count</span></button></li>
+</ul>
+
+<div class="tab-content">
+    @* ----- Summary ----- *@
+    <div class="tab-pane fade show active" id="tab-summary">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="th-card">
+                    <div class="th-card-header"><h5 class="th-card-title">Demographics</h5></div>
+                    <div class="th-card-body">
+                        <div class="row small">
+                            <div class="col-5 text-muted">Marital status</div><div class="col-7 fw-semibold">@(p.MaritalStatus?.ToString() ?? "—")</div>
+                            <div class="col-5 text-muted">Occupation</div><div class="col-7 fw-semibold">@(p.Occupation ?? "—")</div>
+                            <div class="col-5 text-muted">Religion</div><div class="col-7 fw-semibold">@(p.Religion ?? "—")</div>
+                            <div class="col-5 text-muted">State of origin</div><div class="col-7 fw-semibold">@(p.StateOfOrigin ?? "—")</div>
+                            <div class="col-5 text-muted">Ethnic group</div><div class="col-7 fw-semibold">@(p.EthnicGroup ?? "—")</div>
+                            <div class="col-5 text-muted">Preferred language</div><div class="col-7 fw-semibold">@(p.PreferredLanguage ?? "—")</div>
+                            <div class="col-5 text-muted">WhatsApp opt-in</div><div class="col-7 fw-semibold">@(p.WhatsAppOptIn ? "Yes" : "No")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="th-card">
+                    <div class="th-card-header"><h5 class="th-card-title">Address &amp; identity</h5></div>
+                    <div class="th-card-body">
+                        <div class="row small">
+                            <div class="col-5 text-muted">Address</div><div class="col-7 fw-semibold">@(p.StreetAddress ?? "—")</div>
+                            <div class="col-5 text-muted">LGA / State</div><div class="col-7 fw-semibold">@(p.Lga ?? "—") @(p.State != null ? "· " + p.State : "")</div>
+                            <div class="col-5 text-muted">NIN</div><div class="col-7 fw-semibold font-monospace">@(p.Nin ?? "—")</div>
+                            <div class="col-5 text-muted">Driver's licence</div><div class="col-7 fw-semibold">@(p.DriversLicense ?? "—")</div>
+                            <div class="col-5 text-muted">Voter's card</div><div class="col-7 fw-semibold">@(p.VotersCard ?? "—")</div>
+                            <div class="col-5 text-muted">Passport</div><div class="col-7 fw-semibold">@(p.Passport ?? "—")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="th-card">
+                    <div class="th-card-header"><h5 class="th-card-title">Payers</h5></div>
+                    <div class="th-card-body">
+                        @if (!Model.Payers.Any()) { <div class="text-muted">No payers on file.</div> }
+                        else
+                        {
+                            foreach (var x in Model.Payers)
+                            {
+                                <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                                    <div>
+                                        <div class="fw-semibold">@x.Name @if (x.IsPrimary) { <span class="th-pill th-pill-info ms-1">Primary</span> }</div>
+                                        <small class="text-muted">@x.Type · @x.MembershipNumber</small>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="th-card">
+                    <div class="th-card-header"><h5 class="th-card-title">Next of kin</h5></div>
+                    <div class="th-card-body">
+                        @if (!Model.NextOfKin.Any()) { <div class="text-muted">No next of kin recorded.</div> }
+                        else
+                        {
+                            foreach (var n in Model.NextOfKin)
+                            {
+                                <div class="border-bottom pb-2 mb-2">
+                                    <div class="fw-semibold">@n.Name <small class="text-muted">— @n.Relationship</small></div>
+                                    <small class="text-muted"><i class="bi bi-telephone"></i> @n.Phone @if (!string.IsNullOrEmpty(n.Address)) { <span> · @n.Address</span> }</small>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ----- Allergies ----- *@
+    <div class="tab-pane fade" id="tab-allergies">
+        <div class="d-flex justify-content-between mb-2">
+            <h5 class="mb-0">Allergies</h5>
+            <a asp-controller="Emr" asp-action="AddAllergy" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg"></i> Add allergy</a>
+        </div>
+        @if (!Model.Allergies.Any())
+        {
+            <div class="th-empty"><i class="bi bi-shield-check"></i><h5 class="mt-2">No known allergies</h5></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><div class="table-responsive"><table class="table mb-0">
+                <thead><tr><th>Substance</th><th>Category</th><th>Severity</th><th>Reaction</th><th>Onset</th><th>Recorded</th></tr></thead>
+                <tbody>
+                @foreach (var a in Model.Allergies)
+                {
+                    var tone = a.Severity == ThriveHealth.Web.Models.Patients.AllergySeverity.Anaphylaxis ? "th-pill-danger"
+                             : a.Severity == ThriveHealth.Web.Models.Patients.AllergySeverity.Severe ? "th-pill-danger"
+                             : a.Severity == ThriveHealth.Web.Models.Patients.AllergySeverity.Moderate ? "th-pill-warning"
+                             : "th-pill-muted";
+                    <tr>
+                        <td><strong>@a.Substance</strong></td>
+                        <td>@a.Category</td>
+                        <td><span class="th-pill @tone">@a.Severity</span></td>
+                        <td>@(a.Reaction ?? "—")</td>
+                        <td>@(a.OnsetDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td><small class="text-muted">@a.RecordedAt.ToLocalTime().ToString("dd MMM yyyy")</small></td>
+                    </tr>
+                }
+                </tbody>
+            </table></div></div></div>
+        }
+    </div>
+
+    @* ----- Problems ----- *@
+    <div class="tab-pane fade" id="tab-problems">
+        <div class="d-flex justify-content-between mb-2">
+            <h5 class="mb-0">Problem list</h5>
+            <a asp-controller="Emr" asp-action="AddProblem" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg"></i> Add problem</a>
+        </div>
+        @if (!Model.Problems.Any())
+        {
+            <div class="th-empty"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No problems recorded</h5></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><div class="table-responsive"><table class="table mb-0">
+                <thead><tr><th>Description</th><th>ICD</th><th>Status</th><th>Onset</th><th>Resolved</th></tr></thead>
+                <tbody>
+                @foreach (var x in Model.Problems)
+                {
+                    var tone = x.Status == ThriveHealth.Web.Models.Patients.ProblemStatus.Active ? "th-pill-warning"
+                             : x.Status == ThriveHealth.Web.Models.Patients.ProblemStatus.Chronic ? "th-pill-info"
+                             : x.Status == ThriveHealth.Web.Models.Patients.ProblemStatus.Resolved ? "th-pill-muted"
+                             : "th-pill-info";
+                    <tr>
+                        <td><strong>@x.Description</strong></td>
+                        <td><span class="font-monospace">@x.IcdCode</span></td>
+                        <td><span class="th-pill @tone">@x.Status</span></td>
+                        <td>@(x.OnsetDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td>@(x.ResolutionDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table></div></div></div>
+        }
+    </div>
+
+    @* ----- Medications ----- *@
+    <div class="tab-pane fade" id="tab-meds">
+        <div class="d-flex justify-content-between mb-2">
+            <h5 class="mb-0">Medications</h5>
+            <a asp-controller="Emr" asp-action="AddMedication" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg"></i> Add medication</a>
+        </div>
+        @if (!Model.Medications.Any())
+        {
+            <div class="th-empty"><i class="bi bi-capsule"></i><h5 class="mt-2">No medications recorded</h5></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><div class="table-responsive"><table class="table mb-0">
+                <thead><tr><th>Drug</th><th>Dose</th><th>Route</th><th>Frequency</th><th>Source</th><th>Status</th></tr></thead>
+                <tbody>
+                @foreach (var x in Model.Medications)
+                {
+                    <tr>
+                        <td><strong>@x.DrugName</strong></td>
+                        <td>@x.Dose</td>
+                        <td>@x.Route</td>
+                        <td>@x.Frequency</td>
+                        <td>@x.Source</td>
+                        <td>
+                            @if (x.IsCurrent) { <span class="th-pill th-pill-success">Current</span> }
+                            else { <span class="th-pill th-pill-muted">Past</span> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table></div></div></div>
+        }
+    </div>
+
+    @* ----- Vitals ----- *@
+    <div class="tab-pane fade" id="tab-vitals">
+        <div class="d-flex justify-content-between mb-2">
+            <h5 class="mb-0">Vitals (latest 20)</h5>
+            <a asp-controller="Emr" asp-action="AddVitals" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg"></i> Record vitals</a>
+        </div>
+        @if (!Model.Vitals.Any())
+        {
+            <div class="th-empty"><i class="bi bi-heart-pulse"></i><h5 class="mt-2">No vitals recorded</h5></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><div class="table-responsive"><table class="table mb-0">
+                <thead><tr><th>When</th><th>BP</th><th>HR</th><th>RR</th><th>Temp</th><th>SpO₂</th><th>Wt</th><th>Ht</th><th>BMI</th><th>MEWS</th></tr></thead>
+                <tbody>
+                @foreach (var v in Model.Vitals)
+                {
+                    var mtone = (v.Mews ?? 0) <= 1 ? "th-pill-success" : (v.Mews ?? 0) <= 3 ? "th-pill-warning" : "th-pill-danger";
+                    <tr>
+                        <td><small class="text-muted">@v.RecordedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td>
+                        <td>@(v.SystolicBp.HasValue ? $"{v.SystolicBp}/{v.DiastolicBp}" : "—")</td>
+                        <td>@v.HeartRate</td>
+                        <td>@v.RespiratoryRate</td>
+                        <td>@v.TemperatureCelsius</td>
+                        <td>@v.SpO2</td>
+                        <td>@v.WeightKg</td>
+                        <td>@v.HeightCm</td>
+                        <td>@v.Bmi</td>
+                        <td>@if (v.Mews.HasValue) { <span class="th-pill @mtone">@v.Mews</span> } else { <span>—</span> }</td>
+                    </tr>
+                }
+                </tbody>
+            </table></div></div></div>
+        }
+    </div>
+
+    @* ----- Documents ----- *@
+    <div class="tab-pane fade" id="tab-docs">
+        <h5 class="mb-2">Documents</h5>
+        <div class="th-empty">
+            <i class="bi bi-folder2-open"></i>
+            <h5 class="mt-2">Document upload coming in a later batch</h5>
+            <p class="mb-0">Scanned case notes, lab reports, and consent forms will be attachable here.</p>
+        </div>
+    </div>
+
+    @* ----- Encounters ----- *@
+    <div class="tab-pane fade" id="tab-encounters">
+        <div class="d-flex justify-content-between mb-2">
+            <h5 class="mb-0">Encounters</h5>
+        </div>
+        @if (!Model.Encounters.Any())
+        {
+            <div class="th-empty"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No encounters yet</h5><p class="mb-0">When a clinician starts a consultation from the queue, the encounter appears here.</p></div>
+        }
+        else
+        {
+            <div class="th-card"><div class="th-card-body p-0"><div class="table-responsive"><table class="table mb-0">
+                <thead><tr><th>Date</th><th>Type</th><th>Clinician</th><th>Diagnoses</th><th>Status</th><th class="text-end"></th></tr></thead>
+                <tbody>
+                @foreach (var e in Model.Encounters)
+                {
+                    <tr>
+                        <td>@e.StartedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@e.Type</td>
+                        <td>@(e.Clinician?.FullName ?? "—")<br /><small class="text-muted">@e.Clinic?.Name</small></td>
+                        <td>@foreach (var d in e.Diagnoses.Take(2)) { <div class="small"><span class="font-monospace">@d.IcdCode</span> @d.Description</div> }</td>
+                        <td>
+                            @if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.Signed) { <span class="th-pill th-pill-success">Signed</span> }
+                            else if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.InProgress) { <span class="th-pill th-pill-warning">In progress</span> }
+                            else { <span class="th-pill th-pill-muted">@e.Status</span> }
+                        </td>
+                        <td class="text-end">
+                            @if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.Signed)
+                            { <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@e.Id" class="btn btn-sm btn-outline-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Summary</a> }
+                            else
+                            { <a asp-controller="Encounters" asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Open</a> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table></div></div></div>
+        }
+    </div>
+</div>

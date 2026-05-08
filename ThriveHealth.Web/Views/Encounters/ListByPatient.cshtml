@@ -1,0 +1,49 @@
+@model IEnumerable<ThriveHealth.Web.Models.Clinical.Encounter>
+@{
+    ViewData["Title"] = "Encounters";
+    var pid = (int)ViewBag.PatientId;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">Patient encounters</h1>
+    <a asp-controller="Patients" asp-action="Profile" asp-route-id="@pid" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to chart</a>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No encounters yet</h5></div>
+}
+else
+{
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Date</th><th>Type</th><th>Clinic</th><th>Clinician</th><th>Diagnoses</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var e in Model)
+        {
+            <tr>
+                <td>@e.StartedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                <td>@e.Type</td>
+                <td>@e.Clinic?.Name</td>
+                <td>@e.Clinician?.FullName</td>
+                <td>
+                    @foreach (var d in e.Diagnoses.Take(2))
+                    { <div class="small"><span class="font-monospace">@d.IcdCode</span> @d.Description</div> }
+                </td>
+                <td>
+                    @if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.Signed) { <span class="th-pill th-pill-success">Signed</span> }
+                    else if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.InProgress) { <span class="th-pill th-pill-warning">In progress</span> }
+                    else { <span class="th-pill th-pill-muted">@e.Status</span> }
+                </td>
+                <td class="text-end">
+                    @if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.Signed)
+                    { <a asp-action="Summary" asp-route-id="@e.Id" class="btn btn-sm btn-outline-primary">Summary</a> }
+                    else
+                    { <a asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-primary">Open</a> }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

@@ -1,0 +1,58 @@
+@model ThriveHealth.Web.Models.ViewModels.ProblemEditViewModel
+@{
+    ViewData["Title"] = "Add problem";
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <h1 class="th-section-title">Add to problem list</h1>
+        <p class="th-section-sub">Use ICD-10/11 codes for interoperability and reporting. The local synonym dictionary lets you type natural phrases.</p>
+
+        <form asp-action="AddProblem" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+            <div class="th-card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+                <input type="hidden" asp-for="PatientId" />
+
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <input asp-for="Description" class="form-control" placeholder="Hypertension, Type 2 diabetes mellitus..." />
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="IcdCode" class="form-label"></label>
+                        <input asp-for="IcdCode" class="form-control" placeholder="I10" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Status" class="form-label"></label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="1">Active</option>
+                            <option value="2">Chronic</option>
+                            <option value="3">In remission</option>
+                            <option value="4">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="OnsetDate" class="form-label"></label>
+                        <input asp-for="OnsetDate" class="form-control" type="date" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="ResolutionDate" class="form-label"></label>
+                        <input asp-for="ResolutionDate" class="form-control" type="date" />
+                    </div>
+                    <div class="col-md-12">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" rows="3" class="form-control"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">Cancel</a>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Save problem</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

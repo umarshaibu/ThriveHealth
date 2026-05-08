@@ -1,0 +1,37 @@
+@model ThriveHealth.Web.Models.ViewModels.PatientImagingHistory
+@{ ViewData["Title"] = $"Imaging history · {Model.Patient.FullName}"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Imaging history</h1>
+        <p class="th-section-sub mb-0">@Model.Patient.FullName · @Model.Patient.HospitalNumber</p>
+    </div>
+    <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.Patient.Id" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to chart</a>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Orders.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-radioactive"></i><h5 class="mt-2">No imaging studies</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Ordered</th><th>Modality</th><th>Study</th><th>Status</th><th>Impression</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var o in Model.Orders)
+        {
+            var crit = o.Report?.HasCriticalFinding ?? false;
+            <tr class="@(crit ? "table-danger" : "")">
+                <td>@o.OrderedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")@if (!string.IsNullOrEmpty(o.AccessionNumber)) { <div><small class="font-monospace text-muted">@o.AccessionNumber</small></div> }</td>
+                <td><span class="th-pill th-pill-info">@o.Modality</span></td>
+                <td><strong>@o.StudyDescription</strong></td>
+                <td><span class="th-pill @(o.Status == ThriveHealth.Web.Models.Clinical.OrderStatus.Completed ? "th-pill-success" : "th-pill-warning")">@o.Status</span></td>
+                <td><small>@(o.Report?.Impression?.Length > 100 ? o.Report.Impression.Substring(0, 100) + "..." : o.Report?.Impression ?? "—")</small></td>
+                <td class="text-end"><a asp-action="View" asp-route-id="@o.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

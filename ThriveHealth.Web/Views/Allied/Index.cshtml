@@ -1,0 +1,77 @@
+@model ThriveHealth.Web.Models.ViewModels.AlliedListViewModel
+@using ThriveHealth.Web.Models.Allied
+@{
+    ViewData["Title"] = $"{Model.ServiceLine}";
+
+    string Tone(SessionStatus s) => s switch
+    {
+        SessionStatus.Scheduled => "th-pill-info",
+        SessionStatus.InProgress => "th-pill-warning",
+        SessionStatus.Completed => "th-pill-success",
+        SessionStatus.Cancelled => "th-pill-muted",
+        SessionStatus.NoShow => "th-pill-danger",
+        _ => "th-pill-muted"
+    };
+
+    string LineIcon(AlliedServiceLine l) => l switch
+    {
+        AlliedServiceLine.Dental => "bi-tooth",
+        AlliedServiceLine.Physiotherapy => "bi-arms-up",
+        AlliedServiceLine.Optometry => "bi-eyeglasses",
+        _ => "bi-clipboard"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="@LineIcon(Model.ServiceLine) me-1"></i>@Model.ServiceLine</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count session@(Model.Rows.Count == 1 ? "" : "s") · @Model.ScheduledCount scheduled · @Model.CompletedTodayCount completed today</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" asp-route-line="@AlliedServiceLine.Dental" class="btn btn-sm @(Model.ServiceLine == AlliedServiceLine.Dental ? "btn-primary" : "btn-outline-secondary")"><i class="bi bi-tooth me-1"></i> Dental</a>
+        <a asp-action="Index" asp-route-line="@AlliedServiceLine.Physiotherapy" class="btn btn-sm @(Model.ServiceLine == AlliedServiceLine.Physiotherapy ? "btn-primary" : "btn-outline-secondary")"><i class="bi bi-arms-up me-1"></i> Physio</a>
+        <a asp-action="Index" asp-route-line="@AlliedServiceLine.Optometry" class="btn btn-sm @(Model.ServiceLine == AlliedServiceLine.Optometry ? "btn-primary" : "btn-outline-secondary")"><i class="bi bi-eyeglasses me-1"></i> Optometry</a>
+        <a asp-action="New" asp-route-line="@Model.ServiceLine" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AlliedSession" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> New session</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-calendar2-event"></i></div><div class="th-stat-label">Scheduled</div><div class="th-stat-value">@Model.ScheduledCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-activity"></i></div><div class="th-stat-label">In progress</div><div class="th-stat-value">@Model.InProgressCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Completed today</div><div class="th-stat-value">@Model.CompletedTodayCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-list-ul"></i></div><div class="th-stat-label">Total visible</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="@LineIcon(Model.ServiceLine)"></i><h5 class="mt-2">No @Model.ServiceLine sessions</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Session #</th><th>Patient</th><th>Scheduled</th><th>Provider</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr>
+                <td><span class="font-monospace small">@r.Session.SessionNumber</span></td>
+                <td><strong>@r.Patient.FullName</strong><div class="small text-muted">@r.Patient.HospitalNumber</div></td>
+                <td>@r.Session.ScheduledUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                <td>@(r.Session.Provider?.FullName ?? "—")</td>
+                <td><span class="th-pill @Tone(r.Session.Status)">@r.Session.Status</span></td>
+                <td class="text-end">
+                    <a asp-action="Edit" asp-route-id="@r.Session.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                    @if (r.Session.Status != SessionStatus.Completed)
+                    {
+                        <form asp-action="Complete" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AlliedSession">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@r.Session.Id" /><button class="btn btn-sm btn-outline-success"><i class="bi bi-check2"></i></button></form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

@@ -1,0 +1,68 @@
+@model ThriveHealth.Web.Models.ViewModels.TeleSessionListViewModel
+@using ThriveHealth.Web.Models.Telemedicine
+@{
+    ViewData["Title"] = "Telemedicine";
+    string Tone(TeleSessionStatus s) => s switch
+    {
+        TeleSessionStatus.Requested => "th-pill-warning",
+        TeleSessionStatus.Scheduled => "th-pill-info",
+        TeleSessionStatus.PatientWaiting => "th-pill-danger",
+        TeleSessionStatus.InCall => "th-pill-success",
+        TeleSessionStatus.Completed => "th-pill-muted",
+        TeleSessionStatus.Cancelled => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Telemedicine</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count session@(Model.Rows.Count == 1 ? "" : "s") · @Model.RequestedCount awaiting · @Model.InCallCount in call</p>
+    </div>
+    <a asp-action="New" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> New tele-session</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-bell"></i></div><div class="th-stat-label">Awaiting clinician</div><div class="th-stat-value">@Model.RequestedCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-camera-video"></i></div><div class="th-stat-label">In call</div><div class="th-stat-value">@Model.InCallCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Completed today</div><div class="th-stat-value">@Model.CompletedTodayCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-list-ul"></i></div><div class="th-stat-label">Total visible</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a asp-action="Index" class="btn btn-sm @(Model.FilterStatus is null ? "btn-primary" : "btn-outline-secondary")">All</a>
+    @foreach (var s in new[] { TeleSessionStatus.Requested, TeleSessionStatus.PatientWaiting, TeleSessionStatus.InCall, TeleSessionStatus.Completed })
+    {
+        <a asp-action="Index" asp-route-status="@s" class="btn btn-sm @(Model.FilterStatus == s ? "btn-primary" : "btn-outline-secondary")">@s</a>
+    }
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-camera-video"></i><h5 class="mt-2">No tele-sessions</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Session #</th><th>Patient</th><th>Mode</th><th>Scheduled</th><th>Reason</th><th>Clinician</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr class="@(r.Session.Status == TeleSessionStatus.PatientWaiting ? "table-warning" : "")">
+                <td><span class="font-monospace small">@r.Session.SessionNumber</span></td>
+                <td><strong>@r.Patient.FullName</strong><div class="small text-muted">@r.Patient.HospitalNumber</div></td>
+                <td><span class="th-pill th-pill-muted">@r.Session.Mode</span></td>
+                <td>@r.Session.ScheduledStartUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                <td><small>@r.Session.ConsultationReason</small></td>
+                <td>@(r.Session.Clinician?.FullName ?? "—")</td>
+                <td><span class="th-pill @Tone(r.Session.Status)">@r.Session.Status</span></td>
+                <td class="text-end"><a asp-action="Detail" asp-route-id="@r.Session.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

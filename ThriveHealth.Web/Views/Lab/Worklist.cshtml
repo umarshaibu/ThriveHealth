@@ -1,0 +1,83 @@
+@model ThriveHealth.Web.Models.ViewModels.LabWorklistViewModel
+@{ ViewData["Title"] = "Lab worklist"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-droplet-half text-primary me-1"></i> Laboratory worklist</h1>
+        <p class="th-section-sub mb-0">@Model.OpenCount open · @Model.AwaitingAuthCount awaiting authorisation · @Model.CriticalCount critical</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="section" class="form-select" onchange="this.form.submit()">
+            <option value="">All sections</option>
+            @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Diagnostics.LabSection>())
+            { <option value="@((int)s)" selected="@(Model.FilterSection == s)">@s</option> }
+        </select>
+        <select name="status" class="form-select" onchange="this.form.submit()">
+            <option value="open" selected="@(Model.FilterStatus == "open")">Open</option>
+            <option value="collected" selected="@(Model.FilterStatus == "collected")">Collected · awaiting result</option>
+            <option value="auth" selected="@(Model.FilterStatus == "auth")">Awaiting authorisation</option>
+            <option value="critical" selected="@(Model.FilterStatus == "critical")">Critical values</option>
+            <option value="completed" selected="@(Model.FilterStatus == "completed")">Completed</option>
+        </select>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-inbox"></i></div><div class="th-stat-label">Open orders</div><div class="th-stat-value">@Model.OpenCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-shield-check"></i></div><div class="th-stat-label">Awaiting authorisation</div><div class="th-stat-value">@Model.AwaitingAuthCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-exclamation-octagon"></i></div><div class="th-stat-label">Critical values</div><div class="th-stat-value">@Model.CriticalCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Showing</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-droplet-half"></i><h5 class="mt-2">No orders match the filter</h5></div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Ordered</th><th>Patient</th><th>Test</th><th>Section</th><th>Urgency</th><th>Status</th><th>Result</th><th class="text-end"></th></tr></thead>
+            <tbody>
+            @foreach (var r in Model.Rows)
+            {
+                var statusTone = r.Order.Status switch
+                {
+                    ThriveHealth.Web.Models.Clinical.OrderStatus.Ordered => "th-pill-info",
+                    ThriveHealth.Web.Models.Clinical.OrderStatus.InProgress => "th-pill-warning",
+                    ThriveHealth.Web.Models.Clinical.OrderStatus.Completed => "th-pill-success",
+                    _ => "th-pill-muted"
+                };
+                <tr class="@(r.HasCriticalValue ? "table-danger" : "")">
+                    <td><small>@r.Order.OrderedAt.ToLocalTime().ToString("dd MMM HH:mm")</small>@if (!string.IsNullOrEmpty(r.Order.AccessionNumber)) { <div><small class="font-monospace text-muted">@r.Order.AccessionNumber</small></div> }</td>
+                    <td><strong>@r.Patient.FullName</strong><br /><small class="font-monospace text-muted">@r.Patient.HospitalNumber</small></td>
+                    <td><strong>@r.Order.TestName</strong>@if (!string.IsNullOrEmpty(r.Order.Specimen)) { <div><small class="text-muted">@r.Order.Specimen</small></div> }</td>
+                    <td><span class="th-pill th-pill-muted">@(r.Section?.ToString() ?? "—")</span></td>
+                    <td><span class="th-pill @(r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Stat ? "th-pill-danger" : r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Urgent ? "th-pill-warning" : "th-pill-muted")">@r.Order.Urgency</span></td>
+                    <td><span class="th-pill @statusTone">@r.Order.Status</span></td>
+                    <td>
+                        @if (r.HasCriticalValue) { <span class="th-pill th-pill-danger"><i class="bi bi-exclamation-octagon-fill"></i> CRITICAL</span> }
+                        else if (r.ResultStatus.HasValue) { <span class="th-pill @(r.ResultStatus == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Authorized ? "th-pill-success" : r.ResultStatus == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Final ? "th-pill-warning" : "th-pill-info")">@r.ResultStatus</span> }
+                    </td>
+                    <td class="text-end">
+                        @if (r.Order.CollectedAt is null)
+                        {
+                            <form asp-action="Collect" asp-route-id="@r.Order.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.LabPerform">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-success"><i class="bi bi-droplet me-1"></i> Collect</button>
+                            </form>
+                        }
+                        @if (r.Order.LabTestId.HasValue && r.Order.Status != ThriveHealth.Web.Models.Clinical.OrderStatus.Completed)
+                        {
+                            <a asp-action="Enter" asp-route-id="@r.Order.Id" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i> Enter</a>
+                        }
+                        <a asp-action="View" asp-route-id="@r.Order.Id" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+</div></div>

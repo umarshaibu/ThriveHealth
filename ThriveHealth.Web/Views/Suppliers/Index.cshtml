@@ -1,0 +1,38 @@
+@model IEnumerable<ThriveHealth.Web.Models.Inventory.Supplier>
+@{ ViewData["Title"] = "Suppliers"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Suppliers</h1>
+        <p class="th-section-sub mb-0">@Model.Count() suppliers configured.</p>
+    </div>
+    <a asp-action="Create" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> New supplier</a>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-truck"></i><h5 class="mt-2">No suppliers yet</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Phone</th><th>Lead time</th><th>Terms</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td><span class="font-monospace">@s.Code</span></td>
+                <td><strong>@s.Name</strong>@if (!string.IsNullOrEmpty(s.RcNumber)) { <small class="text-muted ms-1">@s.RcNumber</small> }</td>
+                <td>@s.ContactPerson</td>
+                <td><small class="text-muted">@s.Phone</small></td>
+                <td>@s.LeadTimeDays days</td>
+                <td><small>@s.PaymentTerms</small></td>
+                <td>@if (s.IsActive) { <span class="th-pill th-pill-success">Active</span> } else { <span class="th-pill th-pill-muted">Inactive</span> }</td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

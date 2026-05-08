@@ -1,0 +1,140 @@
+@model ThriveHealth.Web.Models.Tenancy.Tenant
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = Model.LegalName;
+    var sub = ViewBag.Subscription as TenantSubscription;
+    var payments = (List<TenantPayment>)ViewBag.Payments;
+    var facilities = (List<ThriveHealth.Web.Models.Identity.Facility>)ViewBag.Facilities;
+}
+
+<a asp-action="Index" class="small">← Back to all tenants</a>
+
+<div class="d-flex justify-content-between align-items-start mt-2 mb-4">
+    <div>
+        <h1 class="sa-h1">@Model.LegalName</h1>
+        <p class="sa-sub mb-0">@(Model.CustomDomain ?? Model.Slug + ".thrivehealth.ng") · @Model.CountryCode · @Model.CurrencyCode</p>
+    </div>
+    <div class="text-end">
+        <span class="badge-pill badge-@(Model.Status.ToString().ToLower())" style="font-size: .9rem;">@Model.Status</span>
+        @if (Model.IsTeachingHospital) { <div class="small text-info mt-1">Verified teaching hospital</div> }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="sa-card"><div class="label">Owner</div><div style="font-size: 1rem; margin-top:6px;">@Model.OwnerName<br/><span class="small text-muted">@Model.OwnerEmail</span></div></div></div>
+    <div class="col-md-3"><div class="sa-card"><div class="label">Trial ends</div><div class="value" style="font-size: 1.2rem;">@(Model.TrialEndsAt?.ToString("dd MMM yyyy") ?? "—")</div></div></div>
+    <div class="col-md-3"><div class="sa-card"><div class="label">Plan</div><div class="value" style="font-size: 1.2rem;">@(sub?.Plan?.Name ?? "—")<div class="small text-muted">@sub?.Cycle</div></div></div></div>
+    <div class="col-md-3"><div class="sa-card"><div class="label">Users · Facilities</div><div class="value" style="font-size: 1.2rem;">@ViewBag.UserCount · @facilities.Count</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="sa-card">
+            <h5 class="text-white mb-3">Actions</h5>
+            <div class="d-flex flex-wrap gap-2">
+                @if (Model.Status != TenantStatus.Suspended)
+                {
+                    <form asp-action="Suspend" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Suspend this tenant? They lose all access until reactivated.')"><i class="bi bi-pause-circle"></i> Suspend</button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Reactivate" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-sm btn-outline-success"><i class="bi bi-play-circle"></i> Reactivate</button>
+                    </form>
+                }
+                <form asp-action="ExtendTrial" method="post" class="d-inline d-flex gap-1">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="number" name="days" value="14" min="1" max="365" class="form-control form-control-sm" style="width: 90px;" />
+                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus"></i> Extend trial</button>
+                </form>
+                <form asp-action="SetTeachingHospital" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="verified" value="@(!Model.IsTeachingHospital)" />
+                    <button class="btn btn-sm btn-outline-info"><i class="bi bi-mortarboard"></i> @(Model.IsTeachingHospital ? "Remove teaching status" : "Mark as teaching hospital")</button>
+                </form>
+                @if (!string.IsNullOrEmpty(Model.CustomDomain))
+                {
+                    <form asp-action="ClearCustomDomain" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-sm btn-outline-warning" onclick="return confirm('Clear @Model.CustomDomain? Tenant will fall back to @(Model.Slug).thrivehealth.ng until they set a new one.')"><i class="bi bi-globe2"></i> Clear custom domain</button>
+                    </form>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(Model.CustomDomain))
+            {
+                <div class="mt-3 small">
+                    <span class="text-muted">Custom domain:</span> <code>@Model.CustomDomain</code>
+                    @if (Model.CustomDomainVerifiedAt.HasValue)
+                    {
+                        <span class="badge bg-success ms-1">Verified @Model.CustomDomainVerifiedAt?.ToString("dd MMM")</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark ms-1">Awaiting verification</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="sa-card">
+            <h5 class="text-white mb-3">Subscription</h5>
+            @if (sub is null)
+            {
+                <p class="text-muted">No active subscription.</p>
+            }
+            else
+            {
+                <div class="row g-2 small">
+                    <div class="col-6"><span class="text-muted">Plan:</span> <strong>@sub.Plan?.Name</strong></div>
+                    <div class="col-6"><span class="text-muted">Cycle:</span> @sub.Cycle</div>
+                    <div class="col-6"><span class="text-muted">Price:</span> @sub.PriceCurrency @sub.PriceAmount.ToString("N0")</div>
+                    <div class="col-6"><span class="text-muted">Renews:</span> @sub.CurrentPeriodEnd:dd MMM yyyy</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-2 text-white">Payment history</h5>
+<div class="sa-card p-0 mb-4">
+    <table class="table mb-0">
+        <thead><tr><th>Method</th><th>Amount</th><th>Status</th><th>Reference</th><th>Submitted</th><th>Receipt</th></tr></thead>
+        <tbody>
+            @foreach (var p in payments)
+            {
+                <tr>
+                    <td>@p.Method</td>
+                    <td>@p.Currency @p.Amount.ToString("N0")</td>
+                    <td><span class="badge bg-@(p.Status == PaymentReceiptStatus.Approved ? "success" : p.Status == PaymentReceiptStatus.Pending ? "warning" : "danger")">@p.Status</span></td>
+                    <td class="small">@p.Reference</td>
+                    <td class="small">@p.SubmittedAt:dd MMM HH:mm</td>
+                    <td>@if (!string.IsNullOrEmpty(p.ReceiptUrl)) { <a href="@p.ReceiptUrl" target="_blank" class="small">View</a> }</td>
+                </tr>
+            }
+            @if (!payments.Any()) { <tr><td colspan="6" class="text-center py-3 text-muted">No payments yet.</td></tr> }
+        </tbody>
+    </table>
+</div>
+
+<h5 class="mb-2 text-white">Facilities</h5>
+<div class="sa-card p-0">
+    <table class="table mb-0">
+        <thead><tr><th>Name</th><th>Code</th><th>Type</th><th>Beds</th><th>Created</th></tr></thead>
+        <tbody>
+            @foreach (var f in facilities)
+            {
+                <tr><td>@f.Name</td><td>@f.Code</td><td>@f.Type</td><td>@f.BedCapacity</td><td class="small">@f.CreatedAt:dd MMM yyyy</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

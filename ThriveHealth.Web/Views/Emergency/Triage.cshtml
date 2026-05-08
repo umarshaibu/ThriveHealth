@@ -1,0 +1,204 @@
+@model ThriveHealth.Web.Models.ViewModels.TriageFormViewModel
+@{ ViewData["Title"] = "Triage"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-bandaid text-danger me-1"></i> Triage</h1>
+        <p class="th-section-sub mb-0">Manchester triage scale. Vitals captured here flow into the encounter automatically.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to A&amp;E</a>
+</div>
+
+<form asp-action="Triage" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EmergencyBoardRead">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-7">
+            <div class="th-card h-100"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient</h6>
+                <label class="form-label">Search patient</label>
+                <div class="position-relative">
+                    <input type="text" id="patientSearch" class="form-control" placeholder="Hospital #, name, phone…" autocomplete="off" value="@Model.PatientLabel" />
+                    <input type="hidden" asp-for="PatientId" id="patientId" />
+                    <div id="patientResults" class="list-group position-absolute w-100" style="z-index:1000;"></div>
+                </div>
+                <div id="patientPick" class="mt-3 p-2 border rounded-3 bg-light @(Model.PatientId.HasValue ? "" : "d-none")">
+                    <i class="bi bi-person-fill text-primary"></i> <span id="patientPickLabel">@Model.PatientLabel</span>
+                </div>
+                <div class="mt-2 small">
+                    Patient not in system?
+                    <a asp-controller="Patients" asp-action="Register" target="_blank">Quick register</a> then return here.
+                </div>
+            </div></div>
+        </div>
+        <div class="col-md-5">
+            <div class="th-card h-100"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard-pulse me-1"></i> Priority</h6>
+                <div class="row g-2">
+                    @foreach (var c in new[] { ThriveHealth.Web.Models.Emergency.TriageColour.Red, ThriveHealth.Web.Models.Emergency.TriageColour.Orange, ThriveHealth.Web.Models.Emergency.TriageColour.Yellow, ThriveHealth.Web.Models.Emergency.TriageColour.Green, ThriveHealth.Web.Models.Emergency.TriageColour.Blue })
+                    {
+                        var hex = c switch
+                        {
+                            ThriveHealth.Web.Models.Emergency.TriageColour.Red => "#c81e1e",
+                            ThriveHealth.Web.Models.Emergency.TriageColour.Orange => "#ff8c00",
+                            ThriveHealth.Web.Models.Emergency.TriageColour.Yellow => "#d4a017",
+                            ThriveHealth.Web.Models.Emergency.TriageColour.Green => "#1f9d55",
+                            _ => "#0d8aaa"
+                        };
+                        <div class="col-12">
+                            <input class="form-check-input" type="radio" asp-for="Colour" id="col-@c" value="@((int)c)" />
+                            <label class="form-check-label w-100 p-2 border rounded-3 d-block" for="col-@c" style="border-left:6px solid @hex !important; cursor:pointer;">
+                                <strong>@c</strong>
+                                <small class="text-muted ms-2">target: @ThriveHealth.Web.Models.Emergency.TriageAssessment.TargetMinutesFor(c) min</small>
+                            </label>
+                        </div>
+                    }
+                </div>
+                <hr />
+                <label asp-for="Arrival" class="form-label small">Arrival mode</label>
+                <select asp-for="Arrival" class="form-select form-select-sm">
+                    <option value="1">Walk-in</option><option value="2">Ambulance</option>
+                    <option value="3">Police</option><option value="4">Referred</option>
+                    <option value="5">Air</option><option value="9">Other</option>
+                </select>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-card-text me-1"></i> Presentation</h6>
+        <div class="row g-3">
+            <div class="col-md-12"><label asp-for="ChiefComplaint" class="form-label"></label>
+                <input asp-for="ChiefComplaint" class="form-control" placeholder="Severe chest pain, RTA with head injury, severe asthma..." />
+                <span asp-validation-for="ChiefComplaint" class="text-danger small"></span>
+            </div>
+            <div class="col-md-3 form-check ms-2 d-flex align-items-end pt-3">
+                <div><input asp-for="IsTrauma" class="form-check-input" /><label asp-for="IsTrauma" class="form-check-label">Trauma</label></div>
+            </div>
+            <div class="col-md-9">
+                <label asp-for="MechanismOfInjury" class="form-label"></label>
+                <input asp-for="MechanismOfInjury" class="form-control" placeholder="MVA at 80km/h with rollover; struck pedestrian..." />
+            </div>
+            <div class="col-md-2"><label asp-for="Avpu" class="form-label"></label>
+                <select asp-for="Avpu" class="form-select"><option value="">--</option><option value="1">A · Alert</option><option value="2">V · Voice</option><option value="3">P · Pain</option><option value="4">U · Unresponsive</option></select>
+            </div>
+            <div class="col-md-2"><label asp-for="GcsTotal" class="form-label">GCS</label>
+                <input asp-for="GcsTotal" type="number" min="3" max="15" class="form-control" />
+            </div>
+            <div class="col-md-3 form-check ms-2 d-flex align-items-end pt-3">
+                <div><input asp-for="IsPregnant" class="form-check-input" /><label asp-for="IsPregnant" class="form-check-label">Pregnant</label></div>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="LastMealUtc" class="form-label">Last meal</label>
+                <input asp-for="LastMealUtc" type="datetime-local" class="form-control" />
+            </div>
+            <div class="col-md-6"><label asp-for="KnownAllergies" class="form-label"></label>
+                <input asp-for="KnownAllergies" class="form-control" placeholder="Penicillin (severe), shellfish..." />
+            </div>
+            <div class="col-md-6"><label asp-for="CurrentMedications" class="form-label"></label>
+                <input asp-for="CurrentMedications" class="form-control" placeholder="Amlodipine 10mg OD, Metformin 500mg BD..." />
+            </div>
+        </div>
+    </div></div>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-heart-pulse me-1"></i> Quick vitals (optional)</h6>
+        <div class="row g-2">
+            <div class="col"><label asp-for="SystolicBp" class="form-label small">SBP</label><input asp-for="SystolicBp" type="number" class="form-control" /></div>
+            <div class="col"><label asp-for="DiastolicBp" class="form-label small">DBP</label><input asp-for="DiastolicBp" type="number" class="form-control" /></div>
+            <div class="col"><label asp-for="HeartRate" class="form-label small">HR</label><input asp-for="HeartRate" type="number" class="form-control" /></div>
+            <div class="col"><label asp-for="RespiratoryRate" class="form-label small">RR</label><input asp-for="RespiratoryRate" type="number" class="form-control" /></div>
+            <div class="col"><label asp-for="TemperatureCelsius" class="form-label small">T °C</label><input asp-for="TemperatureCelsius" type="number" step="0.1" class="form-control" /></div>
+            <div class="col"><label asp-for="SpO2" class="form-label small">SpO₂</label><input asp-for="SpO2" type="number" class="form-control" /></div>
+            <div class="col"><label asp-for="PainScore" class="form-label small">Pain</label><input asp-for="PainScore" type="number" min="0" max="10" class="form-control" /></div>
+        </div>
+    </div></div>
+
+    <div class="th-card mb-3" style="border-left:4px solid var(--th-danger);"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-exclamation me-1 text-danger"></i> Forensic / police case</h6>
+        <div class="row g-3">
+            <div class="col-md-3 form-check ms-2 d-flex align-items-end pt-3">
+                <div><input asp-for="IsForensicCase" class="form-check-input" /><label asp-for="IsForensicCase" class="form-check-label">Forensic case</label></div>
+            </div>
+            <div class="col-md-3"><label asp-for="ForensicCategory" class="form-label">Category</label>
+                <select asp-for="ForensicCategory" class="form-select">
+                    <option value="0">None</option>
+                    <option value="1">RTA</option>
+                    <option value="2">Gunshot</option>
+                    <option value="3">Stabbing</option>
+                    <option value="4">Assault</option>
+                    <option value="5">Sexual assault</option>
+                    <option value="6">Suicide attempt</option>
+                    <option value="7">Burns</option>
+                    <option value="8">Poisoning</option>
+                    <option value="9">Domestic violence</option>
+                    <option value="10">Child abuse</option>
+                    <option value="99">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3"><label asp-for="PoliceReportNumber" class="form-label"></label><input asp-for="PoliceReportNumber" class="form-control" /></div>
+            <div class="col-md-3"><label asp-for="AccompanyingPerson" class="form-label">Accompanying</label><input asp-for="AccompanyingPerson" class="form-control" placeholder="Name + relationship" /></div>
+        </div>
+    </div></div>
+
+    <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiTriageAssist">
+        <div class="th-card-header d-flex justify-content-between align-items-center">
+            <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI triage assist <span class="th-pill th-pill-info ms-2">SUGGESTION — clinician decides</span></h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="aiTriage()"><i class="bi bi-arrow-clockwise me-1"></i> Suggest colour</button>
+        </div>
+        <div class="th-card-body">
+            <p class="text-muted small mb-2">Fills nothing — only suggests. Read, then pick the colour above.</p>
+            <pre id="aiTriageOutput" class="mb-0 text-muted" style="white-space:pre-wrap;font-family:inherit;min-height:1.5rem"></pre>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-danger btn-lg"><i class="bi bi-check2-circle me-1"></i> Triage &amp; open encounter</button>
+    </div>
+</form>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+async function aiTriage() {
+    const out = document.getElementById('aiTriageOutput');
+    out.textContent = 'Thinking…';
+    const fd = new FormData(document.querySelector('form'));
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    if (token) fd.append('__RequestVerificationToken', token);
+    try {
+        const r = await fetch('/Emergency/AssistTriage', { method: 'POST', body: fd });
+        const j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+const $search = document.getElementById('patientSearch');
+const $results = document.getElementById('patientResults');
+const $patientId = document.getElementById('patientId');
+const $patientPick = document.getElementById('patientPick');
+const $patientPickLabel = document.getElementById('patientPickLabel');
+let timer;
+$search.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = $search.value.trim();
+    if (q.length < 2) { $results.innerHTML = ''; return; }
+    timer = setTimeout(async () => {
+        const r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+        const items = await r.json();
+        $results.innerHTML = items.map(p =>
+            `<a href="#" data-id="${p.id}" data-label="${p.name} · ${p.hospitalNumber}" class="list-group-item list-group-item-action small">
+                <strong>${p.name}</strong> <span class="font-monospace text-muted">${p.hospitalNumber}</span>${p.phone ? `<br><small class="text-muted">${p.phone}</small>` : ''}
+            </a>`).join('');
+        $results.querySelectorAll('a').forEach(el => el.addEventListener('click', e => {
+            e.preventDefault();
+            $patientId.value = el.dataset.id;
+            $patientPickLabel.textContent = el.dataset.label;
+            $patientPick.classList.remove('d-none');
+            $search.value = el.dataset.label;
+            $results.innerHTML = '';
+        }));
+    }, 200);
+});
+</script>
+}

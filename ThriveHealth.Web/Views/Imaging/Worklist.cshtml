@@ -1,0 +1,82 @@
+@model ThriveHealth.Web.Models.ViewModels.ImagingWorklistViewModel
+@{ ViewData["Title"] = "Imaging worklist"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-radioactive text-primary me-1"></i> Radiology worklist</h1>
+        <p class="th-section-sub mb-0">@Model.OpenCount open · @Model.AwaitingAuthCount awaiting authorisation · @Model.CriticalCount critical</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="modality" class="form-select" onchange="this.form.submit()">
+            <option value="">All modalities</option>
+            @foreach (var m in Enum.GetValues<ThriveHealth.Web.Models.Clinical.ImagingModality>())
+            { <option value="@((int)m)" selected="@(Model.FilterModality == m)">@m</option> }
+        </select>
+        <select name="status" class="form-select" onchange="this.form.submit()">
+            <option value="open" selected="@(Model.FilterStatus == "open")">Open</option>
+            <option value="performed" selected="@(Model.FilterStatus == "performed")">Performed · awaiting report</option>
+            <option value="reported" selected="@(Model.FilterStatus == "reported")">Reported · awaiting auth</option>
+            <option value="critical" selected="@(Model.FilterStatus == "critical")">Critical findings</option>
+            <option value="completed" selected="@(Model.FilterStatus == "completed")">Completed</option>
+        </select>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-inbox"></i></div><div class="th-stat-label">Open studies</div><div class="th-stat-value">@Model.OpenCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-shield-check"></i></div><div class="th-stat-label">Awaiting authorisation</div><div class="th-stat-value">@Model.AwaitingAuthCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-exclamation-octagon"></i></div><div class="th-stat-label">Critical findings</div><div class="th-stat-value">@Model.CriticalCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Showing</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-radioactive"></i><h5 class="mt-2">No studies match the filter</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Ordered</th><th>Patient</th><th>Modality</th><th>Study</th><th>Urgency</th><th>Status</th><th>Stage</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            var rep = r.Report;
+            var stage = rep is null ? "Awaiting performance"
+                      : !rep.PerformedAt.HasValue ? "Awaiting performance"
+                      : !rep.ReportedAt.HasValue ? "Performed · drafting"
+                      : !rep.AuthorizedAt.HasValue ? "Reported · awaiting auth"
+                      : "Authorised";
+            var stageTone = rep is null || !rep.PerformedAt.HasValue ? "th-pill-info"
+                          : !rep.ReportedAt.HasValue ? "th-pill-warning"
+                          : !rep.AuthorizedAt.HasValue ? "th-pill-warning" : "th-pill-success";
+            <tr class="@(rep?.HasCriticalFinding == true ? "table-danger" : "")">
+                <td><small>@r.Order.OrderedAt.ToLocalTime().ToString("dd MMM HH:mm")</small>@if (!string.IsNullOrEmpty(r.Order.AccessionNumber)) { <div><small class="font-monospace text-muted">@r.Order.AccessionNumber</small></div> }</td>
+                <td><strong>@r.Patient.FullName</strong><br /><small class="font-monospace text-muted">@r.Patient.HospitalNumber</small></td>
+                <td><span class="th-pill th-pill-info">@r.Order.Modality</span></td>
+                <td><strong>@r.Order.StudyDescription</strong>@if (!string.IsNullOrEmpty(r.Order.ClinicalIndication)) { <div><small class="text-muted">@r.Order.ClinicalIndication</small></div> }</td>
+                <td><span class="th-pill @(r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Stat ? "th-pill-danger" : r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Urgent ? "th-pill-warning" : "th-pill-muted")">@r.Order.Urgency</span></td>
+                <td><span class="th-pill @(r.Order.Status == ThriveHealth.Web.Models.Clinical.OrderStatus.Completed ? "th-pill-success" : "th-pill-warning")">@r.Order.Status</span></td>
+                <td><span class="th-pill @stageTone">@stage</span>
+                    @if (rep?.HasCriticalFinding == true) { <div><span class="th-pill th-pill-danger mt-1"><i class="bi bi-exclamation-octagon-fill"></i> CRITICAL</span></div> }
+                </td>
+                <td class="text-end">
+                    @if (rep is null || !rep.PerformedAt.HasValue)
+                    {
+                        <form asp-action="Perform" asp-route-id="@r.Order.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ImagingPerform">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-sm btn-success"><i class="bi bi-camera me-1"></i> Perform</button>
+                        </form>
+                    }
+                    else if (!rep.ReportedAt.HasValue)
+                    {
+                        <a asp-action="Report" asp-route-id="@r.Order.Id" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i> Report</a>
+                    }
+                    <a asp-action="View" asp-route-id="@r.Order.Id" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

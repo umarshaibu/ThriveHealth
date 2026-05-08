@@ -1,0 +1,151 @@
+@model ThriveHealth.Web.Models.ViewModels.AnalyticsSnapshotViewModel
+@{
+    ViewData["Title"] = "Analytics";
+    string Json(object o) => System.Text.Json.JsonSerializer.Serialize(o);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Analytics dashboard</h1>
+        <p class="th-section-sub mb-0">Live operational KPIs · last @Model.Days days</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        @foreach (var d in new[] { 7, 30, 90, 180, 365 })
+        {
+            <a asp-action="Index" asp-route-days="@d" class="btn btn-sm @(Model.Days == d ? "btn-primary" : "btn-outline-secondary")">@d d</a>
+        }
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3 col-lg"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-people"></i></div><div class="th-stat-label">Total patients</div><div class="th-stat-value">@Model.TotalPatients.ToString("N0")</div></div></div>
+    <div class="col-md-3 col-lg"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-person-plus"></i></div><div class="th-stat-label">New regs</div><div class="th-stat-value">@Model.NewRegistrationsInWindow</div></div></div>
+    <div class="col-md-3 col-lg"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-clipboard2-pulse"></i></div><div class="th-stat-label">Visits</div><div class="th-stat-value">@Model.OutpatientVisitsInWindow</div></div></div>
+    <div class="col-md-3 col-lg"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-hospital"></i></div><div class="th-stat-label">Admissions</div><div class="th-stat-value">@Model.AdmissionsInWindow</div></div></div>
+    <div class="col-md-3 col-lg"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-cash-coin"></i></div><div class="th-stat-label">Revenue (₦)</div><div class="th-stat-value">@Model.RevenueCollectedInWindow.ToString("N0")</div></div></div>
+    <div class="col-md-3 col-lg"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-receipt"></i></div><div class="th-stat-label">Outstanding (₦)</div><div class="th-stat-value">@Model.OutstandingBalance.ToString("N0")</div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-heart-pulse"></i></div><div class="th-stat-label">Deliveries</div><div class="th-stat-value">@Model.DeliveriesInWindow</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-scissors"></i></div><div class="th-stat-label">C-sections</div><div class="th-stat-value">@Model.CSectionsInWindow</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-bandaid"></i></div><div class="th-stat-label">Immunizations</div><div class="th-stat-value">@Model.ImmunizationsInWindow</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-shield-exclamation"></i></div><div class="th-stat-label">Open IDSR</div><div class="th-stat-value">@Model.OpenIdsrCases</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-graph-up me-1"></i> Daily encounters & admissions</h6>
+            <canvas id="trendChart" height="120"></canvas>
+        </div></div>
+
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-cash-coin me-1"></i> Daily revenue collected (₦)</h6>
+            <canvas id="revChart" height="100"></canvas>
+        </div></div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-pie-chart me-1"></i> Payments by method</h6>
+            <canvas id="methodChart" height="200"></canvas>
+        </div></div>
+
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-buildings me-1"></i> Top clinics by visits</h6>
+            <canvas id="clinicChart" height="220"></canvas>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-bandaid me-1"></i> Immunization by vaccine</h6>
+            @if (Model.ImmunizationByVaccine.Any())
+            {
+                <canvas id="vaxChart" height="150"></canvas>
+            }
+            else { <p class="text-muted small mb-0">No immunizations in window.</p> }
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-virus me-1"></i> IDSR cases by disease</h6>
+            @if (Model.IdsrByDisease.Any())
+            {
+                <canvas id="idsrChart" height="150"></canvas>
+            }
+            else { <p class="text-muted small mb-0">No IDSR cases in window.</p> }
+        </div></div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const encDaily = @Html.Raw(Json(Model.EncountersDaily.Select(p => new { d = p.Date.ToString("yyyy-MM-dd"), v = p.Value })));
+    const admDaily = @Html.Raw(Json(Model.AdmissionsDaily.Select(p => new { d = p.Date.ToString("yyyy-MM-dd"), v = p.Value })));
+    const revDaily = @Html.Raw(Json(Model.RevenueDaily.Select(p => new { d = p.Date.ToString("yyyy-MM-dd"), v = p.Value })));
+    const byMethod = @Html.Raw(Json(Model.PaymentsByMethod));
+    const byClinic = @Html.Raw(Json(Model.EncountersByClinic));
+    const byVax = @Html.Raw(Json(Model.ImmunizationByVaccine));
+    const byDisease = @Html.Raw(Json(Model.IdsrByDisease));
+
+    function unionDates(a, b) {
+        const s = new Set();
+        a.forEach(x => s.add(x.d));
+        b.forEach(x => s.add(x.d));
+        return Array.from(s).sort();
+    }
+    function valueAt(arr, d) { const r = arr.find(x => x.d === d); return r ? r.v : 0; }
+
+    const labels = unionDates(encDaily, admDaily);
+    const encVals = labels.map(d => valueAt(encDaily, d));
+    const admVals = labels.map(d => valueAt(admDaily, d));
+
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: { labels, datasets: [
+            { label: 'Encounters', data: encVals, borderColor: '#1f6feb', backgroundColor: 'rgba(31,111,235,0.15)', tension: 0.3, fill: true },
+            { label: 'Admissions', data: admVals, borderColor: '#9d3cff', backgroundColor: 'rgba(157,60,255,0.15)', tension: 0.3, fill: true }
+        ]},
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    const revLabels = revDaily.map(p => p.d);
+    new Chart(document.getElementById('revChart'), {
+        type: 'bar',
+        data: { labels: revLabels, datasets: [{ label: 'Revenue (₦)', data: revDaily.map(p => p.v), backgroundColor: '#1f9d55' }]},
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    new Chart(document.getElementById('methodChart'), {
+        type: 'doughnut',
+        data: { labels: Object.keys(byMethod), datasets: [{ data: Object.values(byMethod), backgroundColor: ['#1f9d55','#1f6feb','#9d3cff','#f59f00','#dc2626','#94a3b8'] }]},
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    new Chart(document.getElementById('clinicChart'), {
+        type: 'bar',
+        data: { labels: Object.keys(byClinic), datasets: [{ label: 'Visits', data: Object.values(byClinic), backgroundColor: '#1f6feb' }]},
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    if (Object.keys(byVax).length) {
+        new Chart(document.getElementById('vaxChart'), {
+            type: 'bar',
+            data: { labels: Object.keys(byVax), datasets: [{ label: 'Doses', data: Object.values(byVax), backgroundColor: '#1f9d55' }]},
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+    if (Object.keys(byDisease).length) {
+        new Chart(document.getElementById('idsrChart'), {
+            type: 'bar',
+            data: { labels: Object.keys(byDisease), datasets: [{ label: 'Cases', data: Object.values(byDisease), backgroundColor: '#dc2626' }]},
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+</script>
+}

@@ -1,0 +1,40 @@
+@model ThriveHealth.Web.Models.ViewModels.PortalRegisterViewModel
+@{ ViewData["Title"] = "Create portal account"; }
+
+<div class="row justify-content-center pt-3 pt-md-4">
+    <div class="col-md-7 col-lg-6">
+        <div class="text-center mb-4">
+            <h1 class="th-section-title">Create portal account</h1>
+            <p class="th-section-sub">Verify your hospital identity to activate your portal</p>
+        </div>
+
+        <div class="th-card"><div class="th-card-body p-4">
+            <form asp-action="Register" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person-badge me-1"></i> Verify identity</h6>
+                <div class="mb-3">
+                    <label asp-for="HospitalNumber" class="form-label">Hospital number</label>
+                    <input asp-for="HospitalNumber" class="form-control" placeholder="HOSP/2026/000001" />
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-7"><label asp-for="LastName" class="form-label">Surname</label><input asp-for="LastName" class="form-control" /></div>
+                    <div class="col-md-5"><label asp-for="DateOfBirth" class="form-label">Date of birth</label><input asp-for="DateOfBirth" type="date" class="form-control" placeholder="yyyy-MM-dd" /></div>
+                </div>
+
+                <h6 class="text-uppercase text-muted small mb-3 mt-4"><i class="bi bi-envelope me-1"></i> Contact & password</h6>
+                <div class="mb-3"><label asp-for="Email" class="form-label">Email</label><input asp-for="Email" type="email" class="form-control" /></div>
+                <div class="mb-3"><label asp-for="Phone" class="form-label">Phone (optional)</label><input asp-for="Phone" class="form-control" /></div>
+                <div class="mb-3"><label asp-for="Password" class="form-label">Password (min 8 chars)</label><input asp-for="Password" type="password" class="form-control" autocomplete="new-password" /></div>
+                <div class="mb-3"><label asp-for="ConfirmPassword" class="form-label">Confirm password</label><input asp-for="ConfirmPassword" type="password" class="form-control" autocomplete="new-password" /></div>
+
+                <button class="btn btn-primary btn-lg w-100"><i class="bi bi-person-plus me-1"></i> Create account</button>
+            </form>
+        </div></div>
+
+        <div class="text-center mt-3"><small><a asp-action="Login">Already have an account? Sign in</a></small></div>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

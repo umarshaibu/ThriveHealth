@@ -1,0 +1,39 @@
+@model ThriveHealth.Web.Models.ViewModels.VitalsEditViewModel
+@{
+    ViewData["Title"] = "Record vitals";
+}
+
+<div class="row">
+    <div class="col-lg-9">
+        <h1 class="th-section-title">Record vitals</h1>
+        <p class="th-section-sub">MEWS score is auto-calculated. Severe values trigger escalation alerts.</p>
+
+        <form asp-action="AddVitals" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+            <div class="th-card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+                <input type="hidden" asp-for="PatientId" />
+
+                <div class="row g-3">
+                    <div class="col-md-3"><label asp-for="SystolicBp" class="form-label"></label><input asp-for="SystolicBp" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="DiastolicBp" class="form-label"></label><input asp-for="DiastolicBp" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="HeartRate" class="form-label"></label><input asp-for="HeartRate" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="RespiratoryRate" class="form-label"></label><input asp-for="RespiratoryRate" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="TemperatureCelsius" class="form-label"></label><input asp-for="TemperatureCelsius" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="SpO2" class="form-label"></label><input asp-for="SpO2" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="WeightKg" class="form-label"></label><input asp-for="WeightKg" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="HeightCm" class="form-label"></label><input asp-for="HeightCm" type="number" step="0.5" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="PainScore" class="form-label"></label><input asp-for="PainScore" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="GcsTotal" class="form-label"></label><input asp-for="GcsTotal" type="number" class="form-control" /></div>
+                    <div class="col-md-12"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" rows="2" class="form-control"></textarea></div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">Cancel</a>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Save vitals</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

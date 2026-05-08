@@ -1,0 +1,53 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.BloodBank.BloodCrossMatch>
+@using ThriveHealth.Web.Models.BloodBank
+@{
+    ViewData["Title"] = "Cross-match requests";
+    string Tone(CrossMatchStatus s) => s switch
+    {
+        CrossMatchStatus.Requested => "th-pill-warning",
+        CrossMatchStatus.Compatible => "th-pill-info",
+        CrossMatchStatus.Incompatible => "th-pill-danger",
+        CrossMatchStatus.Issued => "th-pill-success",
+        CrossMatchStatus.Cancelled => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Cross-match requests</h1>
+        <p class="th-section-sub mb-0">@Model.Count request@(Model.Count == 1 ? "" : "s")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bank</a>
+        <a asp-action="NewCrossMatch" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankCrossMatch" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> New request</a>
+    </div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-shuffle"></i><h5 class="mt-2">No cross-match requests</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>XM #</th><th>Patient</th><th>Group</th><th>Component</th><th>Units</th><th>Required by</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td><span class="font-monospace small">@c.CrossMatchNumber</span></td>
+                <td><strong>@c.Patient?.FullName</strong><div class="small text-muted">@c.Patient?.HospitalNumber</div></td>
+                <td>@c.PatientBloodGroup@(c.PatientRhesusPositive ? "+" : "−")</td>
+                <td><small>@c.Component</small></td>
+                <td>@c.Units.Count(u => u.Status == BloodUnitStatus.CrossMatched || u.Status == BloodUnitStatus.Issued) / @c.UnitsRequested</td>
+                <td>@c.RequiredBy.ToString("dd MMM yyyy")</td>
+                <td><span class="th-pill @Tone(c.Status)">@c.Status</span></td>
+                <td class="text-end"><a asp-action="CrossMatchDetail" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

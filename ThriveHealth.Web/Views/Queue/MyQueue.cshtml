@@ -1,0 +1,57 @@
+@model ThriveHealth.Web.Models.ViewModels.MyQueueViewModel
+@{ ViewData["Title"] = "My queue"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">My queue</h1>
+        <p class="th-section-sub mb-0">Patients assigned to you (or unassigned in your clinic). Click <em>Start</em> to begin a consultation.</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="clinicId" class="form-select" onchange="this.form.submit()">
+            <option value="">All clinics</option>
+            @foreach (var c in Model.Clinics)
+            { <option value="@c.Id" selected="@(Model.FilterClinicId == c.Id)">@c.Code · @c.Name</option> }
+        </select>
+    </form>
+</div>
+
+@if (!Model.Entries.Any())
+{
+    <div class="th-empty"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No patients in your queue</h5></div>
+}
+else
+{
+    <div class="th-card"><div class="th-card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Ticket</th><th>Patient</th><th>Clinic</th><th>Priority</th><th>Status</th><th>Wait</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                @foreach (var e in Model.Entries)
+                {
+                    var pTone = e.Priority switch
+                    {
+                        ThriveHealth.Web.Models.Scheduling.AppointmentPriority.Emergency => "th-pill-danger",
+                        ThriveHealth.Web.Models.Scheduling.AppointmentPriority.Urgent => "th-pill-warning",
+                        _ => "th-pill-muted"
+                    };
+                    var wait = (DateTime.UtcNow - e.CheckedInAt).TotalMinutes;
+                    <tr>
+                        <td><span class="font-monospace fs-5">@e.TicketNumber</span></td>
+                        <td><strong>@e.Patient!.FullName</strong><br /><small class="font-monospace text-muted">@e.Patient.HospitalNumber</small></td>
+                        <td><span class="th-pill" style="background:@e.Clinic!.ColorHex;color:#fff;">@e.Clinic.Code</span></td>
+                        <td><span class="th-pill @pTone">@e.Priority</span></td>
+                        <td>@e.Status</td>
+                        <td>@((int)wait) min</td>
+                        <td class="text-end">
+                            <form asp-action="Start" asp-route-id="@e.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueServe">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-success"><i class="bi bi-clipboard2-pulse me-1"></i> Start consultation</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+}

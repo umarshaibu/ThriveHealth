@@ -1,0 +1,51 @@
+@model IReadOnlyList<ThriveHealth.Web.Models.Tenancy.Tenant>
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Tenants";
+    string Tone(TenantStatus s) => s switch
+    {
+        TenantStatus.Trialing => "trialing",
+        TenantStatus.Active => "active",
+        TenantStatus.PendingPayment => "pending",
+        TenantStatus.PastDue => "pastdue",
+        TenantStatus.Suspended => "suspended",
+        TenantStatus.Cancelled => "cancelled",
+        _ => "pendingverification"
+    };
+}
+
+<h1 class="sa-h1">Tenants</h1>
+<p class="sa-sub">Every hospital that has signed up to ThriveHealth.</p>
+
+<form method="get" class="mb-3 d-flex gap-2">
+    <input type="text" name="q" value="@ViewBag.Q" placeholder="Search by name, slug, owner email…" class="form-control" />
+    <select name="status" class="form-select" style="max-width: 220px;">
+        <option value="">All statuses</option>
+        @foreach (TenantStatus s in Enum.GetValues<TenantStatus>())
+        {
+            <option value="@((int)s)" selected="@(ViewBag.Status?.ToString() == s.ToString())">@s</option>
+        }
+    </select>
+    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
+
+<div class="sa-card p-0">
+    <table class="table mb-0">
+        <thead><tr><th>Tenant</th><th>Owner</th><th>Status</th><th>Country</th><th>Trial ends</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var t in Model)
+            {
+                <tr>
+                    <td><strong>@t.LegalName</strong><div class="small text-muted">@(t.CustomDomain ?? t.Slug + ".thrivehealth.ng")</div></td>
+                    <td>@t.OwnerName<div class="small text-muted">@t.OwnerEmail</div></td>
+                    <td><span class="badge-pill badge-@Tone(t.Status)">@t.Status</span> @if (t.IsTeachingHospital) { <span class="badge bg-info ms-1">Teaching</span> }</td>
+                    <td>@t.CountryCode · @t.CurrencyCode</td>
+                    <td class="small">@t.TrialEndsAt?.ToString("dd MMM yyyy")</td>
+                    <td class="small">@t.CreatedAt:dd MMM HH:mm</td>
+                    <td><a asp-action="Detail" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary">Open</a></td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="7" class="text-center py-4 text-muted">No tenants match.</td></tr> }
+        </tbody>
+    </table>
+</div>

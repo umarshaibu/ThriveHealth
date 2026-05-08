@@ -1,0 +1,64 @@
+@model ThriveHealth.Web.Models.ViewModels.AllergyEditViewModel
+@{
+    ViewData["Title"] = "Add allergy";
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <h1 class="th-section-title">Record an allergy</h1>
+        <p class="th-section-sub">Severe and anaphylaxis-grade allergies will surface as a red banner on the patient summary and block conflicting drug orders.</p>
+
+        <form asp-action="AddAllergy" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+            <div class="th-card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+                <input type="hidden" asp-for="PatientId" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="Category" class="form-label"></label>
+                        <select asp-for="Category" class="form-select">
+                            <option value="1">Drug</option>
+                            <option value="2">Food</option>
+                            <option value="3">Environmental</option>
+                            <option value="4">Latex</option>
+                            <option value="5">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label asp-for="Substance" class="form-label"></label>
+                        <input asp-for="Substance" class="form-control" placeholder="e.g. Penicillin, Peanuts, Sulfa drugs" />
+                        <span asp-validation-for="Substance" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Severity" class="form-label"></label>
+                        <select asp-for="Severity" class="form-select">
+                            <option value="1">Mild</option>
+                            <option value="2">Moderate</option>
+                            <option value="3">Severe</option>
+                            <option value="4">Anaphylaxis</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="OnsetDate" class="form-label"></label>
+                        <input asp-for="OnsetDate" class="form-control" type="date" />
+                    </div>
+                    <div class="col-md-12">
+                        <label asp-for="Reaction" class="form-label"></label>
+                        <input asp-for="Reaction" class="form-control" placeholder="Rash, swelling, anaphylactic shock…" />
+                    </div>
+                    <div class="col-md-12">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" rows="3" class="form-control"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">Cancel</a>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Save allergy</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

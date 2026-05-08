@@ -1,0 +1,137 @@
+@model ThriveHealth.Web.Models.ViewModels.NhmisDetailViewModel
+@using ThriveHealth.Web.Models.Reporting
+@{
+    ViewData["Title"] = $"NHMIS · {Model.Report.Period}";
+    var a = Model.Aggregates;
+    string Tone(NhmisReportStatus s) => s switch
+    {
+        NhmisReportStatus.Submitted => "th-pill-success",
+        NhmisReportStatus.Generated => "th-pill-info",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2 d-print-none">
+    <div>
+        <h1 class="th-section-title mb-1">NHMIS Monthly Summary · @Model.Report.Period</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill @Tone(Model.Report.Status)">@Model.Report.Status</span>
+            <span class="th-pill th-pill-muted">Generated @Model.Report.GeneratedAt.ToLocalTime().ToString("dd MMM HH:mm")</span>
+            @if (Model.Report.SubmittedAt.HasValue) { <span class="th-pill th-pill-muted">Submitted @Model.Report.SubmittedAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</span> }
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Nhmis" asp-route-year="@Model.Report.Year" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Reports</a>
+        <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+</div>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Period: @Model.Report.Period</h5>
+            <small class="text-muted">National Health Management Information System (NHMIS) — DHIS2-compatible aggregate</small>
+        </div>
+        <div class="col-md-6 text-md-end">
+            @if (Model.Report.Status != NhmisReportStatus.Submitted)
+            {
+                <form asp-action="NhmisSubmit" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.NhmisSubmit">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Id" value="@Model.Report.Id" />
+                    <input name="SubmittedToWhom" class="form-control form-control-sm d-inline-block" style="width:220px" value="LGA M&E Officer" />
+                    <input name="SubmissionReference" class="form-control form-control-sm d-inline-block" style="width:140px" placeholder="Ref #" />
+                    <button class="btn btn-success btn-sm"><i class="bi bi-send me-1"></i> Mark submitted</button>
+                </form>
+            }
+            else
+            {
+                <small class="text-success"><i class="bi bi-check-circle me-1"></i>Submitted to <strong>@Model.Report.SubmittedToWhom</strong> @(Model.Report.SubmissionReference != null ? $"(ref {Model.Report.SubmissionReference})" : "")</small>
+            }
+        </div>
+    </div>
+</div></div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-people me-1"></i> Outpatient & inpatient</h6>
+            <dl class="row mb-0">
+                <dt class="col-7">Outpatient attendance</dt><dd class="col-5 text-end fw-semibold">@a.OutpatientAttendance</dd>
+                <dt class="col-7">Children &lt;5</dt><dd class="col-5 text-end">@a.OutpatientUnder5</dd>
+                <dt class="col-7 border-top pt-2">Admissions</dt><dd class="col-5 text-end fw-semibold border-top pt-2">@a.Admissions</dd>
+                <dt class="col-7">Discharges</dt><dd class="col-5 text-end">@a.Discharges</dd>
+                <dt class="col-7">Inpatient deaths</dt><dd class="col-5 text-end text-danger">@a.InpatientDeaths</dd>
+            </dl>
+        </div></div>
+
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-heart-pulse me-1"></i> Maternal & child health</h6>
+            <dl class="row mb-0">
+                <dt class="col-7">Deliveries</dt><dd class="col-5 text-end fw-semibold">@a.Deliveries</dd>
+                <dt class="col-7">Live births</dt><dd class="col-5 text-end">@a.LiveBirths</dd>
+                <dt class="col-7">Still births</dt><dd class="col-5 text-end text-danger">@a.StillBirths</dd>
+                <dt class="col-7">C-sections</dt><dd class="col-5 text-end">@a.CSections</dd>
+                <dt class="col-7 border-top pt-2">ANC bookings</dt><dd class="col-5 text-end border-top pt-2">@a.AncFirstVisits</dd>
+                <dt class="col-7">ANC visits total</dt><dd class="col-5 text-end">@a.AncTotalVisits</dd>
+            </dl>
+        </div></div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-bandaid me-1"></i> Immunization (NPI)</h6>
+            <dl class="row mb-2">
+                <dt class="col-7 fw-bold">Doses administered</dt><dd class="col-5 text-end fw-bold">@a.ImmunizationDosesGiven</dd>
+            </dl>
+            @if (a.ImmunizationByVaccine.Any())
+            {
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Vaccine</th><th class="text-end">Doses</th></tr></thead>
+                    <tbody>
+                    @foreach (var kv in a.ImmunizationByVaccine.OrderByDescending(k => k.Value))
+                    {
+                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-droplet-half me-1"></i> Diagnostics & pharmacy</h6>
+            <dl class="row mb-0">
+                <dt class="col-7">Lab tests completed</dt><dd class="col-5 text-end">@a.LabTestsCompleted</dd>
+                <dt class="col-7">Imaging studies</dt><dd class="col-5 text-end">@a.ImagingStudies</dd>
+                <dt class="col-7">Prescriptions issued</dt><dd class="col-5 text-end">@a.PrescriptionsIssued</dd>
+            </dl>
+        </div></div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-cash-coin me-1"></i> Finance</h6>
+            <dl class="row mb-0">
+                <dt class="col-7">Revenue collected</dt><dd class="col-5 text-end fw-semibold">₦@a.RevenueCollectedNgn.ToString("N0")</dd>
+            </dl>
+        </div></div>
+
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-shaded me-1"></i> IDSR cases this month</h6>
+            <dl class="row mb-2">
+                <dt class="col-7 fw-bold">Total reported</dt><dd class="col-5 text-end fw-bold">@a.IdsrCasesReported</dd>
+            </dl>
+            @if (a.IdsrByDisease.Any())
+            {
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Disease</th><th class="text-end">Cases</th></tr></thead>
+                    <tbody>
+                    @foreach (var kv in a.IdsrByDisease.OrderByDescending(k => k.Value))
+                    {
+                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+    </div>
+</div>

@@ -1,0 +1,62 @@
+@model ThriveHealth.Web.Models.ViewModels.BloodUnitInputViewModel
+@{ ViewData["Title"] = "Register blood unit"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">Register blood unit</h1>
+    <a asp-action="Units" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Units</a>
+</div>
+
+<form asp-action="NewUnit" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-droplet me-1"></i> Unit details</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="BloodGroup" class="form-label">Group</label>
+                        <select asp-for="BloodGroup" class="form-select">
+                            <option value="1">O+</option><option value="2">O−</option>
+                            <option value="3">A+</option><option value="4">A−</option>
+                            <option value="5">B+</option><option value="6">B−</option>
+                            <option value="7">AB+</option><option value="8">AB−</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 form-check ms-3 mt-4"><input asp-for="RhesusPositive" type="checkbox" class="form-check-input" /><label asp-for="RhesusPositive" class="form-check-label">Rhesus positive</label></div>
+                    <div class="col-md-6">
+                        <label asp-for="Component" class="form-label">Component</label>
+                        <select asp-for="Component" class="form-select">
+                            <option value="1">Whole blood</option><option value="2">Packed red cells</option>
+                            <option value="3">Fresh frozen plasma</option><option value="4">Platelets</option>
+                            <option value="5">Cryoprecipitate</option><option value="6">Albumin</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="VolumeMl" class="form-label">Volume (mL)</label><input asp-for="VolumeMl" type="number" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="CollectionDate" class="form-label">Collected on</label><input asp-for="CollectionDate" type="date" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="ExpiryDate" class="form-label">Expires on</label><input asp-for="ExpiryDate" type="date" class="form-control" /><span asp-validation-for="ExpiryDate" class="text-danger small"></span></div>
+                </div>
+            </div></div>
+        </div>
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-check me-1"></i> Pre-issue screening</h6>
+                <p class="small text-muted">All five must be negative for the unit to be available for issue.</p>
+                <div class="row g-2">
+                    <div class="col-md-6 form-check ms-3"><input asp-for="HivNegative" type="checkbox" class="form-check-input" /><label asp-for="HivNegative" class="form-check-label">HIV negative</label></div>
+                    <div class="col-md-6 form-check"><input asp-for="HepBNegative" type="checkbox" class="form-check-input" /><label asp-for="HepBNegative" class="form-check-label">HepB negative</label></div>
+                    <div class="col-md-6 form-check ms-3"><input asp-for="HepCNegative" type="checkbox" class="form-check-input" /><label asp-for="HepCNegative" class="form-check-label">HepC negative</label></div>
+                    <div class="col-md-6 form-check"><input asp-for="VdrlNegative" type="checkbox" class="form-check-input" /><label asp-for="VdrlNegative" class="form-check-label">VDRL negative</label></div>
+                    <div class="col-md-6 form-check ms-3"><input asp-for="MalariaNegative" type="checkbox" class="form-check-input" /><label asp-for="MalariaNegative" class="form-check-label">Malaria negative</label></div>
+                </div>
+                <div class="mt-3"><label asp-for="Notes" class="form-label">Notes</label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+            </div></div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Units" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Register unit</button>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

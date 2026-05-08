@@ -1,0 +1,415 @@
+@model ThriveHealth.Web.Models.ViewModels.AdmissionViewModel
+@{
+    var p = Model.Patient;
+    var a = Model.Admission;
+    ViewData["Title"] = $"Inpatient · {p.FullName}";
+    var hasSevereAllergy = p.Allergies.Any(x => x.IsActive && x.Severity >= ThriveHealth.Web.Models.Patients.AllergySeverity.Severe);
+    var los = (a.DischargedAt ?? DateTime.UtcNow) - a.AdmittedAt;
+    var active = a.Status == ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Active;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <span class="th-pill @(active ? "th-pill-success" : "th-pill-muted") mb-2"><i class="bi bi-hospital"></i> @a.Status</span>
+        <h1 class="th-section-title">@p.FullName <small class="text-muted">· @p.HospitalNumber</small></h1>
+        <p class="th-section-sub mb-0">
+            @p.Sex @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> }
+            · <span class="th-pill" style="background:@a.Ward!.ColorHex;color:#fff;">@a.Ward.Code</span> Bed @a.Bed!.BedNumber
+            · Admitted @a.AdmittedAt.ToLocalTime().ToString("dd MMM HH:mm")
+            · LOS @(los.TotalDays >= 1 ? $"{(int)los.TotalDays}d {los.Hours}h" : $"{los.Hours}h {los.Minutes}m")
+            · @a.AdmittingDoctor?.FullName
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="Patients" asp-action="Profile" asp-route-id="@p.Id" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i> Patient chart</a>
+        @if (active)
+        {
+            <a asp-action="Transfer" asp-route-id="@a.Id" class="btn btn-outline-primary"><i class="bi bi-arrow-left-right me-1"></i> Transfer</a>
+            <a asp-action="Discharge" asp-route-id="@a.Id" class="btn btn-success"><i class="bi bi-box-arrow-right me-1"></i> Discharge</a>
+        }
+    </div>
+</div>
+
+@if (p.Allergies.Any(x => x.IsActive))
+{
+    <div class="alert @(hasSevereAllergy ? "alert-danger" : "alert-warning") d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        <div><strong>Allergies:</strong>
+            @foreach (var x in p.Allergies.Where(z => z.IsActive))
+            { <span class="me-2"><strong>@x.Substance</strong> <small>(@x.Severity)</small></span> }
+        </div>
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat"><div class="th-stat-icon"><i class="bi bi-thermometer-half"></i></div><div class="th-stat-label">Last vitals</div><div class="th-stat-value">@(Model.Vitals.FirstOrDefault()?.RecordedAt.ToLocalTime().ToString("HH:mm") ?? "—")</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-droplet"></i></div><div class="th-stat-label">Input (24h)</div><div class="th-stat-value">@Model.Input24h ml</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-droplet-half"></i></div><div class="th-stat-label">Output (24h)</div><div class="th-stat-value">@Model.Output24h ml</div></div></div>
+    <div class="col-md-3"><div class="th-stat @(Model.Net24h < -500 || Model.Net24h > 2500 ? "tone-danger" : "tone-success")"><div class="th-stat-icon"><i class="bi bi-graph-up-arrow"></i></div><div class="th-stat-label">Net (24h)</div><div class="th-stat-value">@(Model.Net24h > 0 ? "+" : "")@Model.Net24h ml</div></div></div>
+</div>
+
+@if (Model.DueSlots.Any())
+{
+    <div class="th-card mb-3" style="border-left:4px solid var(--th-warning);">
+        <div class="th-card-header">
+            <h5 class="th-card-title"><i class="bi bi-bell text-warning me-1"></i> Due now / next 2 hours</h5>
+            <span class="th-pill th-pill-warning">@Model.DueSlots.Count slot@(Model.DueSlots.Count == 1 ? "" : "s")</span>
+        </div>
+        <div class="th-card-body p-0">
+            <table class="table table-sm mb-0 align-middle">
+                <thead><tr><th>Time</th><th>Drug</th><th>Dose · Route</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.DueSlots)
+                {
+                    var med = Model.Medications.First(m => m.Id == s.InpatientMedicationId);
+                    <tr>
+                        <td><span class="font-monospace">@s.ScheduledUtc.ToLocalTime().ToString("HH:mm")</span></td>
+                        <td><strong>@med.DrugName</strong> @if (med.IsControlled) { <span class="th-pill th-pill-danger ms-1">Controlled</span> }</td>
+                        <td>@med.Dose · @med.Route</td>
+                        <td class="text-end">
+                            <form asp-action="AdministerSlot" method="post" class="d-inline-flex gap-1" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="SlotId" value="@s.Id" />
+                                <input type="hidden" name="Status" value="2" />
+                                <input type="hidden" name="Route" value="@med.Route" />
+                                <input type="hidden" name="ActualDose" value="@med.Dose" />
+                                <button class="btn btn-sm btn-success"><i class="bi bi-check-lg"></i> Given</button>
+                            </form>
+                            <form asp-action="AdministerSlot" method="post" class="d-inline-flex gap-1" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="SlotId" value="@s.Id" />
+                                <input type="hidden" name="Status" value="3" />
+                                <button class="btn btn-sm btn-outline-warning" title="Missed"><i class="bi bi-x"></i></button>
+                            </form>
+                            <form asp-action="AdministerSlot" method="post" class="d-inline-flex gap-1" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="SlotId" value="@s.Id" />
+                                <input type="hidden" name="Status" value="5" />
+                                <button class="btn btn-sm btn-outline-secondary" title="Hold"><i class="bi bi-pause"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-summary">Summary</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-mar">Drug chart <span class="th-pill th-pill-muted ms-1">@Model.Medications.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-obs">Observations <span class="th-pill th-pill-muted ms-1">@Model.Vitals.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-fluids">Fluid balance <span class="th-pill th-pill-muted ms-1">@Model.Fluids.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-nursing">Nursing <span class="th-pill th-pill-muted ms-1">@Model.NursingNotes.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-rounds">Ward rounds <span class="th-pill th-pill-muted ms-1">@Model.WardRounds.Count</span></button></li>
+</ul>
+
+<div class="tab-content">
+
+@* SUMMARY *@
+<div class="tab-pane fade show active" id="t-summary">
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h6 class="text-uppercase text-muted small">Reason for admission</h6>
+        <p>@a.ReasonForAdmission</p>
+        @if (!string.IsNullOrEmpty(a.WorkingDiagnosis))
+        {
+            <h6 class="text-uppercase text-muted small">Working diagnosis</h6>
+            <p>@a.WorkingDiagnosis</p>
+        }
+        @if (a.DischargedAt.HasValue)
+        {
+            <hr />
+            <h6 class="text-uppercase text-muted small">Discharge</h6>
+            <div><strong>@a.DischargeDisposition</strong> · @a.DischargedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+            <div class="small">@a.DischargeDiagnosis</div>
+            @if (!string.IsNullOrEmpty(a.DischargeSummary)) { <pre class="mt-2 small" style="white-space:pre-wrap;font-family:inherit;">@a.DischargeSummary</pre> }
+            @if (!string.IsNullOrEmpty(a.FollowUpPlan)) { <div class="mt-2"><strong>Follow-up:</strong> @a.FollowUpPlan</div> }
+        }
+    </div></div>
+</div>
+
+@* DRUG CHART *@
+<div class="tab-pane fade" id="t-mar">
+    @if (active)
+    {
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-prescription2 me-1 text-primary"></i> Add medication</h5></div>
+            <div class="th-card-body">
+                <form asp-action="AddMedication" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="AdmissionId" value="@a.Id" />
+                    <div class="row g-2">
+                        <div class="col-md-4 position-relative">
+                            <label class="form-label small">Drug</label>
+                            <input class="form-control rx-drug-input" name="DrugName" placeholder="Search drug…" autocomplete="off" />
+                            <input type="hidden" name="DrugId" id="ipDrugId" />
+                            <div id="ipDrugResults" class="list-group position-absolute w-100" style="z-index:50;"></div>
+                        </div>
+                        <div class="col-md-2"><label class="form-label small">Dose</label><input class="form-control" name="Dose" placeholder="500mg" /></div>
+                        <div class="col-md-2"><label class="form-label small">Route</label><input class="form-control" name="Route" placeholder="PO/IV/IM" /></div>
+                        <div class="col-md-2"><label class="form-label small">Frequency</label>
+                            <select class="form-select" name="Frequency">
+                                <option>BD</option><option>TDS</option><option>QDS</option><option>OD</option>
+                                <option>q4h</option><option>q6h</option><option>q8h</option><option>q12h</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2"><label class="form-label small">Kind</label>
+                            <select class="form-select" name="Kind">
+                                <option value="1">Regular</option>
+                                <option value="2">PRN (as needed)</option>
+                                <option value="3">STAT</option>
+                                <option value="4">Once</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3"><label class="form-label small">End date</label><input class="form-control" name="EndDate" type="date" value="@DateTime.UtcNow.AddDays(5).ToString("yyyy-MM-dd")" /></div>
+                        <div class="col-md-9"><label class="form-label small">Instructions</label><input class="form-control" name="Instructions" placeholder="Take with food..." /></div>
+                    </div>
+                    <div class="text-end mt-2"><button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Add to drug chart</button></div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="th-card"><div class="th-card-body p-0">
+    @if (!Model.Medications.Any())
+    {
+        <div class="th-empty m-4"><i class="bi bi-capsule"></i><h5 class="mt-2">No medications charted yet</h5></div>
+    }
+    else
+    {
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Drug</th><th>Dose · Route · Freq</th><th>Kind</th><th>Status</th><th>Slots</th><th class="text-end"></th></tr></thead>
+            <tbody>
+            @foreach (var m in Model.Medications.OrderByDescending(m => m.Status == ThriveHealth.Web.Models.Inpatient.InpatientMedicationStatus.Active))
+            {
+                var totalSlots = m.Slots.Count;
+                var givenSlots = m.Slots.Count(s => s.Status == ThriveHealth.Web.Models.Inpatient.MarSlotStatus.Given);
+                var missedSlots = m.Slots.Count(s => s.Status == ThriveHealth.Web.Models.Inpatient.MarSlotStatus.Missed || s.Status == ThriveHealth.Web.Models.Inpatient.MarSlotStatus.Refused);
+                var statusTone = m.Status == ThriveHealth.Web.Models.Inpatient.InpatientMedicationStatus.Active ? "th-pill-success"
+                               : m.Status == ThriveHealth.Web.Models.Inpatient.InpatientMedicationStatus.Discontinued ? "th-pill-muted"
+                               : "th-pill-warning";
+                <tr>
+                    <td><strong>@m.DrugName</strong> @m.Strength @if (m.IsControlled) { <span class="th-pill th-pill-danger ms-1">Controlled</span> }</td>
+                    <td><small>@m.Dose · @m.Route · @m.Frequency</small></td>
+                    <td>@m.Kind</td>
+                    <td><span class="th-pill @statusTone">@m.Status</span></td>
+                    <td><small>@givenSlots given / @totalSlots @(missedSlots > 0 ? $"· {missedSlots} missed" : "")</small></td>
+                    <td class="text-end">
+                        @if (m.Kind == ThriveHealth.Web.Models.Inpatient.InpatientMedicationKind.Prn && active)
+                        {
+                            <form asp-action="RecordPrn" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="admissionId" value="@a.Id" />
+                                <input type="hidden" name="medicationId" value="@m.Id" />
+                                <input type="hidden" name="actualDose" value="@m.Dose" />
+                                <button class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i> Record dose</button>
+                            </form>
+                        }
+                        @if (active && m.Status == ThriveHealth.Web.Models.Inpatient.InpatientMedicationStatus.Active)
+                        {
+                            <form asp-action="StopMedication" method="post" class="d-inline" onsubmit="return confirm('Discontinue this drug?');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="admissionId" value="@a.Id" />
+                                <input type="hidden" name="medicationId" value="@m.Id" />
+                                <input type="hidden" name="reason" value="Stopped by clinician" />
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-stop-circle"></i> Stop</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    </div></div>
+</div>
+
+@* OBSERVATIONS *@
+<div class="tab-pane fade" id="t-obs">
+    <div class="d-flex justify-content-between mb-2">
+        <h5 class="mb-0">Observation chart</h5>
+        @if (active)
+        { <a asp-controller="Emr" asp-action="AddVitals" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg me-1"></i> Record vitals</a> }
+    </div>
+    @if (!Model.Vitals.Any())
+    {
+        <div class="th-empty"><i class="bi bi-heart-pulse"></i><h5 class="mt-2">No observations recorded</h5></div>
+    }
+    else
+    {
+        <div class="th-card"><div class="th-card-body p-0"><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Time</th><th>BP</th><th>HR</th><th>RR</th><th>Temp</th><th>SpO₂</th><th>Pain</th><th>GCS</th><th>MEWS</th></tr></thead>
+            <tbody>
+            @foreach (var v in Model.Vitals)
+            {
+                var mt = (v.Mews ?? 0) <= 1 ? "th-pill-success" : (v.Mews ?? 0) <= 3 ? "th-pill-warning" : "th-pill-danger";
+                <tr>
+                    <td><small>@v.RecordedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td>
+                    <td>@(v.SystolicBp.HasValue ? $"{v.SystolicBp}/{v.DiastolicBp}" : "—")</td>
+                    <td>@v.HeartRate</td>
+                    <td>@v.RespiratoryRate</td>
+                    <td>@v.TemperatureCelsius</td>
+                    <td>@v.SpO2</td>
+                    <td>@v.PainScore</td>
+                    <td>@v.GcsTotal</td>
+                    <td>@if (v.Mews.HasValue) { <span class="th-pill @mt">@v.Mews</span> } else { <span>—</span> }</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div></div></div>
+    }
+</div>
+
+@* FLUIDS *@
+<div class="tab-pane fade" id="t-fluids">
+    @if (active)
+    {
+        <div class="th-card mb-3">
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-droplet me-1 text-primary"></i> Record fluid</h5></div>
+            <div class="th-card-body">
+                <form asp-action="AddFluid" method="post" class="row g-2 align-items-end" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="AdmissionId" value="@a.Id" />
+                    <div class="col-md-2">
+                        <label class="form-label small">Kind</label>
+                        <select name="Kind" class="form-select"><option value="1">Input</option><option value="2">Output</option></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Type</label>
+                        <select name="Type" class="form-select">
+                            <optgroup label="Input"><option value="1">Oral</option><option value="2">IV crystalloid</option><option value="3">IV colloid</option><option value="4">Blood</option><option value="5">NG feed</option><option value="9">Other</option></optgroup>
+                            <optgroup label="Output"><option value="100">Urine</option><option value="101">Stool</option><option value="102">Vomit</option><option value="103">Drain</option><option value="104">NG aspirate</option><option value="105">Blood loss</option><option value="199">Insensible</option></optgroup>
+                        </select>
+                    </div>
+                    <div class="col-md-2"><label class="form-label small">Volume (ml)</label><input class="form-control" name="VolumeMl" type="number" min="1" /></div>
+                    <div class="col-md-3"><label class="form-label small">Description</label><input class="form-control" name="Description" /></div>
+                    <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-plus me-1"></i> Add</button></div>
+                </form>
+            </div>
+        </div>
+    }
+    @if (!Model.Fluids.Any())
+    {
+        <div class="th-empty"><i class="bi bi-droplet"></i><h5 class="mt-2">No fluid entries</h5></div>
+    }
+    else
+    {
+        <div class="th-card"><div class="th-card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Time</th><th>Kind</th><th>Type</th><th>Volume (ml)</th><th>Description</th><th>By</th></tr></thead>
+            <tbody>
+            @foreach (var f in Model.Fluids)
+            {
+                <tr>
+                    <td><small>@f.RecordedUtc.ToLocalTime().ToString("dd MMM HH:mm")</small></td>
+                    <td><span class="th-pill @(f.Kind == ThriveHealth.Web.Models.Inpatient.FluidKind.Input ? "th-pill-info" : "th-pill-warning")">@f.Kind</span></td>
+                    <td>@f.Type</td>
+                    <td><strong>@f.VolumeMl</strong></td>
+                    <td>@f.Description</td>
+                    <td><small class="text-muted">@f.RecordedBy?.FullName</small></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div></div>
+    }
+</div>
+
+@* NURSING *@
+<div class="tab-pane fade" id="t-nursing">
+    @if (active)
+    {
+        <div class="th-card mb-3"><div class="th-card-body">
+            <form asp-action="AddNursingNote" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="AdmissionId" value="@a.Id" />
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small">Shift</label>
+                        <select class="form-select" name="Shift"><option>Morning</option><option>Afternoon</option><option>Night</option></select>
+                    </div>
+                    <div class="col-md-12"><label class="form-label small">Note</label><textarea class="form-control" name="Body" rows="3"></textarea></div>
+                    <div class="col-md-12"><label class="form-label small">Handover</label><textarea class="form-control" name="Handover" rows="2"></textarea></div>
+                </div>
+                <div class="text-end mt-2"><button class="btn btn-primary"><i class="bi bi-pencil me-1"></i> Save note</button></div>
+            </form>
+        </div></div>
+    }
+    @foreach (var n in Model.NursingNotes)
+    {
+        <div class="th-card mb-2"><div class="th-card-body">
+            <div class="d-flex justify-content-between">
+                <strong>@n.Shift · @n.RecordedBy?.FullName</strong>
+                <small class="text-muted">@n.RecordedUtc.ToLocalTime().ToString("dd MMM HH:mm")</small>
+            </div>
+            <pre class="mt-2 mb-0" style="white-space:pre-wrap;font-family:inherit;">@n.Body</pre>
+            @if (!string.IsNullOrEmpty(n.Handover))
+            { <div class="mt-2 small"><strong>Handover:</strong> @n.Handover</div> }
+        </div></div>
+    }
+</div>
+
+@* WARD ROUNDS *@
+<div class="tab-pane fade" id="t-rounds">
+    @if (active)
+    {
+        <div class="th-card mb-3"><div class="th-card-body">
+            <form asp-action="AddWardRound" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="AdmissionId" value="@a.Id" />
+                <div class="row g-2">
+                    <div class="col-md-12"><label class="form-label small">Round note</label><textarea class="form-control" name="Body" rows="4" placeholder="Patient seen on round. Stable, afebrile..."></textarea></div>
+                    <div class="col-md-12"><label class="form-label small">Plan changes</label><input class="form-control" name="PlanChanges" placeholder="Add IV fluids 1L over 8h. Repeat U&E tomorrow." /></div>
+                </div>
+                <div class="text-end mt-2"><button class="btn btn-primary"><i class="bi bi-clipboard-check me-1"></i> Save round entry</button></div>
+            </form>
+        </div></div>
+    }
+    @foreach (var r in Model.WardRounds)
+    {
+        <div class="th-card mb-2"><div class="th-card-body">
+            <div class="d-flex justify-content-between">
+                <strong>@r.RecordedBy?.FullName</strong>
+                <small class="text-muted">@r.RecordedUtc.ToLocalTime().ToString("dd MMM HH:mm")</small>
+            </div>
+            <pre class="mt-2 mb-0" style="white-space:pre-wrap;font-family:inherit;">@r.Body</pre>
+            @if (!string.IsNullOrEmpty(r.PlanChanges))
+            { <div class="mt-2 small"><strong>Plan changes:</strong> @r.PlanChanges</div> }
+        </div></div>
+    }
+</div>
+
+</div>
+
+@section Scripts {
+<script>
+const $drugIn = document.querySelector('.rx-drug-input');
+const $drugRes = document.getElementById('ipDrugResults');
+const $drugId = document.getElementById('ipDrugId');
+if ($drugIn) {
+    let t;
+    $drugIn.addEventListener('input', () => {
+        clearTimeout(t);
+        const q = $drugIn.value.trim();
+        if (q.length < 2) { $drugRes.innerHTML = ''; return; }
+        t = setTimeout(async () => {
+            const r = await fetch('/Drugs/Search?q=' + encodeURIComponent(q));
+            const items = await r.json();
+            $drugRes.innerHTML = items.map(d =>
+                `<a href="#" class="list-group-item list-group-item-action small" data-id="${d.id}" data-name="${(d.brand ? d.brand + ' (' + d.generic + ')' : d.generic) + ' ' + d.strength}">
+                    <strong>${d.generic}</strong> ${d.brand ? '<span class="text-muted">(' + d.brand + ')</span>' : ''} ${d.strength} <span class="text-muted">· ${d.form}</span>${d.schedule >= 3 ? '<span class="th-pill th-pill-danger ms-1">Controlled</span>' : ''}
+                </a>`).join('');
+            $drugRes.querySelectorAll('a').forEach(el => el.addEventListener('click', e => {
+                e.preventDefault();
+                $drugIn.value = el.dataset.name;
+                $drugId.value = el.dataset.id;
+                $drugRes.innerHTML = '';
+            }));
+        }, 200);
+    });
+}
+</script>
+}

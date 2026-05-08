@@ -1,0 +1,72 @@
+@model ThriveHealth.Web.Models.ViewModels.TakePaymentViewModel
+@{
+    ViewData["Title"] = "Take payment";
+    var bill = ViewBag.Bill as ThriveHealth.Web.Models.Billing.Bill;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Take payment</h1>
+        <p class="th-section-sub mb-0">Bill <span class="font-monospace">@bill?.BillNumber</span> · @bill?.Patient?.FullName</p>
+    </div>
+    <a asp-action="Bill" asp-route-id="@Model.BillId" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bill</a>
+</div>
+
+<form asp-action="TakePayment" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BillsPaymentRecord">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="BillId" />
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-wallet2 me-1"></i> Split payment by method</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Cash (₦)</label><input asp-for="Cash" type="number" step="0.01" min="0" class="form-control th-pay" /></div>
+                    <div class="col-md-6"><label class="form-label">POS (₦)</label><input asp-for="Pos" type="number" step="0.01" min="0" class="form-control th-pay" /></div>
+                    <div class="col-md-6"><label class="form-label">Bank transfer (₦)</label><input asp-for="BankTransfer" type="number" step="0.01" min="0" class="form-control th-pay" /></div>
+                    <div class="col-md-6"><label class="form-label">Mobile money (₦)</label><input asp-for="MobileMoney" type="number" step="0.01" min="0" class="form-control th-pay" /></div>
+                    <div class="col-md-6"><label class="form-label">Cheque (₦)</label><input asp-for="Cheque" type="number" step="0.01" min="0" class="form-control th-pay" /></div>
+                    <div class="col-md-6"><label asp-for="Reference" class="form-label"></label><input asp-for="Reference" class="form-control" placeholder="POS terminal / transfer ref" /></div>
+                    <div class="col-12"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="th-card sticky-top" style="top:1rem"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-calculator me-1"></i> Summary</h6>
+                <dl class="row mb-0">
+                    <dt class="col-7">Net</dt><dd class="col-5 text-end">₦@bill?.NetAmount.ToString("N2")</dd>
+                    <dt class="col-7">Already paid</dt><dd class="col-5 text-end text-success">₦@bill?.PaidAmount.ToString("N2")</dd>
+                    <dt class="col-7 border-top pt-2 fw-bold">Balance</dt><dd class="col-5 text-end border-top pt-2 fw-bold">₦@bill?.Balance.ToString("N2")</dd>
+                    <dt class="col-7 mt-2">Payment now</dt><dd class="col-5 text-end mt-2 fw-bold fs-5" id="payTotal">₦0.00</dd>
+                    <dt class="col-7" id="changeRow" style="display:none">Change due</dt><dd class="col-5 text-end" id="changeAmt" style="display:none"></dd>
+                </dl>
+                <hr />
+                <button class="btn btn-primary w-100"><i class="bi bi-check2-circle me-1"></i> Record payment</button>
+            </div></div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    var balance = @(bill?.Balance ?? 0m);
+    function recalc() {
+        var t = 0;
+        document.querySelectorAll('.th-pay').forEach(i => { t += parseFloat(i.value || 0); });
+        document.getElementById('payTotal').textContent = '₦' + t.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        var change = t - balance;
+        if (change > 0.001) {
+            document.getElementById('changeRow').style.display = '';
+            document.getElementById('changeAmt').style.display = '';
+            document.getElementById('changeAmt').textContent = '₦' + change.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else {
+            document.getElementById('changeRow').style.display = 'none';
+            document.getElementById('changeAmt').style.display = 'none';
+        }
+    }
+    document.querySelectorAll('.th-pay').forEach(i => i.addEventListener('input', recalc));
+    recalc();
+</script>
+}

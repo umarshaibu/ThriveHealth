@@ -1,0 +1,138 @@
+@model ThriveHealth.Web.Models.ViewModels.ClaimDetailViewModel
+@{
+    ViewData["Title"] = $"Claim {Model.Claim.ClaimReference ?? "#" + Model.Claim.Id}";
+    var c = Model.Claim;
+    var statusTone = c.Status switch
+    {
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.Draft => "th-pill-info",
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.Submitted => "th-pill-warning",
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.Acknowledged => "th-pill-warning",
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.PartiallyPaid => "th-pill-warning",
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.Paid => "th-pill-success",
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.Denied => "th-pill-danger",
+        ThriveHealth.Web.Models.Insurance.ClaimStatus.Disputed => "th-pill-danger",
+        _ => "th-pill-muted"
+    };
+    var canSubmit = c.Status == ThriveHealth.Web.Models.Insurance.ClaimStatus.Draft;
+    var canSettle = c.Status == ThriveHealth.Web.Models.Insurance.ClaimStatus.Submitted
+                 || c.Status == ThriveHealth.Web.Models.Insurance.ClaimStatus.Acknowledged
+                 || c.Status == ThriveHealth.Web.Models.Insurance.ClaimStatus.PartiallyPaid;
+    var canDeny = canSettle;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <span class="th-pill @statusTone">@c.Status</span>
+        <h1 class="th-section-title mt-2">Claim @c.ClaimReference</h1>
+        <p class="th-section-sub mb-0">
+            <strong>@Model.Patient.FullName</strong> · <span class="font-monospace">@Model.Patient.HospitalNumber</span>
+            · @c.Payer?.Name @if (c.PayerPlan != null) { <span> / @c.PayerPlan.Name</span> }
+            · service date @c.ServiceDate.ToString("dd MMM yyyy")
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
+        @if (c.EncounterId.HasValue)
+        { <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@c.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-folder2-open me-1"></i> Encounter</a> }
+        @if (canSubmit)
+        {
+            <button type="button" class="btn btn-outline-primary" onclick="aiClaimRisk(@c.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiClaimsRisk"><i class="bi bi-stars me-1"></i> AI risk check</button>
+            <form asp-action="Submit" asp-route-id="@c.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClaimsManage">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-primary"><i class="bi bi-send me-1"></i> Submit to payer</button>
+            </form>
+        }
+        @if (canSettle) { <a asp-action="Settle" asp-route-id="@c.Id" class="btn btn-success"><i class="bi bi-cash-stack me-1"></i> Record settlement</a> }
+        @if (canDeny) { <a asp-action="Deny" asp-route-id="@c.Id" class="btn btn-outline-danger"><i class="bi bi-x-octagon me-1"></i> Deny</a> }
+        <button onclick="window.print()" class="btn btn-outline-primary"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-cash"></i></div><div class="th-stat-label">Gross ₦</div><div class="th-stat-value">@c.GrossAmount.ToString("N2")</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-percent"></i></div><div class="th-stat-label">Patient copay ₦</div><div class="th-stat-value">@c.CopayAmount.ToString("N2")</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-calculator"></i></div><div class="th-stat-label">Claimable ₦</div><div class="th-stat-value">@c.ClaimableAmount.ToString("N2")</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Paid ₦</div><div class="th-stat-value">@c.PaidAmount.ToString("N2")</div></div></div>
+</div>
+
+<div class="th-card mb-3">
+    <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-list-ul me-1 text-primary"></i> Claim items (@c.Items.Count)</h5></div>
+    <div class="th-card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Kind</th><th>Description</th><th>Code / NAFDAC</th><th class="text-end">Qty</th><th class="text-end">Unit ₦</th><th class="text-end">Line ₦</th><th class="text-end">Copay ₦</th><th class="text-end">Claimable ₦</th><th>Status</th></tr></thead>
+            <tbody>
+            @foreach (var i in c.Items)
+            {
+                var kindTone = i.Kind switch
+                {
+                    ThriveHealth.Web.Models.Insurance.ClaimItemKind.Consultation => "th-pill-info",
+                    ThriveHealth.Web.Models.Insurance.ClaimItemKind.Lab => "th-pill-info",
+                    ThriveHealth.Web.Models.Insurance.ClaimItemKind.Imaging => "th-pill-info",
+                    ThriveHealth.Web.Models.Insurance.ClaimItemKind.Drug => "th-pill-warning",
+                    ThriveHealth.Web.Models.Insurance.ClaimItemKind.Procedure => "th-pill-muted",
+                    ThriveHealth.Web.Models.Insurance.ClaimItemKind.BedDay => "th-pill-info",
+                    _ => "th-pill-muted"
+                };
+                <tr class="@(!i.IsCovered ? "table-warning" : "")">
+                    <td><span class="th-pill @kindTone">@i.Kind</span></td>
+                    <td><strong>@i.Description</strong></td>
+                    <td><small class="text-muted font-monospace">@(i.NafdacNumber ?? i.ServiceCode ?? "")</small></td>
+                    <td class="text-end">@i.Quantity</td>
+                    <td class="text-end">@i.UnitPrice.ToString("N2")</td>
+                    <td class="text-end">@i.LineTotal.ToString("N2")</td>
+                    <td class="text-end">@i.CopayAmount.ToString("N2")</td>
+                    <td class="text-end fw-semibold">@i.ClaimableAmount.ToString("N2")</td>
+                    <td>
+                        @if (i.IsCovered) { <span class="th-pill th-pill-success">Covered</span> }
+                        else { <span class="th-pill th-pill-warning">@(i.DenialReason ?? "Not covered")</span> }
+                    </td>
+                </tr>
+            }
+            </tbody>
+            <tfoot class="table-light">
+                <tr><th colspan="5" class="text-end">Totals</th>
+                    <th class="text-end">@c.GrossAmount.ToString("N2")</th>
+                    <th class="text-end">@c.CopayAmount.ToString("N2")</th>
+                    <th class="text-end">@c.ClaimableAmount.ToString("N2")</th>
+                    <th></th></tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="th-card">
+    <div class="th-card-header"><h5 class="th-card-title">Claim timeline</h5></div>
+    <div class="th-card-body">
+        <div class="row small">
+            <div class="col-md-3 text-muted">Created</div>
+            <div class="col-md-9">@c.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm") by @(c.CreatedBy?.FullName ?? "—")</div>
+            @if (c.SubmittedAt.HasValue) { <div class="col-md-3 text-muted">Submitted</div><div class="col-md-9">@c.SubmittedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div> }
+            @if (c.RespondedAt.HasValue) { <div class="col-md-3 text-muted">Payer responded</div><div class="col-md-9">@c.RespondedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div> }
+            @if (!string.IsNullOrEmpty(c.PayerReference)) { <div class="col-md-3 text-muted">Payer reference</div><div class="col-md-9 font-monospace">@c.PayerReference</div> }
+            @if (!string.IsNullOrEmpty(c.AuthorizationCode)) { <div class="col-md-3 text-muted">Authorization code</div><div class="col-md-9 font-monospace">@c.AuthorizationCode</div> }
+            @if (!string.IsNullOrEmpty(c.DenialReason)) { <div class="col-md-3 text-muted">Denial reason</div><div class="col-md-9 text-danger">@c.DenialReason</div> }
+            @if (!string.IsNullOrEmpty(c.Notes)) { <div class="col-md-3 text-muted">Notes</div><div class="col-md-9">@c.Notes</div> }
+        </div>
+    </div>
+</div>
+
+<div class="th-card mt-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiClaimsRisk" id="aiClaimRiskCard" style="display:none">
+    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI denial-risk assessment</h5></div>
+    <div class="th-card-body"><pre id="aiClaimRiskOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
+</div>
+
+@section Scripts {
+<script>
+async function aiClaimRisk(id) {
+    var card = document.getElementById('aiClaimRiskCard');
+    var out = document.getElementById('aiClaimRiskOut');
+    card.style.display = 'block';
+    out.textContent = 'Assessing…';
+    try {
+        var r = await fetch('/Claims/AssessRisk?id=' + id, { method: 'POST' });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

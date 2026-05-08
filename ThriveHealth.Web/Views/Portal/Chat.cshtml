@@ -1,0 +1,188 @@
+@using ThriveHealth.Web.Models.Telemedicine
+@using ThriveHealth.Web.Services
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@{
+    ViewData["Title"] = "Chat with the clinic";
+    var session = ViewBag.Session as TeleSession;
+    var pkg = ViewBag.Package as ChatPackageInfo;
+    var messages = (ViewBag.Messages as IReadOnlyList<TeleChatMessage>) ?? Array.Empty<TeleChatMessage>();
+    var attachments = (ViewBag.Attachments as IReadOnlyDictionary<long, List<TeleChatAttachment>>) ?? new Dictionary<long, List<TeleChatAttachment>>();
+    var pid = (int?)ViewBag.PatientId;
+    var csrf = Xsrf.GetAndStoreTokens(Context).RequestToken;
+    var lastId = messages.Any() ? messages.Max(m => m.Id) : 0L;
+    var isClosed = session != null && session.Status is TeleSessionStatus.Completed or TeleSessionStatus.Cancelled
+        or TeleSessionStatus.NoShowPatient or TeleSessionStatus.NoShowClinician;
+}
+<link rel="stylesheet" href="~/css/tele-chat.css" asp-append-version="true" />
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <a asp-action="Chats" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left me-1"></i> All chats</a>
+        <h1 class="th-section-title mb-1">@(session?.Clinician?.FullName != null ? "Dr " + session.Clinician.FullName : "Chat with your clinician")</h1>
+        @if (session != null)
+        {
+            <p class="text-muted small mb-0">@session.SessionNumber · @session.Status @if (isClosed) { <span class="text-warning">(closed — read-only)</span> }</p>
+        }
+        else
+        {
+            <p class="text-muted small mb-0">Send a question, share a photo, request a refill — your clinician will reply when available.</p>
+        }
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        @if (pkg?.IsActive == true)
+        {
+            <span class="th-pill th-pill-success">
+                <i class="bi bi-check-circle me-1"></i>
+                Package active · expires @pkg.ExpiresAt!.Value.ToLocalTime().ToString("dd MMM HH:mm")
+            </span>
+        }
+        else if (session != null && !isClosed)
+        {
+            <span class="th-pill th-pill-info"><i class="bi bi-receipt me-1"></i> Per-consult chat</span>
+        }
+        @if (session != null && !isClosed)
+        {
+            <form asp-action="EndChat" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="sessionId" value="@session.Id" />
+                <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Close this chat? You won''t be able to send more messages on this thread.')"><i class="bi bi-x-circle me-1"></i> End chat</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
+@if (TempData["Info"] != null) { <div class="alert alert-info">@TempData["Info"]</div> }
+
+@if (session is null && pkg?.IsActive != true)
+{
+    <div class="th-card mb-3"><div class="th-card-body">
+        <h5 class="mb-2">No active chat thread</h5>
+        <p class="text-muted small mb-3">Choose how you'd like to consult:</p>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="border rounded-3 p-3 h-100">
+                    <h6 class="mb-1"><i class="bi bi-chat-dots text-primary me-1"></i> Single chat consult</h6>
+                    <p class="text-muted small">Pay per consult — one thread, ends when the clinician closes it.</p>
+                    <a asp-action="RequestTelemed" class="btn btn-outline-primary btn-sm">Request now</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="border rounded-3 p-3 h-100 bg-light">
+                    <h6 class="mb-1"><i class="bi bi-stars text-warning me-1"></i> 24-hour chat package</h6>
+                    <p class="text-muted small">Unlimited messages with the on-call clinician for 24 hours. Best if you expect a back-and-forth.</p>
+                    <a asp-action="BuyChatPackage" class="btn btn-warning btn-sm">Buy package</a>
+                </div>
+            </div>
+        </div>
+    </div></div>
+}
+else
+{
+    <div id="th-chat-shell" class="th-chat-shell"
+         data-messages-url="@Url.Action("ChatMessages", new { sessionId = session?.Id })"
+         data-send-url="@Url.Action("PostChatMessage")"
+         data-upload-url="@Url.Action("UploadChatAttachment")"
+         data-csrf="@csrf"
+         data-self-role="Patient"
+         data-patient-id="@(pid ?? 0)"
+         data-initial-last-id="@lastId">
+        <div class="th-chat-header">
+            <div>
+                @if (session != null)
+                {
+                    <div class="fw-semibold">@(session.Clinician?.FullName ?? "Awaiting clinician…")</div>
+                    <div class="small text-muted">@session.SessionNumber · @session.Status</div>
+                }
+                else
+                {
+                    <div class="fw-semibold">Chat</div>
+                }
+            </div>
+            <span id="th-chat-status" class="small text-muted">Connecting…</span>
+        </div>
+        <div id="th-chat-list" class="th-chat-list">
+            @if (!messages.Any())
+            {
+                <div class="th-chat-empty"><i class="bi bi-chat-text"></i><div class="mt-2">No messages yet — say hello to start the conversation.</div></div>
+            }
+            else
+            {
+                foreach (var m in messages)
+                {
+                    var cls = m.SenderRole switch { ChatSenderRole.Patient => "me", ChatSenderRole.Clinician => "them", _ => "system" };
+                    var senderLabel = m.SenderRole == ChatSenderRole.Patient ? "You" : ("Dr " + (m.SenderUser?.FullName ?? "Clinician"));
+                    <div class="th-chat-msg @cls" data-id="@m.Id">
+                        @if (m.RepliesToMessage != null)
+                        {
+                            var qWho = m.RepliesToMessage.SenderRole == ChatSenderRole.Patient ? "You" : ("Dr " + (m.RepliesToMessage.SenderUser?.FullName ?? "Clinician"));
+                            var qBody = m.RepliesToMessage.Body.Length > 120 ? m.RepliesToMessage.Body.Substring(0, 120) + "…" : m.RepliesToMessage.Body;
+                            <div class="th-chat-quote" data-jump="@m.RepliesToMessage.Id">
+                                <div class="quote-who">@qWho</div>
+                                <div class="quote-snippet">@qBody</div>
+                            </div>
+                        }
+                        @if (m.SenderRole != ChatSenderRole.System)
+                        {
+                            <div class="who">@senderLabel</div>
+                        }
+                        <div class="body">@m.Body</div>
+                        @if (attachments.TryGetValue(m.Id, out var atts))
+                        {
+                            foreach (var a in atts)
+                            {
+                                if (a.ContentType.StartsWith("image/"))
+                                {
+                                    <a href="@a.Url" target="_blank"><img src="@a.Url" alt="@a.FileName" style="max-width:240px;max-height:240px;border-radius:8px;display:block;margin-top:6px;" /></a>
+                                }
+                                else
+                                {
+                                    <a class="th-chat-att" href="@a.Url" target="_blank" style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;background:rgba(0,0,0,.08);padding:6px 10px;border-radius:8px;color:inherit;text-decoration:none;"><i class="bi bi-file-earmark-pdf"></i>@a.FileName <span style="opacity:.6;">(@(Math.Max(1, (int)(a.SizeBytes / 1024))) KB)</span></a>
+                                }
+                            }
+                        }
+                        @{
+                            var tickClass = m.SenderRole == ChatSenderRole.Patient ? (m.ReadByClinicianAt.HasValue ? "read-tick read" : "read-tick") : "";
+                            var tickGlyph = m.SenderRole == ChatSenderRole.Patient ? (m.ReadByClinicianAt.HasValue ? "✓✓" : "✓") : "";
+                        }
+                        <div class="time">@m.SentAt.ToLocalTime():HH:mm @if (m.SenderRole == ChatSenderRole.Patient) { <span class="@tickClass">@tickGlyph</span> }</div>
+                        @if (m.SenderRole != ChatSenderRole.System)
+                        {
+                            <button type="button" class="th-chat-reply-btn" data-reply-id="@m.Id" data-reply-who="@senderLabel" data-reply-snippet="@m.Body" title="Reply"><i class="bi bi-reply"></i></button>
+                        }
+                    </div>
+                }
+            }
+        </div>
+        <div id="th-chat-reply-preview" class="th-chat-reply-preview d-none">
+            <div class="th-chat-reply-bar"></div>
+            <div class="th-chat-reply-text">
+                <div class="who" id="th-chat-reply-preview-who">—</div>
+                <div class="snippet" id="th-chat-reply-preview-snippet">—</div>
+            </div>
+            <button id="th-chat-reply-clear" type="button" class="btn-close" aria-label="Cancel reply"></button>
+        </div>
+        @if (isClosed)
+        {
+            <div class="th-chat-composer text-muted small p-3"><i class="bi bi-lock me-1"></i> This chat is closed — you can read the history but no new messages can be sent.</div>
+        }
+        else
+        {
+            <form id="th-chat-form" class="th-chat-composer">
+                <label class="btn btn-outline-secondary" title="Attach a photo or PDF (max 5 MB)" style="margin: 0;"><i class="bi bi-paperclip"></i><input id="th-chat-file" type="file" accept="image/*,application/pdf" hidden /></label>
+                <textarea id="th-chat-input" class="form-control" rows="2" maxlength="2000" placeholder="Type a message — Enter to send, Shift+Enter for newline"></textarea>
+                <button class="btn btn-primary" type="submit" title="Send (Enter)"><i class="bi bi-send"></i></button>
+            </form>
+        }
+    </div>
+}
+
+@section Scripts {
+    <meta name="th-push-key-url" content="@Url.Action("PushKey")" />
+    <meta name="th-push-subscribe-url" content="@Url.Action("PushSubscribe")" />
+    <meta name="th-csrf" content="@csrf" />
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/js/tele-chat.js" asp-append-version="true"></script>
+    <script src="~/js/web-push.js" asp-append-version="true"></script>
+}

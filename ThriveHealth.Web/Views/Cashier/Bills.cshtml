@@ -1,0 +1,71 @@
+@model ThriveHealth.Web.Models.ViewModels.BillsListViewModel
+@using ThriveHealth.Web.Models.Billing
+@{
+    ViewData["Title"] = "Cashier · bills";
+
+    string Tone(BillStatus s) => s switch
+    {
+        BillStatus.Open => "th-pill-warning",
+        BillStatus.PartiallyPaid => "th-pill-info",
+        BillStatus.Paid => "th-pill-success",
+        BillStatus.Cancelled => "th-pill-muted",
+        BillStatus.WrittenOff => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Bills</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count visible · @Model.OpenCount open</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Shift" class="btn btn-outline-secondary"><i class="bi bi-cash-stack me-1"></i> My shift</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-receipt"></i></div><div class="th-stat-label">Open bills</div><div class="th-stat-value">@Model.OpenCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-cash-coin"></i></div><div class="th-stat-label">Outstanding (₦)</div><div class="th-stat-value">@Model.OpenBalance.ToString("N0")</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-cash"></i></div><div class="th-stat-label">Collected today (₦)</div><div class="th-stat-value">@Model.TodayCollected.ToString("N0")</div></div></div>
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a asp-action="Bills" class="btn btn-sm @(Model.FilterStatus is null ? "btn-primary" : "btn-outline-secondary")">All</a>
+    <a asp-action="Bills" asp-route-status="@BillStatus.Open" class="btn btn-sm @(Model.FilterStatus == BillStatus.Open ? "btn-primary" : "btn-outline-secondary")">Open</a>
+    <a asp-action="Bills" asp-route-status="@BillStatus.PartiallyPaid" class="btn btn-sm @(Model.FilterStatus == BillStatus.PartiallyPaid ? "btn-primary" : "btn-outline-secondary")">Part-paid</a>
+    <a asp-action="Bills" asp-route-status="@BillStatus.Paid" class="btn btn-sm @(Model.FilterStatus == BillStatus.Paid ? "btn-primary" : "btn-outline-secondary")">Paid</a>
+    <a asp-action="Bills" asp-route-status="@BillStatus.Cancelled" class="btn btn-sm @(Model.FilterStatus == BillStatus.Cancelled ? "btn-primary" : "btn-outline-secondary")">Cancelled</a>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-receipt-cutoff"></i><h5 class="mt-2">No bills</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Bill #</th><th>Patient</th><th>Items</th><th class="text-end">Net (₦)</th><th class="text-end">Paid (₦)</th><th class="text-end">Balance (₦)</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            var b = r.Bill;
+            <tr>
+                <td><span class="font-monospace">@b.BillNumber</span><div class="small text-muted">@b.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</div></td>
+                <td><strong>@r.Patient.FullName</strong><div class="small text-muted">@r.Patient.HospitalNumber</div></td>
+                <td>@b.Items.Count</td>
+                <td class="text-end">@b.NetAmount.ToString("N0")</td>
+                <td class="text-end">@b.PaidAmount.ToString("N0")</td>
+                <td class="text-end fw-semibold">@b.Balance.ToString("N0")</td>
+                <td><span class="th-pill @Tone(b.Status)">@b.Status</span></td>
+                <td class="text-end"><a asp-action="Bill" asp-route-id="@b.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open me-1"></i> Open</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

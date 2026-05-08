@@ -1,0 +1,109 @@
+@model ThriveHealth.Web.Controllers.RolesController.EditPermissionsVm
+@{
+    ViewData["Title"] = $"Permissions · {Model.RoleName}";
+    var groups = ViewBag.Groups as IDictionary<string, string[]> ?? new Dictionary<string, string[]>();
+    var selected = new HashSet<string>(Model.Selected, StringComparer.OrdinalIgnoreCase);
+    var userCount = (int)(ViewBag.UserCount ?? 0);
+    // Permissions on this role that aren't in any rendered group (e.g. catalog entries this build doesn't know about).
+    // They are preserved on save but shown here so the admin knows.
+    var rendered = new HashSet<string>(groups.SelectMany(g => g.Value), StringComparer.OrdinalIgnoreCase);
+    var unknownOnRole = Model.Selected.Where(p => !rendered.Contains(p)).Distinct().ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Permissions · @Model.RoleName</h1>
+        <p class="th-section-sub mb-0">@selected.Count selected · @userCount user@(userCount == 1 ? "" : "s") in this role</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Roles</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="alert alert-info small py-2">
+    <i class="bi bi-info-circle me-1"></i>
+    Tick a permission to grant it to this role. Changes apply immediately to all users in this role
+    (their cached permission set is invalidated on save). Only permissions shown below are touched on save —
+    any other permissions on the role (e.g. ones not yet known to this app build) are preserved.
+</div>
+
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning small py-2"><i class="bi bi-exclamation-triangle me-1"></i> @TempData["Warning"]</div>
+}
+
+@if (unknownOnRole.Any())
+{
+    <div class="alert alert-warning small py-2 d-flex align-items-start gap-2">
+        <i class="bi bi-shield-lock-fill mt-1"></i>
+        <div>
+            <strong>@unknownOnRole.Count permission(s) currently on this role aren't shown below</strong>
+            (likely added by a newer build of the application). They will be preserved on save.
+            <details class="mt-1"><summary class="small">Show</summary>
+                <code class="small">@string.Join(", ", unknownOnRole)</code>
+            </details>
+        </div>
+    </div>
+}
+
+<form asp-action="Permissions" method="post" id="permsForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="RoleId" />
+    <input type="hidden" asp-for="RoleName" />
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAll"><i class="bi bi-check2-all me-1"></i> Select all</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnNone"><i class="bi bi-x-lg me-1"></i> Clear all</button>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Save permissions</button>
+    </div>
+
+    <div class="row g-3">
+        @foreach (var g in groups)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="th-card h-100"><div class="th-card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">@g.Key</h6>
+                        <button type="button" class="btn btn-sm btn-link p-0 th-group-toggle" data-group="@g.Key">Toggle group</button>
+                    </div>
+                    <div class="th-perm-group" data-group="@g.Key">
+                    @foreach (var p in g.Value)
+                    {
+                        var id = "perm_" + p.Replace('.', '_');
+                        <div class="form-check">
+                            <input class="form-check-input th-perm-cb" type="checkbox" name="Selected" value="@p" id="@id" @(selected.Contains(p) ? "checked" : "") />
+                            <label class="form-check-label small font-monospace" for="@id">@p</label>
+                        </div>
+                        @* Visible scope marker — every rendered permission becomes part of the editing scope.
+                           Permissions on the role in the DB but NOT rendered here (e.g. ones a newer code build
+                           added) are preserved untouched on save. *@
+                        <input type="hidden" name="Visible" value="@p" />
+                    }
+                    </div>
+                </div></div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save permissions</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    document.getElementById('btnAll').addEventListener('click', () =>
+        document.querySelectorAll('.th-perm-cb').forEach(c => c.checked = true));
+    document.getElementById('btnNone').addEventListener('click', () =>
+        document.querySelectorAll('.th-perm-cb').forEach(c => c.checked = false));
+    document.querySelectorAll('.th-group-toggle').forEach(b => b.addEventListener('click', function () {
+        var group = this.dataset.group;
+        var inputs = document.querySelectorAll('.th-perm-group[data-group="' + group + '"] .th-perm-cb');
+        var anyUnchecked = Array.from(inputs).some(i => !i.checked);
+        inputs.forEach(i => i.checked = anyUnchecked);
+    }));
+</script>
+}

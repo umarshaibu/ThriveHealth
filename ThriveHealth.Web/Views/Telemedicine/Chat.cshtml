@@ -1,0 +1,209 @@
+@using ThriveHealth.Web.Models.Telemedicine
+@using ThriveHealth.Web.Models.Patients
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@{
+    var patient = ViewBag.Patient as Patient;
+    var session = ViewBag.Session as TeleSession;
+    var messages = (ViewBag.Messages as IReadOnlyList<TeleChatMessage>) ?? Array.Empty<TeleChatMessage>();
+    var attachments = (ViewBag.Attachments as IReadOnlyDictionary<long, List<TeleChatAttachment>>) ?? new Dictionary<long, List<TeleChatAttachment>>();
+    var participants = (ViewBag.Participants as List<TeleSessionParticipant>) ?? new();
+    ViewData["Title"] = $"Chat · {patient?.FullName}";
+    var csrf = Xsrf.GetAndStoreTokens(Context).RequestToken;
+    var lastId = messages.Any() ? messages.Max(m => m.Id) : 0L;
+}
+<link rel="stylesheet" href="~/css/tele-chat.css" asp-append-version="true" />
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@patient?.FullName</h1>
+        <div class="small text-muted">@patient?.HospitalNumber · @patient?.Sex · @(patient?.DateOfBirth.HasValue == true ? (DateTime.UtcNow.Year - patient.DateOfBirth.Value.Year).ToString() + "y" : "—")</div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <a asp-action="Chats" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Inbox</a>
+        @if (session != null)
+        {
+            <span class="th-pill th-pill-info">@session.SessionNumber · @session.Status</span>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#thAddSpecialist"><i class="bi bi-person-plus me-1"></i> Add specialist</button>
+            <form asp-action="EndChat" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="patientId" value="@patient!.Id" />
+                <button class="btn btn-danger btn-sm" onclick="return confirm('Close this chat thread?')"><i class="bi bi-x-circle me-1"></i> End chat</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (participants.Any())
+{
+    <div class="alert alert-info small mb-3 d-flex align-items-center gap-2">
+        <i class="bi bi-people"></i>
+        <span><strong>Group thread:</strong> also @string.Join(", ", participants.Select(p => "Dr " + (p.Clinician?.FullName ?? "—") + (string.IsNullOrEmpty(p.Role) ? "" : " (" + p.Role + ")"))).</span>
+    </div>
+}
+
+<div id="th-chat-shell" class="th-chat-shell"
+     data-messages-url="@Url.Action("ChatMessages", new { patientId = patient!.Id })"
+     data-send-url="@Url.Action("PostChatMessage", new { patientId = patient.Id })"
+     data-upload-url="@Url.Action("UploadChatAttachment", new { patientId = patient.Id })"
+     data-csrf="@csrf"
+     data-self-role="Clinician"
+     data-patient-id="@patient.Id"
+     data-initial-last-id="@lastId">
+    <div class="th-chat-header">
+        <div>
+            <div class="fw-semibold">@patient?.FullName</div>
+            <div class="small text-muted">
+                @if (session != null)
+                {
+                    <text>@session.SessionNumber · @session.Mode · @session.Status</text>
+                }
+                else
+                {
+                    <text>No active chat session</text>
+                }
+            </div>
+        </div>
+        <span id="th-chat-status" class="small text-muted">Connecting…</span>
+    </div>
+    <div id="th-chat-list" class="th-chat-list">
+        @if (!messages.Any())
+        {
+            <div class="th-chat-empty"><i class="bi bi-chat-text"></i><div class="mt-2">No messages yet — say hello to start the conversation.</div></div>
+        }
+        else
+        {
+            foreach (var m in messages)
+            {
+                var cls = m.SenderRole switch { ChatSenderRole.Clinician => "me", ChatSenderRole.Patient => "them", _ => "system" };
+                var senderLabel = m.SenderRole == ChatSenderRole.Patient ? (patient?.FullName ?? "Patient") : ("Dr " + (m.SenderUser?.FullName ?? "You"));
+                <div class="th-chat-msg @cls" data-id="@m.Id">
+                    @if (m.RepliesToMessage != null)
+                    {
+                        var qWho = m.RepliesToMessage.SenderRole == ChatSenderRole.Patient ? (patient?.FullName ?? "Patient") : ("Dr " + (m.RepliesToMessage.SenderUser?.FullName ?? "Clinician"));
+                        var qBody = m.RepliesToMessage.Body.Length > 120 ? m.RepliesToMessage.Body.Substring(0, 120) + "…" : m.RepliesToMessage.Body;
+                        <div class="th-chat-quote" data-jump="@m.RepliesToMessage.Id">
+                            <div class="quote-who">@qWho</div>
+                            <div class="quote-snippet">@qBody</div>
+                        </div>
+                    }
+                    @if (m.SenderRole != ChatSenderRole.System)
+                    {
+                        <div class="who">@senderLabel</div>
+                    }
+                    <div class="body">@m.Body</div>
+                    @if (attachments.TryGetValue(m.Id, out var atts))
+                    {
+                        foreach (var a in atts)
+                        {
+                            if (a.ContentType.StartsWith("image/"))
+                            {
+                                <a href="@a.Url" target="_blank"><img src="@a.Url" alt="@a.FileName" style="max-width:240px;max-height:240px;border-radius:8px;display:block;margin-top:6px;" /></a>
+                            }
+                            else
+                            {
+                                <a class="th-chat-att" href="@a.Url" target="_blank" style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;background:rgba(0,0,0,.08);padding:6px 10px;border-radius:8px;color:inherit;text-decoration:none;"><i class="bi bi-file-earmark-pdf"></i>@a.FileName <span style="opacity:.6;">(@(Math.Max(1, (int)(a.SizeBytes / 1024))) KB)</span></a>
+                            }
+                        }
+                    }
+                    @{
+                        var tickClass = m.SenderRole == ChatSenderRole.Clinician ? (m.ReadByPatientAt.HasValue ? "read-tick read" : "read-tick") : "";
+                        var tickGlyph = m.SenderRole == ChatSenderRole.Clinician ? (m.ReadByPatientAt.HasValue ? "✓✓" : "✓") : "";
+                    }
+                    <div class="time">@m.SentAt.ToLocalTime():HH:mm @if (m.SenderRole == ChatSenderRole.Clinician) { <span class="@tickClass">@tickGlyph</span> }</div>
+                    @if (m.SenderRole != ChatSenderRole.System)
+                    {
+                        <button type="button" class="th-chat-reply-btn" data-reply-id="@m.Id" data-reply-who="@senderLabel" data-reply-snippet="@m.Body" title="Reply"><i class="bi bi-reply"></i></button>
+                    }
+                </div>
+            }
+        }
+    </div>
+    <div id="th-chat-reply-preview" class="th-chat-reply-preview d-none">
+        <div class="th-chat-reply-bar"></div>
+        <div class="th-chat-reply-text">
+            <div class="who" id="th-chat-reply-preview-who">—</div>
+            <div class="snippet" id="th-chat-reply-preview-snippet">—</div>
+        </div>
+        <button id="th-chat-reply-clear" type="button" class="btn-close" aria-label="Cancel reply"></button>
+    </div>
+    <form id="th-chat-form" class="th-chat-composer">
+        @if (session is null)
+        {
+            <input type="text" class="form-control" disabled placeholder="No active session — patient must request a new chat consult." />
+            <button class="btn btn-primary" type="button" disabled><i class="bi bi-send"></i></button>
+        }
+        else
+        {
+            <label class="btn btn-outline-secondary" title="Attach an image or PDF (max 5 MB)" style="margin: 0;"><i class="bi bi-paperclip"></i><input id="th-chat-file" type="file" accept="image/*,application/pdf" hidden /></label>
+            <textarea id="th-chat-input" class="form-control" rows="2" maxlength="2000" placeholder="Type a message — Enter to send, Shift+Enter for newline"></textarea>
+            <button class="btn btn-primary" type="submit" title="Send (Enter)"><i class="bi bi-send"></i></button>
+        }
+    </form>
+</div>
+
+@if (session != null)
+{
+    <div class="modal fade" id="thAddSpecialist" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Add a specialist to this chat</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="th-add-specialist-form" autocomplete="off">
+            <div class="mb-2">
+                <label class="form-label small">Specialist</label>
+                <input id="th-spec-search" class="form-control" placeholder="Search by name or department…" />
+                <input type="hidden" id="th-spec-id" />
+                <ul id="th-spec-results" class="list-group mt-1" style="display:none; max-height:200px; overflow-y:auto;"></ul>
+            </div>
+            <div class="mb-1"><label class="form-label small">Role / specialty (optional)</label><input id="th-spec-role" class="form-control" placeholder="e.g. Cardiology consultant" /></div>
+        </form></div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="th-spec-confirm" class="btn btn-primary">Add to thread</button></div>
+    </div></div></div>
+
+    <script>
+        (function () {
+            const search = document.getElementById('th-spec-search');
+            const hidden = document.getElementById('th-spec-id');
+            const results = document.getElementById('th-spec-results');
+            const role = document.getElementById('th-spec-role');
+            const confirm = document.getElementById('th-spec-confirm');
+            let timer = null;
+            search?.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(async () => {
+                    const q = search.value.trim();
+                    if (q.length < 2) { results.style.display = 'none'; return; }
+                    const res = await fetch('/Telemedicine/SearchSpecialists?q=' + encodeURIComponent(q), { credentials: 'same-origin' });
+                    if (!res.ok) return;
+                    const items = await res.json();
+                    results.innerHTML = items.map(i => `<li class="list-group-item list-group-item-action small" data-id="${i.id}">${i.label}</li>`).join('');
+                    results.style.display = items.length ? '' : 'none';
+                }, 200);
+            });
+            results?.addEventListener('click', (e) => {
+                const li = e.target.closest('li');
+                if (!li) return;
+                hidden.value = li.dataset.id;
+                search.value = li.textContent;
+                results.style.display = 'none';
+            });
+            confirm?.addEventListener('click', async () => {
+                if (!hidden.value) { alert('Pick a specialist first.'); return; }
+                const res = await fetch('@Url.Action("AddChatParticipant", new { patientId = patient.Id })', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '@csrf' },
+                    body: JSON.stringify({ ClinicianId: hidden.value, Role: role.value || null })
+                });
+                if (res.ok) { location.reload(); }
+                else { const b = await res.json().catch(() => ({})); alert(b.error || 'Failed'); }
+            });
+        })();
+    </script>
+}
+
+@section Scripts {
+    <meta name="th-push-key-url" content="@Url.Action("PushKey")" />
+    <meta name="th-push-subscribe-url" content="@Url.Action("PushSubscribe")" />
+    <meta name="th-csrf" content="@csrf" />
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/js/tele-chat.js" asp-append-version="true"></script>
+    <script src="~/js/web-push.js" asp-append-version="true"></script>
+}

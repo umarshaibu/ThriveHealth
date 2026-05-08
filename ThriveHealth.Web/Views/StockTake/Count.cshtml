@@ -1,0 +1,84 @@
+@model ThriveHealth.Web.Models.ViewModels.StockTakeViewModel
+@{
+    ViewData["Title"] = "Count " + Model.StockTake.TakeNumber;
+    var t = Model.StockTake;
+    var open = t.Status == ThriveHealth.Web.Models.Inventory.StockTakeStatus.Open;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="th-pill @(open ? "th-pill-warning" : "th-pill-success")">@t.Status</span>
+        <h1 class="th-section-title mt-2">Stock-take @t.TakeNumber</h1>
+        <p class="th-section-sub mb-0">@t.Store?.Name · @t.TakeDate.ToString("dd MMM yyyy") · @Model.VarianceLines variance line@(Model.VarianceLines == 1 ? "" : "s") · ₦@Model.VarianceValue.ToString("N2") variance value</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> All takes</a>
+        @if (open)
+        {
+            <form asp-action="Approve" asp-route-id="@t.Id" method="post" class="d-inline" onsubmit="return confirm('Post counts as adjustments to stock? This is final.');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i> Post variances to stock</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (open)
+{
+    <form asp-action="SaveCounts" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="StockTakeId" value="@t.Id" />
+
+        <div class="th-card mb-3"><div class="th-card-body p-0">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Item</th><th>Batch</th><th>Expiry</th><th class="text-end">Expected</th><th>Counted</th><th class="text-end">Variance</th><th>Notes</th></tr></thead>
+                <tbody>
+                @for (int idx = 0; idx < Model.Items.Count; idx++)
+                {
+                    var i = Model.Items.ElementAt(idx);
+                    var v = i.CountedQuantity - i.ExpectedQuantity;
+                    <tr class="@(v != 0 ? "table-warning" : "")">
+                        <td>
+                            <input type="hidden" name="Counts[@idx].StockTakeItemId" value="@i.Id" />
+                            <strong>@i.Description</strong>
+                            <span class="th-pill @(i.DrugId.HasValue ? "th-pill-warning" : "th-pill-info")">@(i.DrugId.HasValue ? "Drug" : "Item")</span>
+                        </td>
+                        <td><span class="font-monospace small">@i.BatchNumber</span></td>
+                        <td>@i.ExpiryDate?.ToString("MMM yyyy")</td>
+                        <td class="text-end">@i.ExpectedQuantity</td>
+                        <td><input class="form-control form-control-sm" type="number" min="0" name="Counts[@idx].CountedQuantity" value="@i.CountedQuantity" /></td>
+                        <td class="text-end @(v < 0 ? "text-danger" : v > 0 ? "text-success" : "")">@(v == 0 ? "—" : (v > 0 ? "+" + v : v.ToString()))</td>
+                        <td><input class="form-control form-control-sm" name="Counts[@idx].Notes" value="@i.Notes" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div></div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save counts</button>
+        </div>
+    </form>
+}
+else
+{
+    <div class="th-card mb-3"><div class="th-card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Item</th><th>Batch</th><th class="text-end">Expected</th><th class="text-end">Counted</th><th class="text-end">Variance</th><th class="text-end">₦ variance</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.Items)
+            {
+                var v = i.CountedQuantity - i.ExpectedQuantity;
+                <tr class="@(v != 0 ? "table-warning" : "")">
+                    <td><strong>@i.Description</strong></td>
+                    <td><span class="font-monospace small">@i.BatchNumber</span></td>
+                    <td class="text-end">@i.ExpectedQuantity</td>
+                    <td class="text-end">@i.CountedQuantity</td>
+                    <td class="text-end @(v < 0 ? "text-danger" : v > 0 ? "text-success" : "")">@(v == 0 ? "—" : (v > 0 ? "+" + v : v.ToString()))</td>
+                    <td class="text-end @(i.VarianceValue < 0 ? "text-danger" : "")">@(i.VarianceValue == 0 ? "—" : i.VarianceValue.ToString("N2"))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}

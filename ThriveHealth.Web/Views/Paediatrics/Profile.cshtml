@@ -1,0 +1,113 @@
+@model ThriveHealth.Web.Models.ViewModels.ChildProfileInputViewModel
+@using ThriveHealth.Web.Models.Paediatrics
+@{
+    ViewData["Title"] = "Child profile";
+    var patient = ViewBag.Patient as ThriveHealth.Web.Models.Patients.Patient;
+    var profile = ViewBag.Profile as ThriveHealth.Web.Models.Paediatrics.ChildProfile;
+    var measurements = ViewBag.Measurements as List<ThriveHealth.Web.Models.Paediatrics.GrowthMeasurement> ?? new();
+    var ageMo = patient?.DateOfBirth.HasValue == true
+        ? (DateTime.UtcNow.Year - patient.DateOfBirth.Value.Year) * 12 + (DateTime.UtcNow.Month - patient.DateOfBirth.Value.Month)
+        : 0;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@patient?.FullName</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill th-pill-muted font-monospace">@patient?.HospitalNumber</span>
+            <span class="th-pill th-pill-info">@(ageMo >= 24 ? $"{ageMo / 12} yr" : $"{ageMo} mo")</span>
+            <span class="th-pill th-pill-muted">@patient?.Sex</span>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Children</a>
+        <a asp-controller="Immunization" asp-action="Card" asp-route-patientId="@patient?.Id" class="btn btn-success" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ImmunizationAdminister"><i class="bi bi-bandaid me-1"></i> Immunization card</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <form asp-action="Profile" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PaedsManage">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="PatientId" />
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-info-circle me-1"></i> Profile</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="BirthWeightG" class="form-label">Birth weight (g)</label><input asp-for="BirthWeightG" type="number" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="GestationalAgeAtBirthWeeks" class="form-label">GA at birth (wk)</label><input asp-for="GestationalAgeAtBirthWeeks" type="number" min="20" max="45" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="BirthLengthCm" class="form-label">Birth length (cm)</label><input asp-for="BirthLengthCm" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="BirthHeadCircCm" class="form-label">Birth head circ (cm)</label><input asp-for="BirthHeadCircCm" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-12">
+                        <label asp-for="CurrentFeeding" class="form-label">Current feeding</label>
+                        <select asp-for="CurrentFeeding" class="form-select">
+                            <option value="1">Exclusive breast</option>
+                            <option value="2">Mixed</option>
+                            <option value="3">Formula</option>
+                            <option value="4">Complementary feeding</option>
+                            <option value="5">Family diet</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><label asp-for="KnownAllergies" class="form-label">Known allergies</label><textarea asp-for="KnownAllergies" class="form-control" rows="2"></textarea></div>
+                    <div class="col-12"><label asp-for="Notes" class="form-label">Notes</label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save profile</button>
+                </div>
+            </div></div>
+        </form>
+    </div>
+
+    <div class="col-lg-6">
+        <form asp-action="AddGrowth" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PaedsManage">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="PatientId" value="@patient?.Id" />
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-graph-up me-1"></i> Add growth measurement</h6>
+                <div class="row g-2">
+                    <div class="col-md-4"><label class="form-label">Date</label><input name="DateOfMeasurement" type="date" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" /></div>
+                    <div class="col-md-4"><label class="form-label">Age (months)</label><input name="AgeMonths" type="number" class="form-control" value="@ageMo" /></div>
+                    <div class="col-md-4"><label class="form-label">Weight (kg)</label><input name="WeightKg" type="number" step="0.01" class="form-control" /></div>
+                    <div class="col-md-4"><label class="form-label">Height (cm)</label><input name="HeightCm" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-4"><label class="form-label">Head circ (cm)</label><input name="HeadCircumferenceCm" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-4"><label class="form-label">MUAC (cm)</label><input name="MuacCm" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-12"><label class="form-label">Milestone</label><input name="DevelopmentalMilestoneNote" class="form-control" placeholder="Sits unsupported, walks, first words…" /></div>
+                    <div class="col-12"><label class="form-label">Notes</label><input name="Notes" class="form-control" /></div>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-success"><i class="bi bi-plus-lg me-1"></i> Add measurement</button>
+                </div>
+            </div></div>
+        </form>
+
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Growth history</h6></div>
+            @if (!measurements.Any())
+            {
+                <div class="th-empty m-4"><i class="bi bi-graph-up"></i><h5 class="mt-2">No measurements yet</h5></div>
+            }
+            else
+            {
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Date</th><th>Age</th><th>Wt</th><th>Ht</th><th>HC</th><th>MUAC</th><th>BMI</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var m in measurements)
+                    {
+                        <tr>
+                            <td>@m.DateOfMeasurement.ToString("dd MMM yy")</td>
+                            <td>@m.AgeMonths mo</td>
+                            <td>@(m.WeightKg?.ToString("0.0") ?? "—")</td>
+                            <td>@(m.HeightCm?.ToString("0.0") ?? "—")</td>
+                            <td>@(m.HeadCircumferenceCm?.ToString("0.0") ?? "—")</td>
+                            <td>@(m.MuacCm?.ToString("0.0") ?? "—")</td>
+                            <td>@(m.BmiKgM2?.ToString("0.0") ?? "—")</td>
+                            <td>@if (m.NutritionalStatus != null) { <small class="@(m.NutritionalStatus.Contains("SAM") ? "text-danger" : m.NutritionalStatus.Contains("MAM") ? "text-warning" : "text-success")">@m.NutritionalStatus</small> }</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div></div>
+    </div>
+</div>

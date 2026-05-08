@@ -1,0 +1,36 @@
+@model ThriveHealth.Web.Models.ViewModels.TransferViewModel
+@{
+    ViewData["Title"] = "Transfer";
+    var a = (ThriveHealth.Web.Models.Inpatient.Admission?)ViewBag.Admission;
+}
+
+<div class="row"><div class="col-lg-7">
+    <h1 class="th-section-title">Transfer patient</h1>
+    @if (a != null)
+    {
+        <p class="th-section-sub">@a.Patient!.FullName · @a.Patient.HospitalNumber · currently @a.Ward?.Name @a.Bed?.BedNumber</p>
+    }
+
+    <form asp-action="Transfer" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <input type="hidden" asp-for="AdmissionId" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="NewBedId" class="form-label">Move to bed</label>
+                    <select asp-for="NewBedId" asp-items="ViewBag.Beds" class="form-select"><option value="">--</option></select>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Reason" class="form-label"></label>
+                    <input asp-for="Reason" class="form-control" placeholder="Step-down from ICU; female ward bed needed..." />
+                </div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+                <a asp-action="Details" asp-route-id="@Model.AdmissionId" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-arrow-left-right me-1"></i> Transfer</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,45 @@
+@model IEnumerable<ThriveHealth.Web.Models.ViewModels.StockTakeListRow>
+@{ ViewData["Title"] = "Stock takes"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title"><i class="bi bi-clipboard-check text-primary me-1"></i> Stock takes</h1>
+        <p class="th-section-sub mb-0">@Model.Count() takes recorded. Variances post as stock adjustments.</p>
+    </div>
+    <a asp-action="Start" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Start new stock take</a>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-clipboard-check"></i><h5 class="mt-2">No stock takes</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Take #</th><th>Date</th><th>Store</th><th>Status</th><th>Lines</th><th>Variance lines</th><th class="text-end">Variance ₦</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            var t = r.StockTake;
+            var statusTone = t.Status switch
+            {
+                ThriveHealth.Web.Models.Inventory.StockTakeStatus.Open => "th-pill-warning",
+                ThriveHealth.Web.Models.Inventory.StockTakeStatus.Posted => "th-pill-success",
+                _ => "th-pill-muted"
+            };
+            <tr>
+                <td><span class="font-monospace">@t.TakeNumber</span></td>
+                <td>@t.TakeDate.ToString("dd MMM yyyy")</td>
+                <td>@t.Store?.Code · @t.Store?.Name</td>
+                <td><span class="th-pill @statusTone">@t.Status</span></td>
+                <td>@r.LineCount</td>
+                <td>@if (r.VarianceLines > 0) { <span class="th-pill th-pill-warning">@r.VarianceLines</span> } else { <span class="text-muted small">—</span> }</td>
+                <td class="text-end @(r.VarianceValue < 0 ? "text-danger" : r.VarianceValue > 0 ? "text-success" : "")">@(r.VarianceValue == 0 ? "—" : r.VarianceValue.ToString("N2"))</td>
+                <td class="text-end"><a asp-action="Count" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

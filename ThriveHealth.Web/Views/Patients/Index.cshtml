@@ -1,0 +1,110 @@
+@model ThriveHealth.Web.Models.ViewModels.PatientListViewModel
+@{
+    ViewData["Title"] = "Patients";
+    var page = (int)ViewBag.Page;
+    var pageSize = (int)ViewBag.PageSize;
+    var total = Model.Total;
+    var pages = (int)Math.Ceiling((double)total / pageSize);
+}
+
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+    <div>
+        <h1 class="th-section-title">Patients</h1>
+        <p class="th-section-sub mb-0">@total registered patient@(total == 1 ? "" : "s") at this facility.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex" style="min-width:320px;">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="search" name="q" value="@Model.Search" class="form-control border-start-0" placeholder="Hospital #, name, phone, NIN…" autofocus />
+            </div>
+        </form>
+        <a asp-action="Register" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PatientsRegister" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Register patient</a>
+    </div>
+</div>
+
+<div class="th-card">
+    <div class="th-card-body p-0">
+        @if (!Model.Patients.Any())
+        {
+            <div class="th-empty m-4">
+                <i class="bi bi-people"></i>
+                <h5 class="mt-2 mb-1">No patients @(string.IsNullOrEmpty(Model.Search) ? "yet" : "match your search")</h5>
+                <p class="mb-3">@(string.IsNullOrEmpty(Model.Search) ? "Register the first patient to start the patient register." : "Try a different name, hospital number, or phone.")</p>
+                @if (string.IsNullOrEmpty(Model.Search))
+                {
+                    <a asp-action="Register" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PatientsRegister" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Register patient</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Hospital #</th>
+                            <th>Name</th>
+                            <th>Sex / Age</th>
+                            <th>Phone</th>
+                            <th>State / LGA</th>
+                            <th>Payer</th>
+                            <th>Registered</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.Patients)
+                        {
+                            <tr>
+                                <td><span class="font-monospace">@p.HospitalNumber</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="th-avatar" style="width:32px;height:32px;font-size:11px;">@(p.FirstName.Length > 0 ? p.FirstName[0].ToString() : "")@(p.LastName.Length > 0 ? p.LastName[0].ToString() : "")</span>
+                                        <div>
+                                            <div class="fw-semibold">@p.FullName</div>
+                                            @if (p.NinVerified)
+                                            {
+                                                <span class="th-pill th-pill-success" style="font-size:9px;"><i class="bi bi-patch-check-fill"></i> NIN verified</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="th-pill @(p.Sex == ThriveHealth.Web.Models.Patients.Sex.Female ? "th-pill-info" : "th-pill-muted")">@p.Sex</span>
+                                    @if (p.AgeYears.HasValue)
+                                    {
+                                        <span class="text-muted">· @p.AgeYears y</span>
+                                    }
+                                </td>
+                                <td><span class="text-muted">@(p.Phone ?? "—")</span></td>
+                                <td><span class="text-muted">@(p.State ?? "—")@(string.IsNullOrEmpty(p.Lga) ? "" : " · " + p.Lga)</span></td>
+                                <td>—</td>
+                                <td><span class="text-muted">@p.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</span></td>
+                                <td class="text-end">
+                                    <a asp-action="Profile" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i> Open</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (pages > 1)
+            {
+                <div class="p-3 border-top d-flex align-items-center justify-content-between">
+                    <small class="text-muted">Page @(page) of @(pages) · @total total</small>
+                    <div class="btn-group">
+                        @if (page > 1)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-route-q="@Model.Search" asp-route-page="@(page-1)"><i class="bi bi-chevron-left"></i> Prev</a>
+                        }
+                        @if (page < pages)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-route-q="@Model.Search" asp-route-page="@(page+1)">Next <i class="bi bi-chevron-right"></i></a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

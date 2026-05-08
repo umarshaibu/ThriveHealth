@@ -1,0 +1,48 @@
+@model ThriveHealth.Web.Models.ViewModels.HrStaffListViewModel
+@{ ViewData["Title"] = "HR · staff"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Staff</h1>
+        <p class="th-section-sub mb-0">@Model.Total staff · @Model.LicenseExpiredCount licence@(Model.LicenseExpiredCount == 1 ? "" : "s") expired · @Model.LicenseExpiringSoonCount expiring within 60 days</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex">
+            <input type="search" name="q" value="@Model.Search" class="form-control" placeholder="Name, staff #, licence…" />
+        </form>
+        <a asp-controller="Account" asp-action="RegisterStaff" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StaffManage" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Register staff</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-shield-x"></i></div><div class="th-stat-label">Licence expired</div><div class="th-stat-value">@Model.LicenseExpiredCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-shield-exclamation"></i></div><div class="th-stat-label">Expiring within 60 days</div><div class="th-stat-value">@Model.LicenseExpiringSoonCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-people"></i></div><div class="th-stat-label">Total staff</div><div class="th-stat-value">@Model.Total</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Staff.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-people"></i><h5 class="mt-2">No staff match</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Name</th><th>Staff #</th><th>Department · position</th><th>Licence</th><th>Expiry</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Staff)
+        {
+            <tr class="@(r.LicenseExpired ? "table-danger" : r.LicenseExpiringSoon ? "table-warning" : "")">
+                <td><strong>@r.User.FullName</strong></td>
+                <td><span class="font-monospace">@r.User.StaffNumber</span></td>
+                <td><strong>@r.User.Designation</strong>@if (!string.IsNullOrEmpty(r.User.Department)) { <small class="text-muted ms-1">· @r.User.Department</small> }</td>
+                <td><small class="text-muted">@r.User.LicenseBody @r.User.LicenseNumber</small></td>
+                <td>@(r.User.LicenseExpiry?.ToString("dd MMM yyyy") ?? "—") @if (r.LicenseExpired) { <span class="th-pill th-pill-danger ms-1">Expired</span> } else if (r.LicenseExpiringSoon) { <span class="th-pill th-pill-warning ms-1">Soon</span> }</td>
+                <td>@if (r.Profile != null) { <span class="th-pill th-pill-muted">@r.Profile.Status</span> } else { <span class="th-pill th-pill-muted">—</span> }</td>
+                <td class="text-end"><a asp-action="Profile" asp-route-id="@r.User.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

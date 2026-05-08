@@ -1,0 +1,89 @@
+@model IReadOnlyList<ThriveHealth.Web.Services.ChatThreadSummary>
+@using ThriveHealth.Web.Services
+@using ThriveHealth.Web.Models.Telemedicine
+@{
+    ViewData["Title"] = "Chats";
+    string Initials(string n) {
+        var parts = (n ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch { 0 => "?", 1 => parts[0][..1].ToUpper(), _ => (parts[0][..1] + parts[^1][..1]).ToUpper() };
+    }
+    string RelTime(DateTime utc) {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d";
+        return utc.ToLocalTime().ToString("dd MMM");
+    }
+}
+<link rel="stylesheet" href="~/css/tele-chat.css" asp-append-version="true" />
+
+@{
+    var scope = ViewBag.Scope as string ?? "mine";
+    var mineCount = (int?)ViewBag.MineCount ?? 0;
+    var allCount = (int?)ViewBag.AllCount ?? 0;
+}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">Chats</h1>
+        <p class="text-muted small mb-0">Chat-mode tele-consultations, sorted by latest activity.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list-ul me-1"></i> All tele-sessions</a>
+</div>
+
+<ul class="nav nav-pills mb-3" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link @(scope == "mine" ? "active" : "")" asp-action="Chats" asp-route-scope="mine">
+            <i class="bi bi-person-fill me-1"></i> My threads <span class="badge bg-secondary ms-1">@mineCount</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(scope == "all" ? "active" : "")" asp-action="Chats" asp-route-scope="all">
+            <i class="bi bi-people-fill me-1"></i> All facility <span class="badge bg-secondary ms-1">@allCount</span>
+        </a>
+    </li>
+</ul>
+
+@if (!Model.Any())
+{
+    <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-chat-dots"></i><h5 class="mt-2">No chat threads yet</h5><p class="small mb-0">Patient chat consults will appear here as they come in.</p></div></div>
+}
+else
+{
+    <div class="th-card"><div class="th-card-body p-0">
+        <ul class="list-group list-group-flush">
+            @foreach (var t in Model)
+            {
+                var unread = t.UnreadForClinicianCount > 0;
+                <li class="list-group-item p-0">
+                    <a class="text-decoration-none text-body" asp-action="Chat" asp-route-patientId="@t.PatientId">
+                        <div class="th-inbox-row @(unread ? "unread" : "")">
+                            <div class="avatar">@Initials(t.PatientName)</div>
+                            <div class="preview">
+                                <div class="d-flex justify-content-between align-items-baseline">
+                                    <strong>@t.PatientName</strong>
+                                    <span class="small text-muted">@(t.LastMessageAt.HasValue ? RelTime(t.LastMessageAt.Value) : "")</span>
+                                </div>
+                                <div class="last">
+                                    @if (t.LastMessageRole == ChatSenderRole.Clinician) { <span class="text-muted">You: </span> }
+                                    @t.LastMessagePreview
+                                </div>
+                                <div class="small text-muted">@t.PatientHospitalNumber @if (t.ActiveSessionNumber != null) { <text>· @t.ActiveSessionNumber · @t.ActiveStatus</text> }</div>
+                            </div>
+                            <div class="meta">
+                                @if (unread)
+                                {
+                                    <span class="badge rounded-pill">@t.UnreadForClinicianCount</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div></div>
+}

@@ -1,0 +1,63 @@
+@model ThriveHealth.Web.Models.ViewModels.StockListViewModel
+@{
+    ViewData["Title"] = "Stock";
+    var stores = (List<ThriveHealth.Web.Models.Pharmacy.PharmacyStore>)ViewBag.Stores;
+    var selStore = ViewBag.SelectedStore as int?;
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var soon = today.AddDays(90);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Stock</h1>
+        <p class="th-section-sub mb-0">@Model.Stocks.Count batch line@(Model.Stocks.Count == 1 ? "" : "s") on hand</p>
+    </div>
+    <form method="get" class="d-flex gap-2" style="min-width:380px;">
+        <select name="storeId" class="form-select" onchange="this.form.submit()">
+            <option value="">All stores</option>
+            @foreach (var s in stores)
+            { <option value="@s.Id" selected="@(selStore == s.Id)">@s.Code · @s.Name</option> }
+        </select>
+        <input type="search" name="q" value="@Model.Filter" class="form-control" placeholder="Drug or batch…" />
+        <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-exclamation-triangle"></i></div><div class="th-stat-label">Low stock</div><div class="th-stat-value">@Model.LowStockCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-calendar-x"></i></div><div class="th-stat-label">Expiring within 90 days</div><div class="th-stat-value">@Model.ExpiringSoonCount</div></div></div>
+    <div class="col-md-4"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-x-octagon"></i></div><div class="th-stat-label">Expired (write-off pending)</div><div class="th-stat-value">@Model.ExpiredCount</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Stocks.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-box-seam"></i><h5 class="mt-2">No stock matches</h5></div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Drug</th><th>Strength</th><th>Store</th><th>Batch</th><th>Expiry</th><th>On hand</th><th>Cost</th><th>Reorder</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Stocks)
+            {
+                var expired = s.ExpiryDate < today;
+                var expSoon = !expired && s.ExpiryDate <= soon;
+                var low = s.Drug?.ReorderLevel.HasValue == true && s.QuantityOnHand <= s.Drug.ReorderLevel;
+                <tr class="@(expired ? "table-danger" : expSoon ? "table-warning" : "")">
+                    <td><strong>@s.Drug?.GenericName</strong>@if (s.Drug?.IsControlled == true) { <span class="th-pill th-pill-danger ms-1">Controlled</span> }</td>
+                    <td>@s.Drug?.Strength</td>
+                    <td><span class="font-monospace small">@s.Store?.Code</span></td>
+                    <td><span class="font-monospace small">@s.BatchNumber</span></td>
+                    <td>@s.ExpiryDate.ToString("MMM yyyy") @if (expired) { <span class="th-pill th-pill-danger ms-1">Expired</span> } else if (expSoon) { <span class="th-pill th-pill-warning ms-1">Soon</span> }</td>
+                    <td>@s.QuantityOnHand</td>
+                    <td>₦@s.UnitCost?.ToString("N0")</td>
+                    <td>@if (low) { <span class="th-pill th-pill-danger">Reorder</span> } else { <span class="text-muted small">@s.Drug?.ReorderLevel</span> }</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+</div></div>

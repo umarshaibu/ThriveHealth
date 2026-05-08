@@ -1,0 +1,42 @@
+@model ThriveHealth.Web.Models.ViewModels.AvailabilityEditViewModel
+@{ ViewData["Title"] = "Add availability"; }
+
+<div class="row"><div class="col-lg-7">
+    <h1 class="th-section-title">Add availability</h1>
+    <p class="th-section-sub">A recurring weekly time window when a clinician is available at this clinic.</p>
+
+    <form asp-action="AddAvailability" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClinicsManage">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <input type="hidden" asp-for="ClinicId" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ClinicianId" class="form-label">Clinician</label>
+                    <select asp-for="ClinicianId" asp-items="ViewBag.Clinicians" class="form-select"><option value="">--</option></select>
+                    <span asp-validation-for="ClinicianId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="RoomId" class="form-label">Room (optional)</label>
+                    <select asp-for="RoomId" asp-items="ViewBag.Rooms" class="form-select"><option value="">--</option></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="DayOfWeek" class="form-label"></label>
+                    <select asp-for="DayOfWeek" class="form-select">
+                        <option value="1">Monday</option><option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option><option value="4">Thursday</option>
+                        <option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+                    </select>
+                </div>
+                <div class="col-md-3"><label asp-for="StartTime" class="form-label"></label><input asp-for="StartTime" type="time" class="form-control" /></div>
+                <div class="col-md-3"><label asp-for="EndTime" class="form-label"></label><input asp-for="EndTime" type="time" class="form-control" /></div>
+                <div class="col-md-2"><label asp-for="SlotMinutesOverride" class="form-label">Slot</label><input asp-for="SlotMinutesOverride" type="number" class="form-control" placeholder="default" /></div>
+            </div>
+            <div class="mt-4 d-flex justify-content-end gap-2">
+                <a asp-action="Details" asp-route-id="@Model.ClinicId" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Add availability</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

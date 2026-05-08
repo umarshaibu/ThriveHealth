@@ -1,0 +1,168 @@
+@model ThriveHealth.Web.Models.ViewModels.DispenseViewModel
+@{
+    ViewData["Title"] = "Dispense";
+    var rx = Model.Prescription;
+    var p = rx.Patient!;
+    var hasSevereAllergy = p.Allergies.Any(a => a.IsActive && a.Severity >= ThriveHealth.Web.Models.Patients.AllergySeverity.Severe);
+    var hasSevereWarning = Model.Warnings.Any(w => w.Severity >= ThriveHealth.Web.Models.Pharmacy.InteractionSeverity.Severe);
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Dispense Rx #@rx.Id</h1>
+        <p class="th-section-sub mb-0">
+            <strong>@p.FullName</strong> · <span class="font-monospace">@p.HospitalNumber</span>
+            · @p.Sex @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> }
+            · Prescribed by @rx.PrescribedBy?.FullName <small class="text-muted">@rx.PrescribedBy?.LicenseBody @rx.PrescribedBy?.LicenseNumber</small>
+        </p>
+    </div>
+    <a asp-action="Worklist" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to worklist</a>
+</div>
+
+@if (p.Allergies.Any(a => a.IsActive))
+{
+    <div class="alert @(hasSevereAllergy ? "alert-danger" : "alert-warning") d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        <div>
+            <strong>Allergies:</strong>
+            @foreach (var a in p.Allergies.Where(x => x.IsActive))
+            { <span class="me-2"><strong>@a.Substance</strong> <small>(@a.Severity)</small></span> }
+        </div>
+    </div>
+}
+
+@if (Model.Warnings.Any())
+{
+    <div class="alert @(hasSevereWarning ? "alert-danger" : "alert-warning") mb-3">
+        <strong><i class="bi bi-shield-exclamation me-1"></i> Drug interaction warnings</strong>
+        <ul class="mb-0 mt-2">
+            @foreach (var w in Model.Warnings)
+            {
+                var tone = w.Severity == ThriveHealth.Web.Models.Pharmacy.InteractionSeverity.Severe || w.Severity == ThriveHealth.Web.Models.Pharmacy.InteractionSeverity.Contraindicated ? "fw-bold text-danger" : "";
+                <li class="@tone"><strong>@w.DrugA × @w.DrugB</strong> <span class="th-pill th-pill-warning">@w.Severity</span> — @w.Note</li>
+            }
+        </ul>
+    </div>
+}
+
+<form asp-action="Dispense" method="post" id="dispenseForm" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PharmacyDispense">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="PrescriptionId" value="@rx.Id" />
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Issue from store</label>
+                <select name="StoreId" class="form-select" required>
+                    @foreach (var s in Model.Stores)
+                    { <option value="@s.Id">@s.Code · @s.Name</option> }
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Counselling notes</label>
+                <input name="CounsellingNotes" class="form-control" placeholder="e.g. Take with food. Complete full course." />
+            </div>
+        </div>
+    </div></div>
+
+    @for (int idx = 0; idx < rx.Items.Count; idx++)
+    {
+        var item = rx.Items.ElementAt(idx);
+        var outstanding = (item.Quantity ?? 0) - item.QuantityDispensed;
+        var stocks = item.DrugId.HasValue && Model.StocksByDrug.TryGetValue(item.DrugId.Value, out var s) ? s : new List<ThriveHealth.Web.Models.Pharmacy.DrugStock>();
+        var totalAvail = stocks.Sum(x => x.QuantityOnHand);
+
+        <div class="th-card mb-3"><div class="th-card-body">
+            <input type="hidden" name="Lines[@idx].PrescriptionItemId" value="@item.Id" />
+            <input type="hidden" name="Lines[@idx].DrugId" value="@(item.DrugId?.ToString())" />
+            <input type="hidden" name="Lines[@idx].DrugName" value="@item.DrugName" />
+            <input type="hidden" name="Lines[@idx].Strength" value="@(item.Drug?.Strength)" />
+            <input type="hidden" name="Lines[@idx].NafdacNumber" value="@(item.Drug?.NafdacNumber)" />
+
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h5 class="mb-1">@item.DrugName
+                        @if (item.Drug?.IsControlled == true) { <span class="th-pill th-pill-danger ms-1"><i class="bi bi-shield-lock"></i> Controlled · @item.Drug.Schedule</span> }
+                        @if (item.Drug?.NafdacNumber is not null) { <small class="font-monospace text-muted ms-2">NAFDAC @item.Drug.NafdacNumber</small> }
+                        @{
+                            var formulary = ViewBag.Formulary as Dictionary<int, ThriveHealth.Web.Services.FormularyCheck>;
+                            ThriveHealth.Web.Services.FormularyCheck? fcheck = null;
+                            if (formulary != null && item.DrugId.HasValue) formulary.TryGetValue(item.DrugId.Value, out fcheck);
+                        }
+                        @if (fcheck != null)
+                        {
+                            if (!fcheck.IsCovered)
+                            { <span class="th-pill th-pill-danger ms-1"><i class="bi bi-shield-x"></i> Not on formulary</span> }
+                            else if (fcheck.CopayPercent > 0)
+                            { <span class="th-pill th-pill-warning ms-1"><i class="bi bi-percent"></i> Copay @fcheck.CopayPercent.ToString("F0")%</span> }
+                            else
+                            { <span class="th-pill th-pill-success ms-1"><i class="bi bi-shield-check"></i> Covered</span> }
+                        }
+                    </h5>
+                    <div class="small text-muted">@item.Dose · @item.Route · @item.Frequency · @item.Duration</div>
+                    @if (!string.IsNullOrEmpty(item.Instructions)) { <div class="small">@item.Instructions</div> }
+                    @if (fcheck != null && !fcheck.IsCovered && !string.IsNullOrEmpty(fcheck.Note))
+                    { <div class="small text-warning mt-1"><i class="bi bi-exclamation-triangle"></i> @fcheck.Note</div> }
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted">Prescribed: @(item.Quantity?.ToString() ?? "—")</div>
+                    <div class="small">Already dispensed: <strong>@item.QuantityDispensed</strong></div>
+                    <div class="small">Outstanding: <strong>@outstanding</strong></div>
+                </div>
+            </div>
+
+            <div class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Qty</label>
+                    <input name="Lines[@idx].Quantity" type="number" min="0" class="form-control" value="@outstanding" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Batch (FEFO order)</label>
+                    @if (stocks.Count == 0)
+                    {
+                        <select class="form-select" disabled><option>No batch available</option></select>
+                        <input type="hidden" name="Lines[@idx].BatchNumber" value="" />
+                        <input type="hidden" name="Lines[@idx].ExpiryDate" value="" />
+                        <input type="hidden" name="Lines[@idx].UnitPrice" value="" />
+                    }
+                    else
+                    {
+                        <select name="Lines[@idx].BatchNumber" class="form-select batch-pick" data-idx="@idx">
+                            @foreach (var st in stocks)
+                            { <option value="@st.BatchNumber" data-expiry="@st.ExpiryDate.ToString("yyyy-MM-dd")" data-price="@st.UnitCost" data-stock="@st.QuantityOnHand">@st.BatchNumber · exp @st.ExpiryDate.ToString("MMM yyyy") · @st.QuantityOnHand on hand · ₦@st.UnitCost?.ToString("N0")</option> }
+                        </select>
+                        <input type="hidden" name="Lines[@idx].ExpiryDate" id="expiry_@idx" value="@stocks.First().ExpiryDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="Lines[@idx].UnitPrice" id="price_@idx" value="@stocks.First().UnitCost" />
+                    }
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Substitution / patient instructions</label>
+                    <input name="Lines[@idx].PatientInstructions" class="form-control" placeholder="Take with food..." />
+                </div>
+                <div class="col-md-2 text-end">
+                    <span class="th-pill @(totalAvail < outstanding ? "th-pill-danger" : "th-pill-success")">
+                        @totalAvail in stock
+                    </span>
+                </div>
+            </div>
+        </div></div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted"><i class="bi bi-info-circle"></i> Dispensing decrements stock and writes to the audit log. Controlled drugs additionally appear on the controlled register.</small>
+        <button class="btn btn-primary btn-lg"><i class="bi bi-bag-check me-1"></i> Confirm dispense</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+document.querySelectorAll('.batch-pick').forEach(sel => {
+    sel.addEventListener('change', () => {
+        const o = sel.options[sel.selectedIndex];
+        const idx = sel.dataset.idx;
+        document.getElementById('expiry_' + idx).value = o.dataset.expiry;
+        document.getElementById('price_' + idx).value = o.dataset.price || '';
+    });
+});
+</script>
+}

@@ -1,0 +1,49 @@
+@model ThriveHealth.Web.Models.ViewModels.ImmunizationWorklistViewModel
+@{ ViewData["Title"] = "Immunization · worklist"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Immunization worklist</h1>
+        <p class="th-section-sub mb-0">Doses due in the next 7 days or overdue within 30 days</p>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-calendar2-event"></i></div><div class="th-stat-label">Due today</div><div class="th-stat-value">@Model.DueTodayCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-shield-exclamation"></i></div><div class="th-stat-label">Overdue</div><div class="th-stat-value">@Model.OverdueCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Administered today</div><div class="th-stat-value">@Model.AdministeredTodayCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-bandaid"></i></div><div class="th-stat-label">Visible</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-bandaid"></i><h5 class="mt-2">No doses scheduled</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Child</th><th>Vaccine</th><th>Dose</th><th>Due</th><th>Status</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr class="@(r.DaysOverdue > 0 ? "table-danger" : r.Dose.DueDate == DateOnly.FromDateTime(DateTime.UtcNow) ? "table-warning" : "")">
+                <td><strong>@r.Patient.FullName</strong><div class="small text-muted">@r.Patient.HospitalNumber</div></td>
+                <td>@r.Dose.Vaccine?.Code <small class="text-muted">@r.Dose.Vaccine?.Name</small></td>
+                <td><span class="font-monospace small">@r.Dose.DoseLabel</span></td>
+                <td>@r.Dose.DueDate.ToString("dd MMM yyyy")</td>
+                <td>
+                    @if (r.DaysOverdue > 0) { <span class="th-pill th-pill-danger">@r.DaysOverdue d overdue</span> }
+                    else if (r.DaysOverdue == 0) { <span class="th-pill th-pill-warning">Due today</span> }
+                    else { <span class="th-pill th-pill-info">In @(-r.DaysOverdue) d</span> }
+                </td>
+                <td class="text-end"><a asp-action="Card" asp-route-patientId="@r.Patient.Id" class="btn btn-sm btn-outline-success"><i class="bi bi-bandaid me-1"></i> Card</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

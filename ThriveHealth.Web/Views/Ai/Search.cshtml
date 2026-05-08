@@ -1,0 +1,39 @@
+@{ ViewData["Title"] = "AI search"; }
+
+<div class="row"><div class="col-lg-9">
+    <h1 class="th-section-title"><i class="bi bi-stars text-primary me-1"></i> AI search</h1>
+    <p class="th-section-sub">Ask in plain English. The assistant answers from current facility data — counts of admissions, IDSR cases, expiring stock, queue status, and similar. <span class="th-pill th-pill-info ms-1">Suggestions only — verify before acting.</span></p>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <textarea id="aiQ" class="form-control" rows="2" placeholder="e.g. How many IDSR cases this week? Which drugs are expiring soon? Active admissions today?"></textarea>
+        <div class="text-end mt-2">
+            <button class="btn btn-primary" onclick="aiAsk()"><i class="bi bi-send me-1"></i> Ask</button>
+        </div>
+    </div></div>
+
+    <div class="th-card" id="aiAnswerCard" style="display:none">
+        <div class="th-card-header"><h5 class="th-card-title mb-0">Answer</h5></div>
+        <div class="th-card-body">
+            <pre id="aiA" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre>
+        </div>
+    </div>
+</div></div>
+
+@section Scripts {
+<script>
+async function aiAsk() {
+    var q = document.getElementById('aiQ').value.trim();
+    if (!q) return;
+    var card = document.getElementById('aiAnswerCard');
+    var out = document.getElementById('aiA');
+    card.style.display = 'block';
+    out.textContent = 'Thinking…';
+    try {
+        var r = await fetch('/Ai/Ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+document.getElementById('aiQ').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') aiAsk(); });
+</script>
+}

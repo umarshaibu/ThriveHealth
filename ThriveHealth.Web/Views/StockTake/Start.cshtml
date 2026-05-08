@@ -1,0 +1,35 @@
+@model ThriveHealth.Web.Models.ViewModels.StockTakeStartViewModel
+@{
+    ViewData["Title"] = "Start stock take";
+    var stores = ViewBag.Stores as List<ThriveHealth.Web.Models.Pharmacy.PharmacyStore>;
+}
+
+<div class="row"><div class="col-lg-7">
+    <h1 class="th-section-title">Start a stock-take</h1>
+    <p class="th-section-sub">Snapshots the store's current drug + inventory stock as expected quantities. The team then physically counts each batch and records variances.</p>
+
+    <form asp-action="Start" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="StoreId" class="form-label">Store</label>
+                    <select asp-for="StoreId" class="form-select">
+                        <option value="">--</option>
+                        @foreach (var s in stores ?? new()) { <option value="@s.Id">@s.Code · @s.Name</option> }
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Notes" class="form-label">Notes</label>
+                    <textarea asp-for="Notes" rows="3" class="form-control" placeholder="Quarter-end count, audit, etc."></textarea>
+                </div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-clipboard-check me-1"></i> Generate count sheet</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,116 @@
+@model ThriveHealth.Web.Models.ViewModels.DialysisInputViewModel
+@{ ViewData["Title"] = "New dialysis session"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">New dialysis session</h1>
+        <p class="th-section-sub mb-0">Auto-numbered HD-{year}-NNNNN on save</p>
+    </div>
+    <a asp-action="Dialysis" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Sessions</a>
+</div>
+
+<form asp-action="NewDialysis" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IcuChart">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient & access</h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Patient</label>
+                        <div class="input-group">
+                            <input type="hidden" asp-for="PatientId" id="PatientId" />
+                            <input asp-for="PatientLabel" id="PatientLabel" class="form-control" placeholder="Search…" autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="psBtn"><i class="bi bi-search"></i></button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Modality" class="form-label">Modality</label>
+                        <select asp-for="Modality" class="form-select">
+                            <option value="1">Haemodialysis</option><option value="2">Peritoneal dialysis</option><option value="3">CRRT</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Access" class="form-label">Vascular access</label>
+                        <select asp-for="Access" class="form-select">
+                            <option value="1">Central line</option><option value="2">AV fistula</option><option value="3">AV graft</option>
+                            <option value="4">PD catheter</option><option value="5">Femoral line</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><label asp-for="StartUtc" class="form-label">Start</label><input asp-for="StartUtc" type="datetime-local" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="EndUtc" class="form-label">End</label><input asp-for="EndUtc" type="datetime-local" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="DurationMinutes" class="form-label">Duration (min)</label><input asp-for="DurationMinutes" type="number" min="0" max="1440" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="DialyserType" class="form-label">Dialyser</label><input asp-for="DialyserType" class="form-control" /></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-graph-up me-1"></i> Pre / Post observations</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="PreWeightKg" class="form-label">Pre weight (kg)</label><input asp-for="PreWeightKg" type="number" step="0.01" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="PostWeightKg" class="form-label">Post weight (kg)</label><input asp-for="PostWeightKg" type="number" step="0.01" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="PreSystolicBp" class="form-label">Pre Sys</label><input asp-for="PreSystolicBp" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="PreDiastolicBp" class="form-label">Pre Dia</label><input asp-for="PreDiastolicBp" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="PostSystolicBp" class="form-label">Post Sys</label><input asp-for="PostSystolicBp" type="number" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="PostDiastolicBp" class="form-label">Post Dia</label><input asp-for="PostDiastolicBp" type="number" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="UfTargetMl" class="form-label">UF target (mL)</label><input asp-for="UfTargetMl" type="number" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="UfAchievedMl" class="form-label">UF achieved (mL)</label><input asp-for="UfAchievedMl" type="number" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="BloodFlowMlMin" class="form-label">QB (mL/min)</label><input asp-for="BloodFlowMlMin" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="DialysateFlowMlMin" class="form-label">QD (mL/min)</label><input asp-for="DialysateFlowMlMin" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="HeparinUnits" class="form-label">Heparin (U)</label><input asp-for="HeparinUnits" type="number" step="1" class="form-control" /></div>
+                </div>
+            </div></div>
+
+            <div class="th-card"><div class="th-card-body">
+                <div class="mb-2"><label asp-for="Complications" class="form-label">Complications</label><textarea asp-for="Complications" class="form-control" rows="2"></textarea></div>
+                <div class="mb-0"><label asp-for="Notes" class="form-label">Notes</label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Dialysis" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save session</button>
+    </div>
+</form>
+
+<div class="modal fade" id="patientSearch" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Find patient</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><input id="ps_q" class="form-control mb-2" placeholder="Search…" /><div id="ps_results" class="list-group" style="max-height:380px;overflow:auto"></div></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    var ps = new bootstrap.Modal(document.getElementById('patientSearch'));
+    document.getElementById('psBtn').addEventListener('click', () => ps.show());
+    document.getElementById('PatientLabel').addEventListener('focus', () => ps.show());
+    var t;
+    document.getElementById('ps_q').addEventListener('input', function () {
+        clearTimeout(t);
+        var q = this.value;
+        t = setTimeout(async () => {
+            if (!q || q.length < 2) { document.getElementById('ps_results').innerHTML = ''; return; }
+            var r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+            if (!r.ok) return;
+            var data = await r.json();
+            document.getElementById('ps_results').innerHTML = data.map(p =>
+                `<button type="button" class="list-group-item list-group-item-action" data-id="${p.id}" data-label="${p.fullName} · ${p.hospitalNumber}"><strong>${p.fullName}</strong> <small class="text-muted">${p.hospitalNumber}</small></button>`
+            ).join('');
+            document.querySelectorAll('#ps_results .list-group-item').forEach(b => b.addEventListener('click', function () {
+                document.getElementById('PatientId').value = this.dataset.id;
+                document.getElementById('PatientLabel').value = this.dataset.label;
+                ps.hide();
+            }));
+        }, 250);
+    });
+</script>
+}

@@ -1,0 +1,67 @@
+@model ThriveHealth.Web.Models.ViewModels.DrugEditViewModel
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="GenericName" class="form-label"></label>
+        <input asp-for="GenericName" class="form-control" placeholder="Amoxicillin" />
+        <span asp-validation-for="GenericName" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="BrandName" class="form-label"></label>
+        <input asp-for="BrandName" class="form-control" placeholder="Ampiclox" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Strength" class="form-label"></label>
+        <input asp-for="Strength" class="form-control" placeholder="500 mg" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DoseForm" class="form-label"></label>
+        <select asp-for="DoseForm" class="form-select">
+            @foreach (var v in Enum.GetValues<ThriveHealth.Web.Models.Pharmacy.DoseForm>())
+            { <option value="@((int)v)">@v</option> }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="UnitOfIssue" class="form-label"></label>
+        <input asp-for="UnitOfIssue" class="form-control" placeholder="tab / cap / vial" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="NafdacNumber" class="form-label"></label>
+        <input asp-for="NafdacNumber" class="form-control" placeholder="04-XXXX" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Manufacturer" class="form-label"></label>
+        <input asp-for="Manufacturer" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="AtcCode" class="form-label"></label>
+        <input asp-for="AtcCode" class="form-control" placeholder="J01CA04" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Category" class="form-label"></label>
+        <input asp-for="Category" class="form-control" placeholder="Antibiotic (penicillin)" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Schedule" class="form-label"></label>
+        <select asp-for="Schedule" class="form-select">
+            <option value="1">OTC</option>
+            <option value="2">Prescription only (POM)</option>
+            <option value="3">Controlled · Schedule 1</option>
+            <option value="4">Controlled · Schedule 2</option>
+            <option value="5">Controlled · Schedule 3</option>
+            <option value="6">Controlled · Schedule 4</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="UnitPrice" class="form-label"></label>
+        <input asp-for="UnitPrice" type="number" step="0.01" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="ReorderLevel" class="form-label"></label>
+        <input asp-for="ReorderLevel" type="number" class="form-control" />
+    </div>
+    <div class="col-12 form-check ms-2">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">Active in formulary</label>
+    </div>
+</div>

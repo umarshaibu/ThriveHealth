@@ -1,0 +1,93 @@
+@model ThriveHealth.Web.Models.ViewModels.CrossMatchInputViewModel
+@{ ViewData["Title"] = "New cross-match request"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">New cross-match request</h1>
+    <a asp-action="CrossMatches" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Cross-matches</a>
+</div>
+
+<form asp-action="NewCrossMatch" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="th-card"><div class="th-card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Patient</label>
+                        <div class="input-group">
+                            <input type="hidden" asp-for="PatientId" id="PatientId" />
+                            <input asp-for="PatientLabel" id="PatientLabel" class="form-control" placeholder="Search patient…" autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="psBtn"><i class="bi bi-search"></i></button>
+                        </div>
+                        <span asp-validation-for="PatientId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="PatientBloodGroup" class="form-label">Patient blood group</label>
+                        <select asp-for="PatientBloodGroup" class="form-select">
+                            <option value="0">Unknown</option>
+                            <option value="1">O+</option><option value="2">O−</option>
+                            <option value="3">A+</option><option value="4">A−</option>
+                            <option value="5">B+</option><option value="6">B−</option>
+                            <option value="7">AB+</option><option value="8">AB−</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 form-check ms-3 mt-4"><input asp-for="PatientRhesusPositive" type="checkbox" class="form-check-input" /><label asp-for="PatientRhesusPositive" class="form-check-label">Rhesus positive</label></div>
+                    <div class="col-md-6">
+                        <label asp-for="Component" class="form-label">Component required</label>
+                        <select asp-for="Component" class="form-select">
+                            <option value="1">Whole blood</option><option value="2">Packed red cells</option>
+                            <option value="3">Fresh frozen plasma</option><option value="4">Platelets</option>
+                            <option value="5">Cryoprecipitate</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3"><label asp-for="UnitsRequested" class="form-label">Units</label><input asp-for="UnitsRequested" type="number" min="1" max="20" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="RequiredBy" class="form-label">Required by</label><input asp-for="RequiredBy" type="date" class="form-control" /></div>
+                    <div class="col-12"><label asp-for="Indication" class="form-label">Clinical indication</label><input asp-for="Indication" class="form-control" /></div>
+                    <div class="col-12"><label asp-for="Notes" class="form-label">Notes</label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+                </div>
+            </div></div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="CrossMatches" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Submit request</button>
+    </div>
+</form>
+
+<div class="modal fade" id="patientSearch" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Find patient</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><input id="ps_q" class="form-control mb-2" placeholder="Search…" /><div id="ps_results" class="list-group" style="max-height:380px;overflow:auto"></div></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    var ps = new bootstrap.Modal(document.getElementById('patientSearch'));
+    document.getElementById('psBtn').addEventListener('click', () => ps.show());
+    document.getElementById('PatientLabel').addEventListener('focus', () => ps.show());
+    var t;
+    document.getElementById('ps_q').addEventListener('input', function () {
+        clearTimeout(t);
+        var q = this.value;
+        t = setTimeout(async () => {
+            if (!q || q.length < 2) { document.getElementById('ps_results').innerHTML = ''; return; }
+            var r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+            if (!r.ok) return;
+            var data = await r.json();
+            document.getElementById('ps_results').innerHTML = data.map(p =>
+                `<button type="button" class="list-group-item list-group-item-action" data-id="${p.id}" data-label="${p.fullName} · ${p.hospitalNumber}"><strong>${p.fullName}</strong> <small class="text-muted">${p.hospitalNumber}</small></button>`
+            ).join('');
+            document.querySelectorAll('#ps_results .list-group-item').forEach(b => b.addEventListener('click', function () {
+                document.getElementById('PatientId').value = this.dataset.id;
+                document.getElementById('PatientLabel').value = this.dataset.label;
+                ps.hide();
+            }));
+        }, 250);
+    });
+</script>
+}

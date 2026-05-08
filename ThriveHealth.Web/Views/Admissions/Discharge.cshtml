@@ -1,0 +1,89 @@
+@model ThriveHealth.Web.Models.ViewModels.DischargeViewModel
+@{
+    ViewData["Title"] = "Discharge";
+    var a = (ThriveHealth.Web.Models.Inpatient.Admission?)ViewBag.Admission;
+    var ai = ViewBag.AiSuggestion as ThriveHealth.Web.Models.Ai.AiSuggestion;
+}
+
+<div class="row"><div class="col-lg-8">
+    <h1 class="th-section-title">Discharge patient</h1>
+    @if (a != null)
+    {
+        <p class="th-section-sub">@a.Patient!.FullName · @a.Patient.HospitalNumber · @a.Ward?.Name @a.Bed?.BedNumber</p>
+    }
+
+    <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDischargeDraft">
+        <div class="th-card-header d-flex justify-content-between align-items-center">
+            <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI-drafted discharge summary <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h5>
+            <form asp-action="DraftDischarge" asp-route-id="@Model.AdmissionId" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDischargeDraft">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i> @(ai == null ? "Draft" : "Re-draft")</button>
+            </form>
+        </div>
+        <div class="th-card-body">
+            @if (ai == null)
+            {
+                <p class="text-muted small mb-0">Click <em>Draft</em> to generate a discharge summary from this admission's data. Review and copy/edit into the form below before confirming discharge.</p>
+            }
+            else if (ai.Status == ThriveHealth.Web.Models.Ai.AiSuggestionStatus.Failed)
+            {
+                <div class="alert alert-warning mb-0"><strong>AI failed:</strong> @ai.ErrorMessage</div>
+            }
+            else
+            {
+                <div class="small text-muted mb-2">
+                    Generated @ai.CreatedAtUtc.ToLocalTime().ToString("dd MMM HH:mm") · @ai.Provider/@ai.Model · status <strong>@ai.Status</strong>
+                </div>
+                <pre class="mb-2" style="white-space:pre-wrap;font-family:inherit">@(ai.EditedContent ?? ai.Response)</pre>
+                @if (ai.Status == ThriveHealth.Web.Models.Ai.AiSuggestionStatus.Pending)
+                {
+                    <form asp-action="ReviewDischargeDraft" method="post" class="d-flex gap-2 flex-wrap" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDischargeDraft">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="suggestionId" value="@ai.Id" />
+                        <button name="status" value="Accepted" class="btn btn-sm btn-success"><i class="bi bi-check2-circle me-1"></i> Accept draft</button>
+                        <button name="status" value="Rejected" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1"></i> Reject</button>
+                    </form>
+                }
+            }
+        </div>
+    </div>
+
+    <form asp-action="Discharge" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <input type="hidden" asp-for="AdmissionId" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Disposition" class="form-label"></label>
+                    <select asp-for="Disposition" class="form-select">
+                        <option value="1">Home</option>
+                        <option value="2">Home with follow-up</option>
+                        <option value="3">Transferred (external)</option>
+                        <option value="4">DAMA — Discharged Against Medical Advice</option>
+                        <option value="5">Absconded</option>
+                        <option value="6">Deceased</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DischargeDiagnosis" class="form-label"></label>
+                    <input asp-for="DischargeDiagnosis" class="form-control" />
+                    <span asp-validation-for="DischargeDiagnosis" class="text-danger small"></span>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Summary" class="form-label">Discharge summary</label>
+                    <textarea asp-for="Summary" rows="6" class="form-control" placeholder="Course in hospital, response to treatment, complications..."></textarea>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="FollowUp" class="form-label">Follow-up plan</label>
+                    <input asp-for="FollowUp" class="form-control" placeholder="GOPD review in 2 weeks. Repeat FBC in 1 month." />
+                </div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+                <a asp-action="Details" asp-route-id="@Model.AdmissionId" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-success"><i class="bi bi-box-arrow-right me-1"></i> Confirm discharge</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

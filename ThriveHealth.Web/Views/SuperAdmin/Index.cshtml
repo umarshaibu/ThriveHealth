@@ -1,0 +1,51 @@
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Dashboard";
+    var recent = (List<Tenant>)ViewBag.RecentTenants;
+    string Tone(TenantStatus s) => s switch
+    {
+        TenantStatus.Trialing => "trialing",
+        TenantStatus.Active => "active",
+        TenantStatus.PendingPayment => "pending",
+        TenantStatus.PastDue => "pastdue",
+        TenantStatus.Suspended => "suspended",
+        TenantStatus.Cancelled => "cancelled",
+        _ => "pendingverification"
+    };
+}
+
+<h1 class="sa-h1">Platform overview</h1>
+<p class="sa-sub">Tenants, billing and operations across all hospitals running on ThriveHealth.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="sa-card"><div class="label">Total tenants</div><div class="value">@ViewBag.TotalTenants</div></div></div>
+    <div class="col-md-3"><div class="sa-card"><div class="label">Trialing</div><div class="value">@ViewBag.Trialing</div></div></div>
+    <div class="col-md-3"><div class="sa-card"><div class="label">Paying</div><div class="value">@ViewBag.Active</div></div></div>
+    <div class="col-md-3"><div class="sa-card"><div class="label">MRR (NGN)</div><div class="value">₦@(((decimal)ViewBag.MrrNgn).ToString("N0"))</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6"><div class="sa-card"><div class="label">Pending payment approvals</div><div class="value">@ViewBag.PendingPayments</div><a asp-controller="SuperAdminPayments" asp-action="Index" class="small">Review queue →</a></div></div>
+    <div class="col-md-6"><div class="sa-card"><div class="label">Past due</div><div class="value">@ViewBag.PastDue</div><a asp-controller="SuperAdminTenants" asp-action="Index" asp-route-status="@TenantStatus.PastDue" class="small">View list →</a></div></div>
+</div>
+
+<h5 class="mb-2 text-white">Recent signups</h5>
+<div class="sa-card p-0">
+    <table class="table mb-0">
+        <thead><tr><th>Tenant</th><th>Owner</th><th>Status</th><th>Plan</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var t in recent)
+            {
+                <tr>
+                    <td><strong>@t.LegalName</strong><div class="small text-muted">@(t.Slug + ".thrivehealth.ng")</div></td>
+                    <td>@t.OwnerName<div class="small text-muted">@t.OwnerEmail</div></td>
+                    <td><span class="badge-pill badge-@Tone(t.Status)">@t.Status</span></td>
+                    <td>@(t.IsTeachingHospital ? "Teaching (free)" : t.CountryCode)</td>
+                    <td class="small">@t.CreatedAt:dd MMM HH:mm</td>
+                    <td><a asp-controller="SuperAdminTenants" asp-action="Detail" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary">Open</a></td>
+                </tr>
+            }
+            @if (!recent.Any()) { <tr><td colspan="6" class="text-center py-4 text-muted">No tenants yet.</td></tr> }
+        </tbody>
+    </table>
+</div>

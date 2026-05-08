@@ -1,0 +1,444 @@
+@using Microsoft.AspNetCore.Identity
+@using ThriveHealth.Web.Models.Identity
+@using ThriveHealth.Web.Services
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject IPermissionService Perms
+@{
+    var isAuthed = SignInManager.IsSignedIn(User);
+    ApplicationUser? currentUser = isAuthed ? await UserManager.GetUserAsync(User) : null;
+    var roles = isAuthed && currentUser != null ? await UserManager.GetRolesAsync(currentUser) : new List<string>();
+
+    var userPerms = isAuthed ? await Perms.GetForUserAsync(User) : new HashSet<string>();
+    bool Can(string p) => userPerms.Contains(p);
+    bool CanAny(params string[] ps) => ps.Any(p => userPerms.Contains(p));
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · ThriveHealth</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="th-app">
+    @if (isAuthed)
+    {
+        <aside class="th-sidebar" id="thSidebar">
+            <div class="th-brand">
+                <span class="th-logo"><i class="bi bi-heart-pulse-fill"></i></span>
+                <div>
+                    <div class="th-brand-name">ThriveHealth</div>
+                    <div class="th-brand-tag">Hospital OS</div>
+                </div>
+            </div>
+
+            <nav class="th-nav">
+                <div class="th-nav-section">Overview</div>
+                <a asp-controller="Dashboard" asp-action="Index" class="th-nav-link">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+
+                @{
+                    var P = typeof(ThriveHealth.Web.Models.Identity.Permissions);
+                }
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.PatientsRead,
+                            ThriveHealth.Web.Models.Identity.Permissions.AppointmentsRead,
+                            ThriveHealth.Web.Models.Identity.Permissions.QueueRead,
+                            ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.WardsManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.EmergencyBoardRead,
+                            ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule,
+                            ThriveHealth.Web.Models.Identity.Permissions.AncManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.PaedsManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.ImmunizationAdminister,
+                            ThriveHealth.Web.Models.Identity.Permissions.IcuChart,
+                            ThriveHealth.Web.Models.Identity.Permissions.DialysisRun,
+                            ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician,
+                            ThriveHealth.Web.Models.Identity.Permissions.QueueServe))
+                {
+                    <div class="th-nav-section">Clinical</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PatientsRead))
+                    {
+                        <a asp-controller="Patients" asp-action="Index" class="th-nav-link"><i class="bi bi-people"></i> Patients</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AppointmentsRead))
+                    {
+                        <a asp-controller="Appointments" asp-action="Index" class="th-nav-link"><i class="bi bi-calendar2-week"></i> Appointments</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.QueueRead))
+                    {
+                        <a asp-controller="Queue" asp-action="Index" class="th-nav-link"><i class="bi bi-list-check"></i> Queues</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.QueueServe))
+                    {
+                        <a asp-controller="Queue" asp-action="MyQueue" class="th-nav-link"><i class="bi bi-clipboard2-pulse"></i> My queue</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.WardsManage) || Can(ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage))
+                    {
+                        <a asp-controller="Wards" asp-action="Board" class="th-nav-link"><i class="bi bi-hospital"></i> Bed board</a>
+                        <a asp-controller="Admissions" asp-action="Index" class="th-nav-link"><i class="bi bi-clipboard2-heart"></i> Admissions</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.EmergencyBoardRead))
+                    {
+                        <a asp-controller="Emergency" asp-action="Index" class="th-nav-link"><i class="bi bi-bandaid"></i> A&amp;E</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule))
+                    {
+                        <a asp-controller="Theatre" asp-action="Schedule" class="th-nav-link"><i class="bi bi-scissors"></i> Theatre</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AncManage))
+                    {
+                        <a asp-controller="Maternity" asp-action="Index" class="th-nav-link"><i class="bi bi-heart-pulse"></i> Maternity</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PaedsManage))
+                    {
+                        <a asp-controller="Paediatrics" asp-action="Index" class="th-nav-link"><i class="bi bi-people"></i> Paediatrics</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.ImmunizationAdminister))
+                    {
+                        <a asp-controller="Immunization" asp-action="Worklist" class="th-nav-link"><i class="bi bi-bandaid"></i> Immunization</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.IcuChart))
+                    {
+                        <a asp-controller="Icu" asp-action="Board" class="th-nav-link"><i class="bi bi-activity"></i> ICU board</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.DialysisRun))
+                    {
+                        <a asp-controller="Icu" asp-action="Dialysis" class="th-nav-link"><i class="bi bi-droplet"></i> Dialysis</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.TelemedicineClinician))
+                    {
+                        <a asp-controller="Telemedicine" asp-action="Index" class="th-nav-link"><i class="bi bi-camera-video"></i> Telemedicine</a>
+                        <a asp-controller="Telemedicine" asp-action="Chats" class="th-nav-link"><i class="bi bi-chat-dots"></i> Chats</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.BloodBankCrossMatch,
+                            ThriveHealth.Web.Models.Identity.Permissions.AlliedSession,
+                            ThriveHealth.Web.Models.Identity.Permissions.MortuaryManage))
+                {
+                    <div class="th-nav-section">Specialised</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage) || Can(ThriveHealth.Web.Models.Identity.Permissions.BloodBankCrossMatch))
+                    {
+                        <a asp-controller="BloodBank" asp-action="Index" class="th-nav-link"><i class="bi bi-droplet-fill"></i> Blood bank</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AlliedSession))
+                    {
+                        <a asp-controller="Allied" asp-action="Index" class="th-nav-link"><i class="bi bi-clipboard2-pulse"></i> Allied (Dental/Physio/Optom)</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.MortuaryManage))
+                    {
+                        <a asp-controller="Mortuary" asp-action="Index" class="th-nav-link"><i class="bi bi-archive"></i> Mortuary</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.PharmacyDispense,
+                            ThriveHealth.Web.Models.Identity.Permissions.PharmacyStock,
+                            ThriveHealth.Web.Models.Identity.Permissions.PharmacyControlled))
+                {
+                    <div class="th-nav-section">Pharmacy</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PharmacyDispense))
+                    {
+                        <a asp-controller="Pharmacy" asp-action="Worklist" class="th-nav-link"><i class="bi bi-prescription2"></i> Worklist</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PharmacyStock))
+                    {
+                        <a asp-controller="Pharmacy" asp-action="Stock" class="th-nav-link"><i class="bi bi-box-seam"></i> Stock</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PharmacyControlled))
+                    {
+                        <a asp-controller="Pharmacy" asp-action="ControlledRegister" class="th-nav-link"><i class="bi bi-shield-lock"></i> Controlled register</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PharmacyStock))
+                    {
+                        <a asp-controller="Drugs" asp-action="Index" class="th-nav-link"><i class="bi bi-capsule"></i> Drug master</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.LabPerform,
+                            ThriveHealth.Web.Models.Identity.Permissions.ImagingPerform))
+                {
+                    <div class="th-nav-section">Diagnostics</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.LabPerform))
+                    {
+                        <a asp-controller="Lab" asp-action="Worklist" class="th-nav-link"><i class="bi bi-droplet-half"></i> Lab worklist</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.ImagingPerform))
+                    {
+                        <a asp-controller="Imaging" asp-action="Worklist" class="th-nav-link"><i class="bi bi-radioactive"></i> Imaging worklist</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.BillsRead,
+                            ThriveHealth.Web.Models.Identity.Permissions.CashierShiftManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.ClaimsManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.PayersManage))
+                {
+                    <div class="th-nav-section">Finance</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.BillsRead))
+                    {
+                        <a asp-controller="Cashier" asp-action="Bills" class="th-nav-link"><i class="bi bi-receipt"></i> Bills</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.CashierShiftManage))
+                    {
+                        <a asp-controller="Cashier" asp-action="Shift" class="th-nav-link"><i class="bi bi-cash-stack"></i> My shift</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.ClaimsManage))
+                    {
+                        <a asp-controller="Claims" asp-action="Index" class="th-nav-link"><i class="bi bi-file-earmark-medical"></i> Claims</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PayersManage))
+                    {
+                        <a asp-controller="Payers" asp-action="Index" class="th-nav-link"><i class="bi bi-buildings-fill"></i> Payers</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.GrnReceive,
+                            ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.InventoryRead))
+                {
+                    <div class="th-nav-section">Procurement</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage))
+                    {
+                        <a asp-controller="PurchaseOrders" asp-action="Index" class="th-nav-link"><i class="bi bi-cart"></i> Purchase orders</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.GrnReceive))
+                    {
+                        <a asp-controller="Grn" asp-action="Index" class="th-nav-link"><i class="bi bi-truck"></i> GRNs</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage))
+                    {
+                        <a asp-controller="StockTake" asp-action="Index" class="th-nav-link"><i class="bi bi-clipboard-check"></i> Stock takes</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.InventoryRead))
+                    {
+                        <a asp-controller="Inventory" asp-action="Stock" class="th-nav-link"><i class="bi bi-box-seam"></i> Inventory stock</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.PurchaseOrderManage))
+                    {
+                        <a asp-controller="Suppliers" asp-action="Index" class="th-nav-link"><i class="bi bi-building"></i> Suppliers</a>
+                        <a asp-controller="InventoryItems" asp-action="Index" class="th-nav-link"><i class="bi bi-box"></i> Item master</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.HrRead,
+                            ThriveHealth.Web.Models.Identity.Permissions.RosterManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.LeaveDecide,
+                            ThriveHealth.Web.Models.Identity.Permissions.LeaveRequest))
+                {
+                    <div class="th-nav-section">Human resources</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.HrRead))
+                    {
+                        <a asp-controller="Hr" asp-action="Index" class="th-nav-link"><i class="bi bi-person-vcard"></i> Staff &amp; licences</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.RosterManage))
+                    {
+                        <a asp-controller="Hr" asp-action="Roster" class="th-nav-link"><i class="bi bi-calendar2-week"></i> Duty roster</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.LeaveDecide) || Can(ThriveHealth.Web.Models.Identity.Permissions.LeaveRequest))
+                    {
+                        <a asp-controller="Hr" asp-action="Leave" class="th-nav-link"><i class="bi bi-calendar-x"></i> Leave</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.IdsrReport,
+                            ThriveHealth.Web.Models.Identity.Permissions.NhmisGenerate,
+                            ThriveHealth.Web.Models.Identity.Permissions.AnalyticsView))
+                {
+                    <div class="th-nav-section">Reporting &amp; analytics</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.IdsrReport))
+                    {
+                        <a asp-controller="Reporting" asp-action="Idsr" class="th-nav-link"><i class="bi bi-shield-shaded"></i> IDSR cases</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.NhmisGenerate))
+                    {
+                        <a asp-controller="Reporting" asp-action="Nhmis" class="th-nav-link"><i class="bi bi-file-earmark-bar-graph"></i> NHMIS monthly</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AnalyticsView))
+                    {
+                        <a asp-controller="Analytics" asp-action="Index" class="th-nav-link"><i class="bi bi-graph-up-arrow"></i> Analytics</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.AiNlSearch,
+                            ThriveHealth.Web.Models.Identity.Permissions.AiPaedsDose,
+                            ThriveHealth.Web.Models.Identity.Permissions.AiTranslate,
+                            ThriveHealth.Web.Models.Identity.Permissions.AiAdherenceParse))
+                {
+                    <div class="th-nav-section">AI</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AiNlSearch))
+                    {
+                        <a asp-controller="Ai" asp-action="Search" class="th-nav-link"><i class="bi bi-stars"></i> AI search</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AiTranslate))
+                    {
+                        <a asp-controller="Ai" asp-action="Translate" class="th-nav-link"><i class="bi bi-translate"></i> AI translate</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AiAdherenceParse))
+                    {
+                        <a asp-controller="Ai" asp-action="AdherenceParse" class="th-nav-link"><i class="bi bi-chat-square-text"></i> Adherence parser</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AiPaedsDose))
+                    {
+                        <a asp-controller="Paediatrics" asp-action="DoseCheck" class="th-nav-link"><i class="bi bi-droplet"></i> Paeds dose check</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.StaffManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.ClinicsManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.WardsManage))
+                {
+                    <div class="th-nav-section">Administration</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.StaffManage))
+                    {
+                        <a asp-controller="Account" asp-action="StaffList" class="th-nav-link"><i class="bi bi-person-badge"></i> Staff</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.ClinicsManage))
+                    {
+                        <a asp-controller="Clinics" asp-action="Index" class="th-nav-link"><i class="bi bi-buildings"></i> Clinics</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.WardsManage))
+                    {
+                        <a asp-controller="Wards" asp-action="Index" class="th-nav-link"><i class="bi bi-grid-3x3"></i> Wards &amp; beds</a>
+                    }
+                }
+
+                @if (CanAny(ThriveHealth.Web.Models.Identity.Permissions.AuditView,
+                            ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage,
+                            ThriveHealth.Web.Models.Identity.Permissions.HardeningView,
+                            ThriveHealth.Web.Models.Identity.Permissions.RbacManage))
+                {
+                    <div class="th-nav-section">Operations</div>
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.AuditView))
+                    {
+                        <a asp-controller="Admin" asp-action="Audit" class="th-nav-link"><i class="bi bi-journal-text"></i> Audit log</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage))
+                    {
+                        <a asp-controller="Admin" asp-action="Integrations" class="th-nav-link"><i class="bi bi-plug"></i> Integrations</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.HardeningView))
+                    {
+                        <a asp-controller="Admin" asp-action="Hardening" class="th-nav-link"><i class="bi bi-shield-check"></i> Hardening</a>
+                    }
+                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.RbacManage))
+                    {
+                        <a asp-controller="Roles" asp-action="Index" class="th-nav-link"><i class="bi bi-shield-lock"></i> Roles &amp; permissions</a>
+                    }
+                }
+            </nav>
+
+            <div class="th-sidebar-footer">
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-grid">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-light btn-sm w-100">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sign out
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="th-main">
+            <header class="th-topbar">
+                <button class="btn btn-light th-sidebar-toggle d-lg-none" type="button" onclick="thToggleSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <form class="th-search" asp-controller="Patients" asp-action="Index" method="get">
+                    <i class="bi bi-search"></i>
+                    <input type="search" name="q" class="form-control" placeholder="Search patients by name, hospital #, phone, NIN..." />
+                </form>
+
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <span class="badge th-badge-soft"><i class="bi bi-shield-check"></i> NDPA</span>
+                    <span class="badge th-badge-soft d-none d-md-inline"><i class="bi bi-broadcast"></i> Live</span>
+                    <div class="dropdown">
+                        <button class="btn th-user-btn dropdown-toggle" data-bs-toggle="dropdown">
+                            <span class="th-avatar">@(currentUser?.FirstName?.Substring(0,1))@(currentUser?.LastName?.Substring(0,1))</span>
+                            <span class="d-none d-sm-inline ms-2">
+                                <span class="d-block small fw-semibold">@currentUser?.FullName</span>
+                                <span class="d-block small text-muted">@(roles.FirstOrDefault() ?? "Staff")</span>
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword"><i class="bi bi-shield-lock me-2"></i>Change password</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-1">
+                                    <button class="btn btn-sm btn-outline-danger w-100" type="submit"><i class="bi bi-box-arrow-right me-1"></i>Sign out</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <div class="th-content">
+                @if (TempData["Success"] is string okMsg)
+                {
+                    <div class="alert alert-success d-flex align-items-center"><i class="bi bi-check-circle me-2"></i>@okMsg</div>
+                }
+                @if (TempData["Error"] is string errMsg)
+                {
+                    <div class="alert alert-danger d-flex align-items-center"><i class="bi bi-exclamation-triangle me-2"></i>@errMsg</div>
+                }
+                @RenderBody()
+            </div>
+        </main>
+    }
+    else
+    {
+        @RenderBody()
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function thToggleSidebar() {
+            document.getElementById('thSidebar')?.classList.toggle('open');
+        }
+
+        // Highlight the sidebar item whose href best matches the current URL.
+        // Uses the longest path prefix that aligns on a path-segment boundary, so e.g.
+        // /Pharmacy/Stock matches the "Stock" link rather than the parent "Pharmacy" link.
+        (function () {
+            var raw = (window.location.pathname || '/').replace(/\/+$/, '');
+            var path = (raw === '' ? '/' : raw).toLowerCase();
+
+            function pathOf(a) {
+                if (!a.href) return null;
+                try {
+                    var u = new URL(a.href, window.location.origin);
+                    var p = (u.pathname || '/').replace(/\/+$/, '');
+                    return (p === '' ? '/' : p).toLowerCase();
+                } catch (e) { return null; }
+            }
+
+            var links = Array.from(document.querySelectorAll('.th-nav-link'));
+            var best = null, bestLen = -1;
+            for (var i = 0; i < links.length; i++) {
+                var lp = pathOf(links[i]);
+                if (!lp) continue;
+                var matches = (lp === path) || (path === lp + '/') || path.indexOf(lp + '/') === 0;
+                // Treat the root "/" specially — match dashboard / first link with controller "Dashboard"
+                if (path === '/' && lp.indexOf('/dashboard') === 0) matches = true;
+                if (matches && lp.length > bestLen) {
+                    best = links[i];
+                    bestLen = lp.length;
+                }
+            }
+            if (best) best.classList.add('active');
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

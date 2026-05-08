@@ -1,0 +1,72 @@
+@model ThriveHealth.Web.Models.ViewModels.LabResultEntryViewModel
+@{
+    ViewData["Title"] = "Enter result";
+    var existingFinal = Model.ExistingResult?.Status == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Final
+                      || Model.ExistingResult?.Status == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Authorized;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <span class="th-pill th-pill-info">@Model.Test.Section</span>
+        <h1 class="th-section-title mt-2">@Model.Test.Name <small class="text-muted">· @Model.Test.Code</small></h1>
+        <p class="th-section-sub mb-0">
+            <strong>@Model.Patient.FullName</strong> · <span class="font-monospace">@Model.Patient.HospitalNumber</span>
+            @if (!string.IsNullOrEmpty(Model.Order.AccessionNumber)) { <span> · <span class="font-monospace text-muted">@Model.Order.AccessionNumber</span></span> }
+            · Specimen: @(Model.Test.Specimen ?? "—")
+        </p>
+    </div>
+    <a asp-action="Worklist" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
+</div>
+
+@if (existingFinal)
+{
+    <div class="alert alert-warning"><i class="bi bi-info-circle me-1"></i> This result has already been finalised. Editing creates an amended record.</div>
+}
+
+<form asp-action="Enter" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.LabPerform">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+    <input type="hidden" name="LabOrderId" value="@Model.Order.Id" />
+
+    <div class="th-card mb-3"><div class="th-card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Analyte</th><th>Value</th><th>Unit</th><th>Reference range</th><th>Critical</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Entries.Count; i++)
+                {
+                    var e = Model.Entries[i];
+                    <tr>
+                        <td><strong>@e.Name</strong>
+                            <input type="hidden" name="Values[@i].LabAnalyteId" value="@e.LabAnalyteId" />
+                        </td>
+                        <td><input class="form-control" name="Values[@i].Value" value="@e.Value" /></td>
+                        <td>@e.Unit</td>
+                        <td><small class="text-muted">@e.RefRange</small></td>
+                        <td>@if (!string.IsNullOrEmpty(e.CriticalRange)) { <small class="text-danger">@e.CriticalRange</small> }</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div></div>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <label class="form-label">General comment / methodology</label>
+        <textarea name="GeneralComment" rows="3" class="form-control" placeholder="Comments visible to the ordering clinician...">@Model.GeneralComment</textarea>
+    </div></div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Worklist" class="btn btn-outline-secondary">Cancel</a>
+        <button name="Finalize" value="false" class="btn btn-outline-primary"><i class="bi bi-save me-1"></i> Save preliminary</button>
+        <button name="Finalize" value="true" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Save &amp; mark Final</button>
+    </div>
+</form>
+
+<div class="alert alert-info mt-3 small">
+    <i class="bi bi-info-circle me-1"></i>
+    A finalised result is sent for authorisation by a lab scientist (MLSCN-licensed). Critical values are auto-flagged.
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,114 @@
+@model ThriveHealth.Web.Models.ViewModels.IcuChartInputViewModel
+@using ThriveHealth.Web.Models.Critical
+@{
+    ViewData["Title"] = "ICU chart";
+    var admission = ViewBag.Admission as ThriveHealth.Web.Models.Inpatient.Admission;
+    var entries = ViewBag.Entries as List<IcuChartEntry> ?? new();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@admission?.Patient?.FullName</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill th-pill-muted font-monospace">@admission?.Patient?.HospitalNumber</span>
+            <span class="th-pill th-pill-info">@admission?.Ward?.Code · Bed @admission?.Bed?.BedNumber</span>
+            <span class="th-pill th-pill-warning">D@(((int)(DateTime.UtcNow - (admission?.AdmittedAt ?? DateTime.UtcNow)).TotalDays) + 1) ICU</span>
+        </div>
+    </div>
+    <a asp-action="Board" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> ICU board</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <form asp-action="AddEntry" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IcuChart">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="AdmissionId" />
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-plus-circle me-1"></i> Hourly entry</h6>
+                <div class="row g-2">
+                    <div class="col-md-6"><label class="form-label small">Time</label><input asp-for="RecordedUtc" type="datetime-local" class="form-control form-control-sm" /></div>
+                    <div class="col-md-6"><label class="form-label small">HR</label><input asp-for="HeartRate" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Sys BP</label><input asp-for="SystolicBp" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Dia BP</label><input asp-for="DiastolicBp" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">RR</label><input asp-for="RespiratoryRate" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">SpO2 %</label><input asp-for="SpO2" type="number" step="0.1" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Temp °C</label><input asp-for="TemperatureC" type="number" step="0.1" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">GCS E</label><input asp-for="GcsEye" type="number" min="1" max="4" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">GCS V</label><input asp-for="GcsVerbal" type="number" min="1" max="5" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">GCS M</label><input asp-for="GcsMotor" type="number" min="1" max="6" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Pain (0-10)</label><input asp-for="PainScore" type="number" min="0" max="10" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Urine mL</label><input asp-for="UrineOutputMl" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Crystalloid mL</label><input asp-for="CrystalloidGivenMl" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Blood mL</label><input asp-for="BloodGivenMl" type="number" class="form-control form-control-sm" /></div>
+
+                    <div class="col-12 mt-2"><h6 class="text-uppercase text-muted small mb-1">Ventilation</h6></div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Mode</label>
+                        <select asp-for="VentMode" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            <option value="0">None</option>
+                            <option value="1">Spontaneous (room air)</option>
+                            <option value="2">Nasal cannula</option>
+                            <option value="3">Face mask</option>
+                            <option value="4">Non-rebreather</option>
+                            <option value="5">BiPAP</option>
+                            <option value="6">CPAP</option>
+                            <option value="10">CMV</option>
+                            <option value="11">SIMV</option>
+                            <option value="12">PSV</option>
+                            <option value="13">PCV</option>
+                            <option value="14">APRV</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3"><label class="form-label small">FiO2 (0-1)</label><input asp-for="FiO2" type="number" step="0.05" min="0.21" max="1" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">PEEP</label><input asp-for="Peep" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">TV mL</label><input asp-for="TidalVolumeMl" type="number" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label small">Vent rate</label><input asp-for="VentRate" type="number" class="form-control form-control-sm" /></div>
+
+                    <div class="col-12"><label class="form-label small">Inotropes / drips</label><input asp-for="Inotropes" class="form-control form-control-sm" placeholder="Noradrenaline 0.1 mcg/kg/min…" /></div>
+                    <div class="col-12"><label class="form-label small">Notes</label><textarea asp-for="Notes" class="form-control form-control-sm" rows="2"></textarea></div>
+                </div>
+                <div class="d-flex justify-content-end mt-2">
+                    <button class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Record entry</button>
+                </div>
+            </div></div>
+        </form>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Recent entries (@entries.Count)</h6></div>
+            @if (!entries.Any())
+            {
+                <div class="th-empty m-4"><i class="bi bi-clipboard"></i><h5 class="mt-2">No entries yet</h5></div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Time</th><th>HR</th><th>BP</th><th>SpO2</th><th>RR</th><th>GCS</th><th>Vent</th><th>U/O</th><th>By</th></tr></thead>
+                    <tbody>
+                    @foreach (var e in entries)
+                    {
+                        var gcs = (e.GcsEye + e.GcsVerbal + e.GcsMotor);
+                        <tr>
+                            <td><small>@e.RecordedUtc.ToLocalTime().ToString("dd HH:mm")</small></td>
+                            <td>@(e.HeartRate?.ToString() ?? "—")</td>
+                            <td>@(e.SystolicBp.HasValue ? $"{e.SystolicBp}/{e.DiastolicBp}" : "—")</td>
+                            <td class="@(e.SpO2 < 90 ? "text-danger fw-bold" : "")">@(e.SpO2?.ToString("0") ?? "—")</td>
+                            <td>@(e.RespiratoryRate?.ToString() ?? "—")</td>
+                            <td class="@(gcs > 0 && gcs < 9 ? "text-danger fw-bold" : "")">@(gcs > 0 ? gcs.ToString() : "—")</td>
+                            <td><small>@(e.VentMode.HasValue && e.VentMode != VentilationMode.None ? e.VentMode.ToString() : "—")</small></td>
+                            <td>@(e.UrineOutputMl?.ToString() ?? "—")</td>
+                            <td><small class="text-muted">@e.RecordedBy?.LastName</small></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                </div>
+            }
+        </div></div>
+    </div>
+</div>

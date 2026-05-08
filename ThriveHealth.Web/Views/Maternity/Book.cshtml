@@ -1,0 +1,141 @@
+@model ThriveHealth.Web.Models.ViewModels.AncBookViewModel
+@{ ViewData["Title"] = "Book ANC"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Book antenatal care</h1>
+        <p class="th-section-sub mb-0">Register a new pregnancy and capture booking visit</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> ANC list</a>
+</div>
+
+<form asp-action="Book" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AncManage">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Mother</h6>
+                <label class="form-label">Patient</label>
+                <div class="input-group">
+                    <input type="hidden" asp-for="PatientId" id="PatientId" />
+                    <input asp-for="PatientLabel" id="PatientLabel" class="form-control" placeholder="Search…" autocomplete="off" />
+                    <button type="button" class="btn btn-outline-secondary" id="psBtn"><i class="bi bi-search"></i></button>
+                </div>
+                <span asp-validation-for="PatientId" class="text-danger small"></span>
+            </div></div>
+
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-calendar3 me-1"></i> Dates & history</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="Lmp" class="form-label">LMP</label><input asp-for="Lmp" type="date" class="form-control" id="Lmp" /></div>
+                    <div class="col-md-6"><label asp-for="Edd" class="form-label">EDD</label><input asp-for="Edd" type="date" class="form-control" id="Edd" /><div class="small text-muted">Auto-calc by Naegele's rule (LMP + 280 days)</div></div>
+                    <div class="col-md-3"><label asp-for="Gravida" class="form-label">G</label><input asp-for="Gravida" type="number" min="0" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="Para" class="form-label">P</label><input asp-for="Para" type="number" min="0" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="Abortions" class="form-label">A</label><input asp-for="Abortions" type="number" min="0" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="LivingChildren" class="form-label">Living</label><input asp-for="LivingChildren" type="number" min="0" class="form-control" /></div>
+                </div>
+            </div></div>
+
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Booking observations</h6>
+                <div class="row g-3">
+                    <div class="col-md-4"><label asp-for="HeightCm" class="form-label">Height (cm)</label><input asp-for="HeightCm" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="BookingWeightKg" class="form-label">Weight (kg)</label><input asp-for="BookingWeightKg" type="number" step="0.1" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="HaemoglobinGdl" class="form-label">Hb (g/dL)</label><input asp-for="HaemoglobinGdl" type="number" step="0.1" class="form-control" /></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-droplet me-1"></i> Blood & screening</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="BloodGroup" class="form-label">Blood group</label>
+                        <select asp-for="BloodGroup" class="form-select">
+                            <option value="0">Unknown</option>
+                            <option value="1">O+</option><option value="2">O−</option>
+                            <option value="3">A+</option><option value="4">A−</option>
+                            <option value="5">B+</option><option value="6">B−</option>
+                            <option value="7">AB+</option><option value="8">AB−</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="HivStatus" class="form-label">HIV</label>
+                        <select asp-for="HivStatus" class="form-select">
+                            <option value="0">Unknown</option><option value="1">Negative</option>
+                            <option value="2">Positive</option><option value="3">Indeterminate</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-check ms-3 mt-2"><input name="RhesusPositive" value="true" type="checkbox" class="form-check-input" id="RhesusPositive" /><label for="RhesusPositive" class="form-check-label">Rh+</label></div>
+                    <div class="col-md-3 form-check mt-2"><input name="VdrlReactive" value="true" type="checkbox" class="form-check-input" id="VdrlReactive" /><label for="VdrlReactive" class="form-check-label">VDRL</label></div>
+                    <div class="col-md-3 form-check mt-2"><input name="HepBPositive" value="true" type="checkbox" class="form-check-input" id="HepBPositive" /><label for="HepBPositive" class="form-check-label">HepB+</label></div>
+                    <div class="col-md-3 form-check mt-2"><input name="SicklingPositive" value="true" type="checkbox" class="form-check-input" id="SicklingPositive" /><label for="SicklingPositive" class="form-check-label">Sickling+</label></div>
+                </div>
+            </div></div>
+
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-exclamation me-1"></i> Risk & history</h6>
+                <div class="mb-2"><label asp-for="RiskFactors" class="form-label">Risk factors</label><textarea asp-for="RiskFactors" class="form-control" rows="2" placeholder="HTN, diabetes, prev CS, anaemia…"></textarea></div>
+                <div class="mb-2"><label asp-for="PreviousObstetricHistory" class="form-label">Obstetric history</label><textarea asp-for="PreviousObstetricHistory" class="form-control" rows="2"></textarea></div>
+                <div class="mb-0"><label asp-for="MedicalHistory" class="form-label">Medical history</label><textarea asp-for="MedicalHistory" class="form-control" rows="2"></textarea></div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Book ANC</button>
+    </div>
+</form>
+
+<div class="modal fade" id="patientSearch" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Find patient (female)</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input id="ps_q" class="form-control mb-2" placeholder="Name / hospital # / phone…" />
+                <div id="ps_results" class="list-group" style="max-height:380px;overflow:auto"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    var ps = new bootstrap.Modal(document.getElementById('patientSearch'));
+    document.getElementById('psBtn').addEventListener('click', () => ps.show());
+    document.getElementById('PatientLabel').addEventListener('focus', () => ps.show());
+    var t;
+    document.getElementById('ps_q').addEventListener('input', function () {
+        clearTimeout(t);
+        var q = this.value;
+        t = setTimeout(async () => {
+            if (!q || q.length < 2) { document.getElementById('ps_results').innerHTML = ''; return; }
+            try {
+                var r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+                if (!r.ok) return;
+                var data = await r.json();
+                document.getElementById('ps_results').innerHTML = data.map(p =>
+                    `<button type="button" class="list-group-item list-group-item-action" data-id="${p.id}" data-label="${p.fullName} · ${p.hospitalNumber}"><strong>${p.fullName}</strong> <small class="text-muted">${p.sex || ''} · ${p.hospitalNumber}</small></button>`
+                ).join('');
+                document.querySelectorAll('#ps_results .list-group-item').forEach(b => b.addEventListener('click', function () {
+                    document.getElementById('PatientId').value = this.dataset.id;
+                    document.getElementById('PatientLabel').value = this.dataset.label;
+                    ps.hide();
+                }));
+            } catch (e) { console.error(e); }
+        }, 250);
+    });
+    // Auto-calc EDD when LMP changes
+    document.getElementById('Lmp').addEventListener('change', function () {
+        if (!this.value) return;
+        var edd = new Date(this.value);
+        edd.setDate(edd.getDate() + 280);
+        document.getElementById('Edd').value = edd.toISOString().slice(0, 10);
+    });
+</script>
+}

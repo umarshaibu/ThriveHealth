@@ -1,0 +1,53 @@
+@model ThriveHealth.Web.Models.ViewModels.DialysisListViewModel
+@using ThriveHealth.Web.Models.Critical
+@{ ViewData["Title"] = "Dialysis sessions"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Dialysis sessions</h1>
+        <p class="th-section-sub mb-0">@Model.Rows.Count total · @Model.RunningCount running · @Model.CompletedTodayCount today</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Board" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> ICU board</a>
+        <a asp-action="NewDialysis" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.DialysisRun" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> New session</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-droplet"></i></div><div class="th-stat-label">Running now</div><div class="th-stat-value">@Model.RunningCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-check2-circle"></i></div><div class="th-stat-label">Completed today</div><div class="th-stat-value">@Model.CompletedTodayCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-calendar3"></i></div><div class="th-stat-label">This month</div><div class="th-stat-value">@Model.ThisMonthCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-list-ul"></i></div><div class="th-stat-label">Total visible</div><div class="th-stat-value">@Model.Rows.Count</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-droplet"></i><h5 class="mt-2">No dialysis sessions yet</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Session #</th><th>Patient</th><th>Modality</th><th>Access</th><th>Start</th><th>Duration</th><th>UF</th><th>Pre/Post BP</th><th>Pre/Post Wt</th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            var s = r.Session;
+            <tr>
+                <td><span class="font-monospace">@s.SessionNumber</span></td>
+                <td><strong>@r.Patient.FullName</strong><div class="small text-muted">@r.Patient.HospitalNumber</div></td>
+                <td><span class="th-pill th-pill-info">@s.Modality</span></td>
+                <td><small>@s.Access</small></td>
+                <td>@s.StartUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                <td>@s.DurationMinutes min</td>
+                <td>@(s.UfAchievedMl?.ToString() ?? "—")/@(s.UfTargetMl?.ToString() ?? "—") mL</td>
+                <td><small>@(s.PreSystolicBp.HasValue ? $"{s.PreSystolicBp}/{s.PreDiastolicBp}" : "—") → @(s.PostSystolicBp.HasValue ? $"{s.PostSystolicBp}/{s.PostDiastolicBp}" : "—")</small></td>
+                <td><small>@(s.PreWeightKg?.ToString("0.0") ?? "—") → @(s.PostWeightKg?.ToString("0.0") ?? "—") kg</small></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

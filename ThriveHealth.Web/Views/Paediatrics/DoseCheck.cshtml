@@ -1,0 +1,51 @@
+@{ ViewData["Title"] = "Paeds dose check"; }
+
+<div class="row"><div class="col-lg-8">
+    <h1 class="th-section-title"><i class="bi bi-stars text-primary me-1"></i> Paediatric dose check <span class="th-pill th-pill-info ms-2">SUGGESTION — clinician decides</span></h1>
+    <p class="th-section-sub">Computes weight-based dose range and flags out-of-range / safety issues. The output is a suggestion — verify against current paediatric formularies before prescribing.</p>
+
+    <div class="th-card mb-3"><div class="th-card-body">
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label">Weight (kg)</label><input id="dWeight" type="number" step="0.1" min="0.5" class="form-control" placeholder="e.g. 12.5" /></div>
+            <div class="col-md-3"><label class="form-label">Age (months)</label><input id="dAge" type="number" min="0" class="form-control" placeholder="optional" /></div>
+            <div class="col-md-6"><label class="form-label">Drug (generic + strength if known)</label><input id="dDrug" class="form-control" placeholder="amoxicillin 250 mg/5 ml suspension" /></div>
+            <div class="col-md-4"><label class="form-label">Proposed dose</label><input id="dProposed" class="form-control" placeholder="5 ml every 8 hours x 5 days" /></div>
+            <div class="col-md-2"><label class="form-label">Route</label><input id="dRoute" class="form-control" placeholder="PO" /></div>
+            <div class="col-md-3"><label class="form-label">Frequency</label><input id="dFreq" class="form-control" placeholder="8 hourly" /></div>
+            <div class="col-md-3"><label class="form-label">Indication</label><input id="dIndication" class="form-control" placeholder="otitis media" /></div>
+        </div>
+        <div class="text-end mt-3">
+            <button class="btn btn-primary" onclick="runDoseCheck()"><i class="bi bi-stars me-1"></i> Check dose</button>
+        </div>
+    </div></div>
+
+    <div class="th-card" id="dCard" style="display:none">
+        <div class="th-card-header"><h5 class="th-card-title mb-0">AI dose check</h5></div>
+        <div class="th-card-body"><pre id="dOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
+    </div>
+</div></div>
+
+@section Scripts {
+<script>
+async function runDoseCheck() {
+    var card = document.getElementById('dCard');
+    var out = document.getElementById('dOut');
+    var weight = parseFloat(document.getElementById('dWeight').value);
+    var age = document.getElementById('dAge').value ? parseInt(document.getElementById('dAge').value) : null;
+    var drug = document.getElementById('dDrug').value.trim();
+    var proposed = document.getElementById('dProposed').value.trim();
+    if (!weight || weight <= 0 || !drug || !proposed) { card.style.display = 'block'; out.textContent = 'Weight, drug and proposed dose are required.'; return; }
+    card.style.display = 'block';
+    out.textContent = 'Checking…';
+    var body = { weightKg: weight, ageMonths: age, drug: drug, proposedDose: proposed,
+        route: document.getElementById('dRoute').value.trim() || null,
+        frequency: document.getElementById('dFreq').value.trim() || null,
+        indication: document.getElementById('dIndication').value.trim() || null };
+    try {
+        var r = await fetch('/Paediatrics/CheckDose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

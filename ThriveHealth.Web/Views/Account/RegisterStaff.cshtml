@@ -1,0 +1,123 @@
+@model ThriveHealth.Web.Models.ViewModels.RegisterStaffViewModel
+@{
+    ViewData["Title"] = "Register staff";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="th-section-title">Register new staff</h1>
+        <p class="th-section-sub mb-0">Create a clinical or administrative user. Practitioner licences are validated against MDCN, NMCN, PCN, MLSCN, RRBN where applicable.</p>
+    </div>
+    <a asp-action="StaffList" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to staff</a>
+</div>
+
+<div class="th-card">
+    <div class="th-card-body">
+        <form asp-action="RegisterStaff" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StaffManage">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Identity</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label asp-for="FirstName" class="form-label"></label>
+                    <input asp-for="FirstName" class="form-control" />
+                    <span asp-validation-for="FirstName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="MiddleName" class="form-label"></label>
+                    <input asp-for="MiddleName" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="LastName" class="form-label"></label>
+                    <input asp-for="LastName" class="form-control" />
+                    <span asp-validation-for="LastName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" placeholder="staff@hospital.ng" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control" placeholder="+234..." />
+                </div>
+            </div>
+
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-briefcase me-1"></i> Role &amp; assignment</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label asp-for="Role" class="form-label"></label>
+                    <select asp-for="Role" asp-items="ViewBag.Roles" class="form-select">
+                        <option value="">-- choose role --</option>
+                    </select>
+                    <span asp-validation-for="Role" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="StaffNumber" class="form-label"></label>
+                    <input asp-for="StaffNumber" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="FacilityId" class="form-label">Facility</label>
+                    <select asp-for="FacilityId" asp-items="ViewBag.Facilities" class="form-select">
+                        <option value="">-- choose facility --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Department" class="form-label"></label>
+                    <input asp-for="Department" class="form-control" placeholder="Internal Medicine, Pharmacy, A&E..." />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Designation" class="form-label"></label>
+                    <input asp-for="Designation" class="form-control" placeholder="Senior Registrar, RN, Pharmacist..." />
+                </div>
+            </div>
+
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-patch-check me-1"></i> Practitioner licence (optional)</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label asp-for="LicenseBody" class="form-label"></label>
+                    <select asp-for="LicenseBody" class="form-select">
+                        <option value="">— none —</option>
+                        <option>MDCN</option>
+                        <option>NMCN</option>
+                        <option>PCN</option>
+                        <option>MLSCN</option>
+                        <option>RRBN</option>
+                        <option>MRTBN</option>
+                        <option>ODORBN</option>
+                        <option>DRCN</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="LicenseNumber" class="form-label"></label>
+                    <input asp-for="LicenseNumber" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="LicenseExpiry" class="form-label"></label>
+                    <input asp-for="LicenseExpiry" class="form-control" type="date" />
+                </div>
+            </div>
+
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-lock me-1"></i> Initial password</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="StaffList" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Create staff</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

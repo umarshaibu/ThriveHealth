@@ -1,0 +1,113 @@
+@model ThriveHealth.Web.Models.ViewModels.MortuaryInputViewModel
+@{ ViewData["Title"] = "Receive body"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">Receive body into mortuary</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Register</a>
+</div>
+
+<form asp-action="Receive" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.MortuaryManage">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Deceased</h6>
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Linked patient (optional)</label>
+                        <div class="input-group">
+                            <input type="hidden" asp-for="PatientId" id="PatientId" />
+                            <input asp-for="PatientLabel" id="PatientLabel" class="form-control" placeholder="Search…" autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="psBtn"><i class="bi bi-search"></i></button>
+                        </div>
+                    </div>
+                    <div class="col-md-12 form-check ms-3"><input asp-for="IsUnidentified" type="checkbox" class="form-check-input" /><label asp-for="IsUnidentified" class="form-check-label">Unidentified body</label></div>
+                    <div class="col-md-12"><label asp-for="DeceasedName" class="form-label">Name</label><input asp-for="DeceasedName" class="form-control" /></div>
+                    <div class="col-md-4">
+                        <label asp-for="Sex" class="form-label">Sex</label>
+                        <select asp-for="Sex" class="form-select"><option value="">—</option><option>Male</option><option>Female</option></select>
+                    </div>
+                    <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">DOB</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                    <div class="col-md-4"><label asp-for="AgeYears" class="form-label">Age (years)</label><input asp-for="AgeYears" type="number" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="Tribe" class="form-label">Tribe</label><input asp-for="Tribe" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="CabinetCode" class="form-label">Cabinet code</label><input asp-for="CabinetCode" class="form-control" placeholder="A12" /></div>
+                    <div class="col-12"><label asp-for="AddressOfOrigin" class="form-label">Address of origin</label><input asp-for="AddressOfOrigin" class="form-control" /></div>
+                </div>
+            </div></div>
+
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-people me-1"></i> Next of kin</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="NextOfKinName" class="form-label">Name</label><input asp-for="NextOfKinName" class="form-control" /><span asp-validation-for="NextOfKinName" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="NextOfKinRelationship" class="form-label">Relationship</label><input asp-for="NextOfKinRelationship" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="NextOfKinPhone" class="form-label">Phone</label><input asp-for="NextOfKinPhone" class="form-control" /></div>
+                    <div class="col-md-6"><label asp-for="NextOfKinId" class="form-label">ID #</label><input asp-for="NextOfKinId" class="form-control" /></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2 me-1"></i> Death details</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="DateOfDeathUtc" class="form-label">Date / time of death</label><input asp-for="DateOfDeathUtc" type="datetime-local" class="form-control" /></div>
+                    <div class="col-md-6">
+                        <label asp-for="Manner" class="form-label">Manner of death</label>
+                        <select asp-for="Manner" class="form-select">
+                            <option value="">—</option>
+                            <option value="1">Natural</option><option value="2">Accident</option>
+                            <option value="3">Suicide</option><option value="4">Homicide</option>
+                            <option value="5">Undetermined</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><label asp-for="PlaceOfDeath" class="form-label">Place of death</label><input asp-for="PlaceOfDeath" class="form-control" /></div>
+                    <div class="col-12"><label asp-for="CauseOfDeath" class="form-label">Cause of death</label><input asp-for="CauseOfDeath" class="form-control" placeholder="e.g. Severe sepsis, septic shock" /></div>
+                    <div class="col-12"><label asp-for="Notes" class="form-label">Notes</label><textarea asp-for="Notes" class="form-control" rows="3"></textarea></div>
+                </div>
+            </div></div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Receive body</button>
+    </div>
+</form>
+
+<div class="modal fade" id="patientSearch" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Find patient</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><input id="ps_q" class="form-control mb-2" placeholder="Search…" /><div id="ps_results" class="list-group" style="max-height:380px;overflow:auto"></div></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    var ps = new bootstrap.Modal(document.getElementById('patientSearch'));
+    document.getElementById('psBtn').addEventListener('click', () => ps.show());
+    document.getElementById('PatientLabel').addEventListener('focus', () => ps.show());
+    var t;
+    document.getElementById('ps_q').addEventListener('input', function () {
+        clearTimeout(t);
+        var q = this.value;
+        t = setTimeout(async () => {
+            if (!q || q.length < 2) { document.getElementById('ps_results').innerHTML = ''; return; }
+            var r = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+            if (!r.ok) return;
+            var data = await r.json();
+            document.getElementById('ps_results').innerHTML = data.map(p =>
+                `<button type="button" class="list-group-item list-group-item-action" data-id="${p.id}" data-label="${p.fullName} · ${p.hospitalNumber}"><strong>${p.fullName}</strong> <small class="text-muted">${p.hospitalNumber}</small></button>`
+            ).join('');
+            document.querySelectorAll('#ps_results .list-group-item').forEach(b => b.addEventListener('click', function () {
+                document.getElementById('PatientId').value = this.dataset.id;
+                document.getElementById('PatientLabel').value = this.dataset.label;
+                document.getElementById('DeceasedName').value = this.dataset.label.split(' · ')[0];
+                ps.hide();
+            }));
+        }, 250);
+    });
+</script>
+}

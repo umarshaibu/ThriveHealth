@@ -1,0 +1,126 @@
+@model ThriveHealth.Web.Models.Mortuary.MortuaryEntry
+@using ThriveHealth.Web.Models.Mortuary
+@{
+    ViewData["Title"] = $"Mortuary · {Model.MortuaryNumber}";
+    var days = (int)((Model.ReleasedAt ?? DateTime.UtcNow) - Model.ReceivedAt).TotalDays;
+
+    string Tone(MortuaryStatus s) => s switch
+    {
+        MortuaryStatus.Received => "th-pill-warning",
+        MortuaryStatus.Embalmed => "th-pill-info",
+        MortuaryStatus.AwaitingRelease => "th-pill-warning",
+        MortuaryStatus.Released => "th-pill-success",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@Model.DeceasedName</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill th-pill-muted font-monospace">@Model.MortuaryNumber</span>
+            <span class="th-pill @Tone(Model.Status)">@Model.Status</span>
+            @if (Model.Embalmed) { <span class="th-pill th-pill-info">Embalmed</span> }
+            @if (Model.IsUnidentified) { <span class="th-pill th-pill-danger">Unidentified</span> }
+            <span class="th-pill th-pill-muted">@days day@(days == 1 ? "" : "s") in mortuary</span>
+            @if (!string.IsNullOrEmpty(Model.CabinetCode)) { <span class="th-pill th-pill-muted">Cabinet @Model.CabinetCode</span> }
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" onclick="aiMortuaryDraft(@Model.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiMortuaryDraft"><i class="bi bi-stars me-1"></i> AI draft docs</button>
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Register</a>
+    </div>
+</div>
+
+<div id="aiMortuaryCard" class="th-card mb-3" style="display:none">
+    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI release form &amp; death-certificate draft <span class="th-pill th-pill-info ms-2">DRAFT — clinician + records officer must verify</span></h5></div>
+    <div class="th-card-body">
+        <pre id="aiMortuaryOut" class="mb-2" style="white-space:pre-wrap;font-family:inherit"></pre>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Deceased details</h6>
+            <dl class="row mb-0">
+                <dt class="col-4">Sex / age</dt><dd class="col-8">@Model.Sex · @(Model.AgeYears?.ToString() ?? "—") yo</dd>
+                <dt class="col-4">DOB</dt><dd class="col-8">@(Model.DateOfBirth?.ToString("dd MMM yyyy") ?? "—")</dd>
+                <dt class="col-4">Tribe</dt><dd class="col-8">@Model.Tribe</dd>
+                <dt class="col-4">Address</dt><dd class="col-8">@Model.AddressOfOrigin</dd>
+                <dt class="col-4">Date of death</dt><dd class="col-8">@Model.DateOfDeathUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+                <dt class="col-4">Place</dt><dd class="col-8">@Model.PlaceOfDeath</dd>
+                <dt class="col-4">Cause</dt><dd class="col-8">@Model.CauseOfDeath</dd>
+                <dt class="col-4">Manner</dt><dd class="col-8">@(Model.Manner?.ToString() ?? "—")</dd>
+                <dt class="col-4">Received</dt><dd class="col-8">@Model.ReceivedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm") by @(Model.ReceivedBy?.FullName ?? "—")</dd>
+                @if (Model.Embalmed) { <dt class="col-4">Embalmed</dt><dd class="col-8">@(Model.EmbalmedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—")</dd> }
+                @if (Model.ReleasedAt.HasValue)
+                {
+                    <dt class="col-4">Released</dt><dd class="col-8">@Model.ReleasedAt.Value.ToLocalTime().ToString("dd MMM HH:mm") to <strong>@Model.ReleasedTo</strong></dd>
+                    @if (!string.IsNullOrEmpty(Model.ReleaseAuthorityRef)) { <dt class="col-4">Auth ref</dt><dd class="col-8">@Model.ReleaseAuthorityRef</dd> }
+                }
+                @if (!string.IsNullOrEmpty(Model.Notes)) { <dt class="col-4">Notes</dt><dd class="col-8" style="white-space:pre-wrap">@Model.Notes</dd> }
+            </dl>
+        </div></div>
+
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-people me-1"></i> Next of kin</h6>
+            <dl class="row mb-0">
+                <dt class="col-4">Name</dt><dd class="col-8"><strong>@Model.NextOfKinName</strong></dd>
+                <dt class="col-4">Relationship</dt><dd class="col-8">@Model.NextOfKinRelationship</dd>
+                <dt class="col-4">Phone</dt><dd class="col-8">@Model.NextOfKinPhone</dd>
+                <dt class="col-4">ID</dt><dd class="col-8">@Model.NextOfKinId</dd>
+            </dl>
+        </div></div>
+    </div>
+
+    <div class="col-lg-5">
+        @if (Model.Status != MortuaryStatus.Released && Model.Status != MortuaryStatus.Buried)
+        {
+            <div class="th-card mb-3"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard-check me-1"></i> Actions</h6>
+                <div class="d-grid gap-2">
+                    @if (!Model.Embalmed)
+                    {
+                        <form asp-action="Embalm" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.MortuaryManage"><input type="hidden" name="id" value="@Model.Id" />@Html.AntiForgeryToken()<button class="btn btn-outline-info w-100"><i class="bi bi-droplet me-1"></i> Mark as embalmed</button></form>
+                    }
+                </div>
+            </div></div>
+
+            <form asp-action="Release" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.MortuaryManage">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.Id" />
+                <div class="th-card"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-box-arrow-up me-1"></i> Release to next of kin</h6>
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label">Released to</label><input name="ReleasedTo" class="form-control" required maxlength="120" placeholder="Name of person collecting" value="@Model.NextOfKinName" /></div>
+                        <div class="col-12"><label class="form-label">ID number presented</label><input name="ReleasedToId" class="form-control" maxlength="40" /></div>
+                        <div class="col-12"><label class="form-label">Release authority ref</label><input name="ReleaseAuthorityRef" class="form-control" maxlength="60" placeholder="Death cert / coroner ref" /></div>
+                        <div class="col-12"><label class="form-label">Notes</label><textarea name="Notes" class="form-control" rows="2" maxlength="500"></textarea></div>
+                    </div>
+                    <button class="btn btn-success w-100 mt-3" onclick="return confirm('Release body to next of kin? This cannot be undone.')"><i class="bi bi-check2-circle me-1"></i> Confirm release</button>
+                </div></div>
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+async function aiMortuaryDraft(id) {
+    var card = document.getElementById('aiMortuaryCard');
+    var out = document.getElementById('aiMortuaryOut');
+    card.style.display = 'block';
+    out.textContent = 'Drafting…';
+    try {
+        var r = await fetch('/Mortuary/DraftDocs?id=' + id, { method: 'POST' });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

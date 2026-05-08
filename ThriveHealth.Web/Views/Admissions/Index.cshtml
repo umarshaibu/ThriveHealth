@@ -1,0 +1,61 @@
+@model IEnumerable<ThriveHealth.Web.Models.Inpatient.Admission>
+@{
+    ViewData["Title"] = "Admissions";
+    var includeDischarged = (bool)(ViewBag.IncludeDischarged ?? false);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Admissions</h1>
+        <p class="th-section-sub mb-0">@Model.Count() patient@(Model.Count() == 1 ? "" : "s") @(includeDischarged ? "(active + discharged)" : "currently admitted")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="includeDischarged" id="incDis" value="true" @(includeDischarged ? "checked" : "") onchange="this.form.submit()" />
+                <label class="form-check-label" for="incDis">Show discharged</label>
+            </div>
+        </form>
+        <a asp-controller="Wards" asp-action="Board" class="btn btn-outline-primary"><i class="bi bi-grid me-1"></i> Bed board</a>
+        <a asp-action="Admit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Admit patient</a>
+    </div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-hospital"></i><h5 class="mt-2">No admissions</h5><a asp-action="Admit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage" class="btn btn-primary">Admit patient</a></div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Admitted</th><th>Patient</th><th>Ward · Bed</th><th>Reason</th><th>Doctor</th><th>LOS</th><th>Status</th><th class="text-end"></th></tr></thead>
+            <tbody>
+            @foreach (var a in Model)
+            {
+                var statusTone = a.Status switch
+                {
+                    ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Active => "th-pill-success",
+                    ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Discharged => "th-pill-muted",
+                    ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Deceased => "th-pill-danger",
+                    ThriveHealth.Web.Models.Inpatient.AdmissionStatus.DamaSelfDischarge => "th-pill-warning",
+                    _ => "th-pill-info"
+                };
+                var los = (a.DischargedAt ?? DateTime.UtcNow) - a.AdmittedAt;
+                <tr>
+                    <td>@a.AdmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                    <td><strong>@a.Patient!.FullName</strong><br /><small class="font-monospace text-muted">@a.Patient.HospitalNumber</small></td>
+                    <td><span class="th-pill" style="background:@a.Ward!.ColorHex;color:#fff;">@a.Ward.Code</span> @a.Bed!.BedNumber</td>
+                    <td><small>@a.ReasonForAdmission</small></td>
+                    <td>@a.AdmittingDoctor?.FullName</td>
+                    <td>@(los.TotalDays >= 1 ? $"{(int)los.TotalDays}d {los.Hours}h" : $"{los.Hours}h {los.Minutes}m")</td>
+                    <td><span class="th-pill @statusTone">@a.Status</span></td>
+                    <td class="text-end"><a asp-action="Details" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+</div></div>

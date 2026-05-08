@@ -1,0 +1,264 @@
+@model ThriveHealth.Web.Models.Maternity.AnteNatalRecord
+@using ThriveHealth.Web.Models.Maternity
+@{
+    ViewData["Title"] = $"ANC · {Model.AncNumber}";
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var ga = Model.Lmp.HasValue ? (today.DayNumber - Model.Lmp.Value.DayNumber) / 7 : (int?)null;
+    var visits = Model.Visits.OrderByDescending(v => v.VisitDate).ToList();
+    var pn = Model.PostnatalVisits.OrderByDescending(v => v.VisitDate).ToList();
+
+    string Tone(AnteNatalStatus s) => s switch
+    {
+        AnteNatalStatus.Booked => "th-pill-info",
+        AnteNatalStatus.Delivered => "th-pill-success",
+        AnteNatalStatus.LostToFollowUp => "th-pill-warning",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title mb-1">@Model.Patient?.FullName</h1>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="th-pill th-pill-muted font-monospace">@Model.AncNumber</span>
+            <span class="th-pill @Tone(Model.Status)">@Model.Status</span>
+            <span class="th-pill th-pill-muted">G@(Model.Gravida) · P@(Model.Para) · A@(Model.Abortions)</span>
+            @if (ga.HasValue) { <span class="th-pill th-pill-info">@ga wk GA</span> }
+            @if (Model.Edd.HasValue) { <span class="th-pill th-pill-warning">EDD @Model.Edd.Value.ToString("dd MMM yyyy")</span> }
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> ANC list</a>
+        <button type="button" class="btn btn-outline-primary" onclick="aiAncRisk(@Model.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiAncRisk"><i class="bi bi-stars me-1"></i> AI risk score</button>
+        @if (Model.Status == AnteNatalStatus.Booked)
+        {
+            <a asp-action="Deliver" asp-route-id="@Model.Id" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.DeliveryRecord" class="btn btn-success"><i class="bi bi-heart-pulse me-1"></i> Record delivery</a>
+        }
+    </div>
+</div>
+
+<div id="aiAncRiskCard" class="th-card mb-3" style="display:none">
+    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI ANC risk assessment <span class="th-pill th-pill-info ms-2">SUGGESTION — clinician decides</span></h5></div>
+    <div class="th-card-body"><pre id="aiAncRiskOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="th-card mb-3"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Booking</h6>
+            <dl class="row mb-0">
+                <dt class="col-6">Booked on</dt><dd class="col-6">@Model.BookingDate.ToString("dd MMM yyyy")</dd>
+                <dt class="col-6">LMP</dt><dd class="col-6">@(Model.Lmp?.ToString("dd MMM yyyy") ?? "—")</dd>
+                <dt class="col-6">EDD</dt><dd class="col-6">@(Model.Edd?.ToString("dd MMM yyyy") ?? "—")</dd>
+                <dt class="col-6">Height</dt><dd class="col-6">@(Model.HeightCm?.ToString("0.0") ?? "—") cm</dd>
+                <dt class="col-6">Booking weight</dt><dd class="col-6">@(Model.BookingWeightKg?.ToString("0.0") ?? "—") kg</dd>
+                <dt class="col-6">Hb</dt><dd class="col-6">@(Model.HaemoglobinGdl?.ToString("0.0") ?? "—") g/dL</dd>
+                <dt class="col-6">Blood</dt><dd class="col-6">@Model.BloodGroup @(Model.RhesusPositive == true ? "+" : Model.RhesusPositive == false ? "−" : "")</dd>
+                <dt class="col-6">HIV</dt><dd class="col-6">@Model.HivStatus</dd>
+            </dl>
+        </div></div>
+
+        @if (!string.IsNullOrEmpty(Model.RiskFactors) || Model.HivStatus == HivStatus.Positive || (Model.HaemoglobinGdl.HasValue && Model.HaemoglobinGdl.Value < 9m) || Model.RhesusPositive == false)
+        {
+            <div class="alert alert-warning mb-3">
+                <strong><i class="bi bi-shield-exclamation me-1"></i>High-risk factors</strong>
+                <ul class="mb-0 small">
+                    @if (Model.HaemoglobinGdl.HasValue && Model.HaemoglobinGdl.Value < 9m) { <li>Anaemia (Hb @Model.HaemoglobinGdl g/dL)</li> }
+                    @if (Model.HivStatus == HivStatus.Positive) { <li>HIV positive</li> }
+                    @if (Model.RhesusPositive == false) { <li>Rhesus negative</li> }
+                    @if (Model.VdrlReactive == true) { <li>VDRL reactive (syphilis)</li> }
+                    @if (Model.HepBPositive == true) { <li>Hepatitis B positive</li> }
+                    @if (Model.SicklingPositive == true) { <li>Sickling positive</li> }
+                    @if (!string.IsNullOrEmpty(Model.RiskFactors)) { <li>@Model.RiskFactors</li> }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-8">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#visits">ANC visits (@visits.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#delivery">Delivery</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#postnatal">Postnatal (@pn.Count)</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="visits">
+                <div class="th-card mb-3"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-plus-circle me-1"></i> Add visit</h6>
+                    <form asp-action="AddVisit" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AncManage">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="AnteNatalRecordId" value="@Model.Id" />
+                        <div class="row g-2">
+                            <div class="col-md-3"><label class="form-label">Visit date</label><input name="VisitDate" type="date" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" /></div>
+                            <div class="col-md-2"><label class="form-label">GA wk</label><input name="GestationalAgeWeeks" type="number" class="form-control" placeholder="auto" /></div>
+                            <div class="col-md-2"><label class="form-label">Weight kg</label><input name="WeightKg" type="number" step="0.1" class="form-control" /></div>
+                            <div class="col-md-2"><label class="form-label">Sys BP</label><input name="SystolicBp" type="number" class="form-control" /></div>
+                            <div class="col-md-2"><label class="form-label">Dia BP</label><input name="DiastolicBp" type="number" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Fundal ht (cm)</label><input name="FundalHeightCm" type="number" step="0.1" class="form-control" /></div>
+                            <div class="col-md-2"><label class="form-label">FHR (bpm)</label><input name="FetalHeartRate" type="number" class="form-control" /></div>
+                            <div class="col-md-3">
+                                <label class="form-label">Presentation</label>
+                                <select name="Presentation" class="form-select">
+                                    <option value="">—</option>
+                                    <option value="1">Cephalic</option><option value="2">Breech</option>
+                                    <option value="3">Transverse</option><option value="4">Oblique</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end gap-3">
+                                <div class="form-check"><input name="UrineProtein" value="true" type="checkbox" class="form-check-input" /><label class="form-check-label">U.protein</label></div>
+                                <div class="form-check"><input name="UrineSugar" value="true" type="checkbox" class="form-check-input" /><label class="form-check-label">U.sugar</label></div>
+                                <div class="form-check"><input name="Oedema" value="true" type="checkbox" class="form-check-input" /><label class="form-check-label">Oedema</label></div>
+                                <div class="form-check"><input name="FetalMovements" value="true" type="checkbox" class="form-check-input" checked /><label class="form-check-label">FM+</label></div>
+                            </div>
+                            <div class="col-md-6"><label class="form-label">Complaints</label><input name="Complaints" class="form-control" /></div>
+                            <div class="col-md-6"><label class="form-label">Plan</label><input name="Plan" class="form-control" /></div>
+                            <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary"><i class="bi bi-save me-1"></i> Add visit</button></div>
+                        </div>
+                    </form>
+                </div></div>
+
+                <div class="th-card"><div class="th-card-body p-0">
+                @if (!visits.Any())
+                {
+                    <div class="th-empty m-4"><i class="bi bi-clipboard"></i><h5 class="mt-2">No visits yet</h5></div>
+                }
+                else
+                {
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>#</th><th>Date</th><th>GA</th><th>Wt (kg)</th><th>BP</th><th>Fundal</th><th>FHR</th><th>Notes</th></tr></thead>
+                        <tbody>
+                        @foreach (var v in visits)
+                        {
+                            <tr>
+                                <td>#@v.VisitNumber</td>
+                                <td>@v.VisitDate.ToString("dd MMM")</td>
+                                <td>@(v.GestationalAgeWeeks?.ToString() ?? "—") wk</td>
+                                <td>@(v.WeightKg?.ToString("0.0") ?? "—")</td>
+                                <td>@(v.SystolicBp.HasValue ? $"{v.SystolicBp}/{v.DiastolicBp}" : "—")</td>
+                                <td>@(v.FundalHeightCm?.ToString("0.0") ?? "—") cm</td>
+                                <td>@(v.FetalHeartRate?.ToString() ?? "—")</td>
+                                <td><small>@v.Plan @if (!string.IsNullOrEmpty(v.Complaints)) { <span class="text-muted">· @v.Complaints</span> }</small></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                </div></div>
+            </div>
+
+            <div class="tab-pane fade" id="delivery">
+                @if (!Model.Deliveries.Any())
+                {
+                    <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-heart-pulse"></i><h5 class="mt-2">No delivery recorded yet</h5><a asp-action="Deliver" asp-route-id="@Model.Id" class="btn btn-success mt-2"><i class="bi bi-heart-pulse me-1"></i> Record delivery</a></div></div>
+                }
+                else
+                {
+                    foreach (var d in Model.Deliveries)
+                    {
+                        <div class="th-card mb-3"><div class="th-card-body">
+                            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-heart-pulse me-1"></i> Delivery · @d.DeliveryUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</h6>
+                            <dl class="row mb-2">
+                                <dt class="col-3">Mode</dt><dd class="col-9">@d.Mode · @d.GestationAtDeliveryWeeks wk</dd>
+                                <dt class="col-3">Outcome</dt><dd class="col-9">@d.Outcome</dd>
+                                <dt class="col-3">Labour duration</dt><dd class="col-9">@d.LabourMinutes min</dd>
+                                @if (d.EpisiotomyPerformed) { <dt class="col-3">Episiotomy</dt><dd class="col-9">Yes</dd> }
+                                @if (!string.IsNullOrEmpty(d.PerinealTear)) { <dt class="col-3">Tear</dt><dd class="col-9">@d.PerinealTear</dd> }
+                                @if (d.EstimatedBloodLossMl.HasValue) { <dt class="col-3">EBL</dt><dd class="col-9">@d.EstimatedBloodLossMl mL</dd> }
+                                @if (!string.IsNullOrEmpty(d.Complications)) { <dt class="col-3">Complications</dt><dd class="col-9 text-danger">@d.Complications</dd> }
+                            </dl>
+                            @foreach (var nb in d.Newborns)
+                            {
+                                <div class="alert alert-info mb-0">
+                                    <strong><i class="bi bi-baby me-1"></i>Newborn</strong> · @nb.Sex · @(nb.BirthWeightG?.ToString("N0") ?? "—") g · APGAR @(nb.Apgar1Min?.ToString() ?? "—")/@(nb.Apgar5Min?.ToString() ?? "—")
+                                    @if (nb.ResuscitationRequired) { <span class="th-pill th-pill-warning ms-1">Resus</span> }
+                                    @if (nb.BcgGivenAtBirth) { <span class="th-pill th-pill-success ms-1">BCG</span> }
+                                    @if (nb.OpvGivenAtBirth) { <span class="th-pill th-pill-success ms-1">OPV0</span> }
+                                    @if (nb.HepBGivenAtBirth) { <span class="th-pill th-pill-success ms-1">HepB</span> }
+                                </div>
+                            }
+                        </div></div>
+                    }
+                }
+            </div>
+
+            <div class="tab-pane fade" id="postnatal">
+                <div class="th-card mb-3"><div class="th-card-body">
+                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-plus-circle me-1"></i> Add postnatal visit</h6>
+                    <form asp-action="AddPostnatal" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AncManage">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="AnteNatalRecordId" value="@Model.Id" />
+                        <div class="row g-2">
+                            <div class="col-md-3"><label class="form-label">Visit date</label><input name="VisitDate" type="date" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" /></div>
+                            <div class="col-md-2">
+                                <label class="form-label">Day</label>
+                                <select name="Day" class="form-select"><option value="1">Day 1</option><option value="3">Day 3</option><option value="7">Day 7</option><option value="14">Day 14</option><option value="42">Day 42</option></select>
+                            </div>
+                            <div class="col-md-2"><label class="form-label">Sys BP</label><input name="MotherSystolicBp" type="number" class="form-control" /></div>
+                            <div class="col-md-2"><label class="form-label">Dia BP</label><input name="MotherDiastolicBp" type="number" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Temp °C</label><input name="MotherTemperatureC" type="number" step="0.1" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Lochia</label><input name="Lochia" class="form-control" placeholder="rubra/serosa/alba" /></div>
+                            <div class="col-md-3"><label class="form-label">Fundus</label><input name="FundalInvolution" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Baby weight kg</label><input name="BabyWeightKg" type="number" step="0.01" class="form-control" /></div>
+                            <div class="col-md-3 d-flex align-items-end gap-3">
+                                <div class="form-check"><input name="BabyJaundice" value="true" type="checkbox" class="form-check-input" /><label class="form-check-label">Jaundice</label></div>
+                                <div class="form-check"><input name="BabyBreastfeeding" value="true" type="checkbox" class="form-check-input" checked /><label class="form-check-label">BF</label></div>
+                            </div>
+                            <div class="col-12"><label class="form-label">Notes</label><input name="Notes" class="form-control" /></div>
+                            <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary"><i class="bi bi-save me-1"></i> Add visit</button></div>
+                        </div>
+                    </form>
+                </div></div>
+
+                <div class="th-card"><div class="th-card-body p-0">
+                @if (!pn.Any())
+                {
+                    <div class="th-empty m-4"><i class="bi bi-calendar-check"></i><h5 class="mt-2">No postnatal visits</h5></div>
+                }
+                else
+                {
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Date</th><th>Day</th><th>Mother BP</th><th>Temp</th><th>Lochia</th><th>Baby wt</th><th>Status</th></tr></thead>
+                        <tbody>
+                        @foreach (var v in pn)
+                        {
+                            <tr>
+                                <td>@v.VisitDate.ToString("dd MMM")</td>
+                                <td>Day @((int)v.Day)</td>
+                                <td>@(v.MotherSystolicBp.HasValue ? $"{v.MotherSystolicBp}/{v.MotherDiastolicBp}" : "—")</td>
+                                <td>@(v.MotherTemperatureC?.ToString("0.0") ?? "—")</td>
+                                <td>@(v.Lochia ?? "—")</td>
+                                <td>@(v.BabyWeightKg?.ToString("0.00") ?? "—") kg</td>
+                                <td>
+                                    @if (v.BabyJaundice) { <span class="th-pill th-pill-warning">Jaundice</span> }
+                                    @if (v.BabyBreastfeeding) { <span class="th-pill th-pill-success">BF</span> }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                </div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+async function aiAncRisk(id) {
+    var card = document.getElementById('aiAncRiskCard');
+    var out = document.getElementById('aiAncRiskOut');
+    card.style.display = 'block';
+    out.textContent = 'Assessing…';
+    try {
+        var r = await fetch('/Maternity/AssessAncRisk?id=' + id, { method: 'POST' });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+}

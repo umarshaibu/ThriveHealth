@@ -1,0 +1,54 @@
+@model ThriveHealth.Web.Models.ViewModels.IcuBoardViewModel
+@using ThriveHealth.Web.Models.Critical
+@{
+    ViewData["Title"] = "ICU board";
+    bool IsCritical(IcuChartEntry? e) => e != null && (
+        (e.SystolicBp.HasValue && e.SystolicBp < 90)
+        || (e.SpO2.HasValue && e.SpO2 < 90)
+        || ((e.GcsEye + e.GcsVerbal + e.GcsMotor) is int gcs and < 9));
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">ICU board</h1>
+        <p class="th-section-sub mb-0">@Model.IcuCount patient@(Model.IcuCount == 1 ? "" : "s") · @Model.OnVentCount on ventilator · @Model.CriticalCount critical</p>
+    </div>
+    <a asp-action="Dialysis" class="btn btn-outline-secondary"><i class="bi bi-droplet me-1"></i> Dialysis</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-hospital"></i></div><div class="th-stat-label">In ICU/HDU/NICU</div><div class="th-stat-value">@Model.IcuCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-wind"></i></div><div class="th-stat-label">On ventilator</div><div class="th-stat-value">@Model.OnVentCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-heart-pulse-fill"></i></div><div class="th-stat-label">Critical</div><div class="th-stat-value">@Model.CriticalCount</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-clipboard2-pulse"></i></div><div class="th-stat-label">Charts last 24h</div><div class="th-stat-value">@Model.Rows.Sum(r => r.EntriesLast24h)</div></div></div>
+</div>
+
+<div class="th-card"><div class="th-card-body p-0">
+@if (!Model.Rows.Any())
+{
+    <div class="th-empty m-4"><i class="bi bi-hospital"></i><h5 class="mt-2">No ICU/HDU patients</h5></div>
+}
+else
+{
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Patient</th><th>Ward / Bed</th><th>Day</th><th>HR</th><th>BP</th><th>SpO2</th><th>GCS</th><th>Vent</th><th>Last entry</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr class="@(IsCritical(r.Latest) ? "table-danger" : "")">
+                <td><strong>@r.Admission.Patient?.FullName</strong><div class="small text-muted">@r.Admission.Patient?.HospitalNumber</div></td>
+                <td>@r.Admission.Ward?.Code <small class="text-muted">@r.Admission.Ward?.Name</small></td>
+                <td>D@(((int)(DateTime.UtcNow - r.Admission.AdmittedAt).TotalDays) + 1)</td>
+                <td>@(r.Latest?.HeartRate?.ToString() ?? "—")</td>
+                <td>@(r.Latest?.SystolicBp.HasValue == true ? $"{r.Latest.SystolicBp}/{r.Latest.DiastolicBp}" : "—")</td>
+                <td>@(r.Latest?.SpO2?.ToString("0") ?? "—")%</td>
+                <td>@(r.Latest != null && (r.Latest.GcsEye + r.Latest.GcsVerbal + r.Latest.GcsMotor) > 0 ? (r.Latest.GcsEye + r.Latest.GcsVerbal + r.Latest.GcsMotor).ToString() : "—")</td>
+                <td>@if (r.Latest?.VentMode.HasValue == true && r.Latest.VentMode != VentilationMode.None) { <span class="th-pill th-pill-warning">@r.Latest.VentMode</span> }</td>
+                <td><small>@(r.Latest?.RecordedUtc.ToLocalTime().ToString("HH:mm") ?? "—") · @r.EntriesLast24h /24h</small></td>
+                <td class="text-end"><a asp-action="Chart" asp-route-admissionId="@r.Admission.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-clipboard2-pulse me-1"></i> Chart</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</div></div>

@@ -1,0 +1,228 @@
+@model ThriveHealth.Web.Models.ViewModels.Tenancy.TenantSignUpViewModel
+@using ThriveHealth.Web.Models.Tenancy
+@{
+    ViewData["Title"] = "Start your free trial";
+    var plans = (List<Plan>)ViewBag.Plans;
+}
+
+<style>
+    .th-su-shell { max-width: 980px; margin: 32px auto; padding: 0 24px; display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; }
+    @@media (max-width: 880px) { .th-su-shell { grid-template-columns: 1fr; } }
+    .th-su-card { background: #fff; border-radius: 14px; padding: 32px; box-shadow: 0 16px 48px rgba(15,58,138,.08); }
+    .th-su-card h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 4px; }
+    .th-su-card .lead { color: #64748b; margin-bottom: 24px; font-size: .95rem; }
+    .th-su-card .form-label { font-size: .85rem; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    .th-su-card .form-control, .th-su-card .form-select { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 11px 14px; font-size: .95rem; }
+    .th-su-card .form-control:focus, .th-su-card .form-select:focus { border-color: var(--th-primary); box-shadow: 0 0 0 4px rgba(15,58,138,.1); }
+    .th-su-card .slug-row { display: flex; align-items: stretch; }
+    .th-su-card .slug-row .form-control { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .th-su-card .slug-row .domain-suffix { border: 1.5px solid #e2e8f0; border-left: 0; border-radius: 0 10px 10px 0; padding: 0 14px; display: flex; align-items: center; background: #f8fafc; color: #64748b; font-size: .9rem; }
+    .th-su-card .slug-status { font-size: .8rem; margin-top: 4px; min-height: 18px; }
+    .th-su-card .slug-status.ok { color: #14b8a6; }
+    .th-su-card .slug-status.bad { color: #dc2626; }
+    .th-su-card button[type="submit"] { background: linear-gradient(135deg, var(--th-primary), var(--th-primary-dark)); border: 0; color: #fff; padding: 13px; font-weight: 700; border-radius: 11px; width: 100%; font-size: 1rem; }
+    .th-su-summary { background: linear-gradient(135deg, #0a2a66 0%, #0f3a8a 100%); color: #fff; border-radius: 14px; padding: 28px; }
+    .th-su-summary h5 { font-weight: 700; margin-bottom: 18px; opacity: .9; font-size: .9rem; letter-spacing: .03em; text-transform: uppercase; }
+    .th-su-summary .plan-pill { display: inline-block; padding: 4px 10px; background: rgba(255,255,255,.15); border-radius: 999px; font-size: .8rem; font-weight: 600; margin-bottom: 12px; }
+    .th-su-summary .price { font-size: 1.8rem; font-weight: 800; margin-bottom: 2px; }
+    .th-su-summary .small { opacity: .8; }
+    .th-su-summary ul { list-style: none; padding: 0; margin: 16px 0 0; }
+    .th-su-summary ul li { padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,.15); font-size: .85rem; display: flex; align-items: center; gap: 8px; }
+    .th-su-summary ul li i { color: #5eead4; }
+    .billing-toggle { background: rgba(255,255,255,.1); border-radius: 10px; padding: 4px; display: flex; margin: 20px 0; }
+    .billing-toggle label { flex: 1; text-align: center; padding: 8px 12px; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .billing-toggle input { display: none; }
+    .billing-toggle input:checked + label { background: #fff; color: var(--th-primary); }
+</style>
+
+<div class="th-su-shell">
+    <div class="th-su-card">
+        <h1>Create your hospital workspace</h1>
+        <p class="lead">2 minutes. Your workspace is ready instantly.</p>
+
+        <form asp-action="SignUp" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small"></div>
+
+            <div class="mb-3">
+                <label class="form-label">Hospital legal name</label>
+                <input asp-for="LegalName" class="form-control" placeholder="Grace Hospital Limited" />
+                <span asp-validation-for="LegalName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Brand / display name <span class="text-muted">(optional)</span></label>
+                <input asp-for="BrandName" class="form-control" placeholder="Grace Hospital" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Choose your subdomain</label>
+                <div class="slug-row">
+                    <input asp-for="Slug" id="su-slug" class="form-control" placeholder="gracehospital" autocomplete="off" />
+                    <span class="domain-suffix">.thrivehealth.ng</span>
+                </div>
+                <div id="su-slug-status" class="slug-status"></div>
+                <span asp-validation-for="Slug" class="text-danger small"></span>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Owner name</label>
+                    <input asp-for="OwnerName" class="form-control" placeholder="Dr Adaeze Okeke" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Owner phone</label>
+                    <input asp-for="OwnerPhone" class="form-control" placeholder="+234 800 000 0000" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Owner email</label>
+                    <input asp-for="OwnerEmail" type="email" class="form-control" placeholder="you@hospital.ng" />
+                    <small class="text-muted">Login credentials will be sent here.</small>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Country</label>
+                    <select asp-for="CountryCode" class="form-select">
+                        <option value="NG">Nigeria</option>
+                        <option value="GH">Ghana</option>
+                        <option value="KE">Kenya</option>
+                        <option value="ZA">South Africa</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Currency</label>
+                    <select asp-for="CurrencyCode" class="form-select">
+                        <option value="NGN">NGN — Naira</option>
+                        <option value="USD">USD — Dollar</option>
+                        <option value="GHS">GHS — Cedi</option>
+                        <option value="KES">KES — Shilling</option>
+                        <option value="ZAR">ZAR — Rand</option>
+                        <option value="GBP">GBP — Pound</option>
+                        <option value="EUR">EUR — Euro</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Beds / clinic size</label>
+                    <input asp-for="BedCapacity" type="number" min="0" class="form-control" placeholder="50" />
+                </div>
+                <div class="col-md-4"><label class="form-label">State</label><input asp-for="State" class="form-control" placeholder="Lagos" /></div>
+                <div class="col-md-4"><label class="form-label">LGA</label><input asp-for="Lga" class="form-control" placeholder="Ikeja" /></div>
+                <div class="col-md-4"><label class="form-label">Address</label><input asp-for="Address" class="form-control" /></div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="form-check mb-2">
+                <input asp-for="IsTeachingHospital" class="form-check-input" />
+                <label class="form-check-label small" asp-for="IsTeachingHospital">
+                    We are a public teaching hospital. <span class="text-muted">(We'll verify and your account will be free.)</span>
+                </label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input asp-for="AcceptTerms" class="form-check-input" />
+                <label class="form-check-label small" asp-for="AcceptTerms">I accept the <a href="#" target="_blank">terms of service</a> and <a href="#" target="_blank">privacy policy</a>.</label>
+                <span asp-validation-for="AcceptTerms" class="text-danger small d-block"></span>
+            </div>
+
+            <input type="hidden" asp-for="PlanCode" id="su-plan" />
+            <input type="hidden" asp-for="AnnualBilling" id="su-annual" />
+
+            <button type="submit"><i class="bi bi-rocket-takeoff me-1"></i> Create my hospital — start 30-day free trial</button>
+            <p class="small text-muted text-center mt-2 mb-0">No credit card required.</p>
+        </form>
+    </div>
+
+    <aside>
+        <div class="th-su-summary">
+            <h5>Your plan</h5>
+            <div class="plan-pill" id="su-plan-pill">@(Model.PlanCode?.ToUpperInvariant())</div>
+            <div class="price" id="su-plan-price">—</div>
+            <div class="small" id="su-plan-period">— · 30-day free trial</div>
+
+            <div class="billing-toggle">
+                <input type="radio" name="billing" id="bm" value="monthly" checked />
+                <label for="bm">Monthly</label>
+                <input type="radio" name="billing" id="ba" value="annual" />
+                <label for="ba">Annual <span style="opacity:.7">(save 20%)</span></label>
+            </div>
+
+            <ul id="su-plan-features"><li>Loading…</li></ul>
+
+            <div class="small mt-3" style="opacity:.7;">Charges only begin after your 30-day trial. Cancel anytime.</div>
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+const PLANS = @Html.Raw(Json.Serialize(plans.Where(p => p.Code != "trial").Select(p => new {
+    p.Code, p.Name, p.MonthlyNgn, p.AnnualNgn,
+    p.IsCustomQuote, p.MaxStaff, p.MaxPatientsPerMonth,
+    p.TelemedicineEnabled, p.AiEnabled, p.MultiFacilityEnabled, p.ClaimsEnabled,
+    p.PrioritySupport, p.SsoEnabled, p.OnPremiseAvailable
+})));
+
+function formatNgn(n) { return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n); }
+
+function renderSummary() {
+    const code = document.getElementById('su-plan').value || 'standard';
+    const annual = document.getElementById('su-annual').value === 'true';
+    const plan = PLANS.find(p => p.code === code) || PLANS.find(p => p.code === 'standard');
+    if (!plan) return;
+    document.getElementById('su-plan-pill').textContent = plan.name;
+    if (plan.isCustomQuote) {
+        document.getElementById('su-plan-price').textContent = 'Custom';
+        document.getElementById('su-plan-period').textContent = 'Contact sales · 30-day trial available';
+    } else {
+        const price = annual ? plan.annualNgn : plan.monthlyNgn;
+        document.getElementById('su-plan-price').textContent = formatNgn(price);
+        document.getElementById('su-plan-period').textContent = (annual ? '/ year' : '/ month') + ' · 30-day free trial';
+    }
+    const tick = ok => `<i class="bi bi-${ok ? 'check2' : 'x'}"></i>`;
+    const ul = document.getElementById('su-plan-features');
+    ul.innerHTML = `
+        <li><i class="bi bi-check2"></i> Up to ${plan.maxStaff ?? 'Unlimited'} staff</li>
+        <li><i class="bi bi-check2"></i> ${plan.maxPatientsPerMonth ?? 'Unlimited'} patients/mo</li>
+        <li>${tick(plan.telemedicineEnabled)} Telemedicine</li>
+        <li>${tick(plan.aiEnabled)} AI features</li>
+        <li>${tick(plan.multiFacilityEnabled)} Multi-facility</li>
+        <li>${tick(plan.claimsEnabled)} HMO/NHIA claims</li>
+        <li>${tick(plan.prioritySupport)} Priority support</li>
+    `;
+}
+
+document.querySelectorAll('input[name="billing"]').forEach(r => r.addEventListener('change', e => {
+    document.getElementById('su-annual').value = (e.target.value === 'annual') ? 'true' : 'false';
+    renderSummary();
+}));
+renderSummary();
+
+// Slug availability check
+const slugInput = document.getElementById('su-slug');
+const slugStatus = document.getElementById('su-slug-status');
+let slugTimer;
+slugInput.addEventListener('input', () => {
+    clearTimeout(slugTimer);
+    slugStatus.textContent = '';
+    slugStatus.className = 'slug-status';
+    const v = slugInput.value.trim().toLowerCase();
+    if (v.length < 3) return;
+    slugTimer = setTimeout(async () => {
+        try {
+            const r = await fetch('/signup/check-slug?slug=' + encodeURIComponent(v));
+            const j = await r.json();
+            if (j.ok) { slugStatus.textContent = '✓ Available — ' + v + '.thrivehealth.ng is yours.'; slugStatus.className = 'slug-status ok'; }
+            else { slugStatus.textContent = '✗ That subdomain is taken or not allowed.'; slugStatus.className = 'slug-status bad'; }
+        } catch { /* ignore */ }
+    }, 350);
+});
+</script>
+}

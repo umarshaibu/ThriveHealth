@@ -1,0 +1,33 @@
+@model ThriveHealth.Web.Models.ViewModels.PayerPlanEditViewModel
+@{
+    ViewData["Title"] = "Add plan";
+    var payer = (ThriveHealth.Web.Models.Insurance.Payer?)ViewBag.Payer;
+}
+
+<div class="row"><div class="col-lg-8">
+    <h1 class="th-section-title">Add plan</h1>
+    @if (payer != null) { <p class="th-section-sub">For payer · @payer.Name</p> }
+
+    <form asp-action="AddPlan" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PayersManage">
+        <div class="th-card-body">
+            <input type="hidden" asp-for="PayerId" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <div class="row g-3">
+                <div class="col-md-8"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control text-uppercase" /></div>
+                <div class="col-md-4"><label asp-for="TariffMultiplier" class="form-label"></label><input asp-for="TariffMultiplier" type="number" step="0.01" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="DefaultCopayPercent" class="form-label"></label><input asp-for="DefaultCopayPercent" type="number" step="0.5" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="CapitationRatePerEnrolleeMonth" class="form-label"></label><input asp-for="CapitationRatePerEnrolleeMonth" type="number" step="0.01" class="form-control" /></div>
+                <div class="col-md-12 form-check ms-2"><input asp-for="RequiresPreAuthorization" class="form-check-input" /><label asp-for="RequiresPreAuthorization" class="form-check-label"></label></div>
+                <div class="col-md-12 form-check ms-2"><input asp-for="DefaultFormularyCovered" class="form-check-input" /><label asp-for="DefaultFormularyCovered" class="form-check-label"></label></div>
+                <div class="col-md-12 form-check ms-2"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">Active</label></div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+                <a asp-action="Details" asp-route-id="@Model.PayerId" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Add plan</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,52 @@
+@model ThriveHealth.Web.Models.ViewModels.ClinicEditViewModel
+@{ ViewData["Title"] = "New clinic"; }
+
+<div class="row"><div class="col-lg-7">
+    <h1 class="th-section-title">New clinic</h1>
+    <p class="th-section-sub">A clinic is a service offering with its own waiting queue and bookable slots.</p>
+
+    <form asp-action="Create" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClinicsManage">
+        <div class="th-card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="General OPD" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Code" class="form-label"></label>
+                    <input asp-for="Code" class="form-control text-uppercase" maxlength="6" placeholder="OPD" />
+                    <span asp-validation-for="Code" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Specialty" class="form-label"></label>
+                    <select asp-for="Specialty" class="form-select">
+                        @foreach (var v in Enum.GetValues<ThriveHealth.Web.Models.Scheduling.ClinicSpecialty>())
+                        {
+                            <option value="@((int)v)">@v</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DefaultSlotMinutes" class="form-label">Slot length</label>
+                    <div class="input-group"><input asp-for="DefaultSlotMinutes" class="form-control" type="number" /><span class="input-group-text">min</span></div>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ColorHex" class="form-label">Colour</label>
+                    <input asp-for="ColorHex" class="form-control form-control-color w-100" type="color" />
+                </div>
+                <div class="col-12 form-check ms-2">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">Active</label>
+                </div>
+            </div>
+            <div class="mt-4 d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Create clinic</button>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

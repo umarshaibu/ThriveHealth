@@ -1,0 +1,191 @@
+@model ThriveHealth.Web.Models.ViewModels.AppointmentBookViewModel
+@{
+    ViewData["Title"] = "Book appointment";
+    var clinics = (List<ThriveHealth.Web.Models.Scheduling.Clinic>)ViewBag.Clinics;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Book an appointment</h1>
+        <p class="th-section-sub mb-0">Pick a patient, a clinic, a date, and an available slot.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+
+<form asp-action="Book" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AppointmentsBook">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+    <input type="hidden" asp-for="ScheduledStartUtc" id="scheduledStart" />
+    <input type="hidden" asp-for="ClinicianId" id="clinicianId" />
+    <input type="hidden" asp-for="DurationMinutes" id="duration" />
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="th-card h-100"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient</h6>
+                <label class="form-label">Search patient</label>
+                <div class="position-relative">
+                    <input type="text" id="patientSearch" class="form-control" placeholder="Hospital #, name, or phone…" autocomplete="off" value="@Model.PatientLabel" />
+                    <input type="hidden" asp-for="PatientId" id="patientId" />
+                    <div id="patientResults" class="list-group position-absolute w-100" style="z-index:1000;"></div>
+                </div>
+                <div id="patientPick" class="mt-3 p-2 border rounded-3 bg-light @(Model.PatientId.HasValue ? "" : "d-none")">
+                    <i class="bi bi-person-fill text-primary"></i>
+                    <span id="patientPickLabel">@Model.PatientLabel</span>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="th-card h-100"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-building me-1"></i> Clinic &amp; date</h6>
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label asp-for="ClinicId" class="form-label">Clinic</label>
+                        <select asp-for="ClinicId" id="clinicSelect" class="form-select">
+                            <option value="">--</option>
+                            @foreach (var c in clinics)
+                            { <option value="@c.Id">@c.Code · @c.Name</option> }
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label asp-for="Date" class="form-label">Date</label>
+                        <input asp-for="Date" id="dateSelect" type="date" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Type" class="form-label">Type</label>
+                        <select asp-for="Type" class="form-select">
+                            <option value="1">New OPD</option><option value="2">Follow-up</option>
+                            <option value="3">Specialist clinic</option><option value="4">Antenatal</option>
+                            <option value="5">Immunization</option><option value="6">Telemedicine</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Priority" class="form-label"></label>
+                        <select asp-for="Priority" class="form-select">
+                            <option value="1">Routine</option><option value="2">Urgent</option><option value="3">Emergency</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="ReasonForVisit" class="form-label d-flex justify-content-between">
+                            <span>Reason for visit (optional)</span>
+                            <a href="#" onclick="aiSchedule();return false;" class="small text-decoration-none" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiSchedulingAssist"><i class="bi bi-stars"></i> AI clinic suggest</a>
+                        </label>
+                        <input asp-for="ReasonForVisit" class="form-control" />
+                        <pre id="aiScheduleOut" class="small text-muted mt-1 mb-0" style="white-space:pre-wrap;font-family:inherit"></pre>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="col-12">
+            <div class="th-card"><div class="th-card-body">
+                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clock me-1"></i> Available slots</h6>
+                <div id="slotsContainer" class="text-muted">Pick a clinic and date to see available slots.</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button id="btnSubmit" class="btn btn-primary" type="submit" disabled><i class="bi bi-calendar-check me-1"></i> Confirm booking</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+async function aiSchedule() {
+    var out = document.getElementById('aiScheduleOut');
+    var complaint = document.querySelector('input[name="ReasonForVisit"]')?.value?.trim();
+    if (!complaint) { out.textContent = 'Type a reason for visit first.'; return; }
+    var priority = document.querySelector('select[name="Priority"]')?.selectedOptions[0]?.text;
+    var patientId = document.querySelector('input[name="PatientId"]')?.value || null;
+    out.textContent = 'Thinking…';
+    try {
+        var r = await fetch('/Appointments/AssistScheduling', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ complaint: complaint, urgency: priority, patientId: patientId ? Number(patientId) : null }) });
+        var j = await r.json();
+        out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
+    } catch (e) { out.textContent = 'AI failed: ' + e.message; }
+}
+</script>
+
+<partial name="_ValidationScriptsPartial" />
+<script>
+const $search = document.getElementById('patientSearch');
+const $results = document.getElementById('patientResults');
+const $patientId = document.getElementById('patientId');
+const $patientPick = document.getElementById('patientPick');
+const $patientPickLabel = document.getElementById('patientPickLabel');
+
+let searchTimer;
+$search.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = $search.value.trim();
+    if (q.length < 2) { $results.innerHTML = ''; return; }
+    searchTimer = setTimeout(async () => {
+        const res = await fetch('/Patients/Search?q=' + encodeURIComponent(q));
+        const items = await res.json();
+        $results.innerHTML = items.map(p =>
+            `<a href="#" data-id="${p.id}" data-label="${p.name} · ${p.hospitalNumber}" class="list-group-item list-group-item-action small">
+                <strong>${p.name}</strong> <span class="font-monospace text-muted">${p.hospitalNumber}</span>
+                ${p.phone ? `<br><small class="text-muted">${p.phone}</small>` : ''}
+            </a>`
+        ).join('');
+        $results.querySelectorAll('a').forEach(el => el.addEventListener('click', e => {
+            e.preventDefault();
+            $patientId.value = el.dataset.id;
+            $patientPickLabel.textContent = el.dataset.label;
+            $patientPick.classList.remove('d-none');
+            $search.value = el.dataset.label;
+            $results.innerHTML = '';
+            checkReady();
+        }));
+    }, 200);
+});
+
+const $clinic = document.getElementById('clinicSelect');
+const $date = document.getElementById('dateSelect');
+const $slots = document.getElementById('slotsContainer');
+const $start = document.getElementById('scheduledStart');
+const $cId = document.getElementById('clinicianId');
+const $dur = document.getElementById('duration');
+const $btn = document.getElementById('btnSubmit');
+
+async function loadSlots() {
+    if (!$clinic.value || !$date.value) { $slots.textContent = 'Pick a clinic and date.'; return; }
+    $slots.innerHTML = '<div class="text-muted"><i class="bi bi-arrow-repeat"></i> Loading…</div>';
+    const res = await fetch(`/Appointments/GetSlots?clinicId=${$clinic.value}&date=${$date.value}`);
+    const slots = await res.json();
+    if (!slots.length) { $slots.innerHTML = '<div class="th-empty"><i class="bi bi-calendar-x"></i><h6 class="mt-2">No slots available</h6><p class="mb-0">No clinician availability or all slots booked.</p></div>'; return; }
+    const grouped = {};
+    for (const s of slots) {
+        if (!grouped[s.clinicianName]) grouped[s.clinicianName] = [];
+        grouped[s.clinicianName].push(s);
+    }
+    $slots.innerHTML = Object.entries(grouped).map(([name, ss]) => `
+        <div class="mb-3">
+            <strong class="d-block mb-2"><i class="bi bi-person-circle me-1 text-primary"></i> ${name}</strong>
+            <div class="d-flex flex-wrap gap-2">
+                ${ss.map(s => `<button type="button" class="btn btn-sm btn-outline-primary slot-btn" data-start="${s.startUtc}" data-cid="${s.clinicianId}" data-dur="${s.duration}">${s.startLocal}</button>`).join('')}
+            </div>
+        </div>`).join('');
+    $slots.querySelectorAll('.slot-btn').forEach(b => b.addEventListener('click', () => {
+        $slots.querySelectorAll('.slot-btn').forEach(x => x.classList.remove('btn-primary','active'));
+        $slots.querySelectorAll('.slot-btn').forEach(x => x.classList.add('btn-outline-primary'));
+        b.classList.remove('btn-outline-primary');
+        b.classList.add('btn-primary','active');
+        $start.value = b.dataset.start;
+        $cId.value = b.dataset.cid;
+        $dur.value = b.dataset.dur;
+        checkReady();
+    }));
+}
+$clinic.addEventListener('change', loadSlots);
+$date.addEventListener('change', loadSlots);
+
+function checkReady() {
+    $btn.disabled = !($patientId.value && $clinic.value && $start.value && $cId.value);
+}
+loadSlots();
+checkReady();
+</script>
+}

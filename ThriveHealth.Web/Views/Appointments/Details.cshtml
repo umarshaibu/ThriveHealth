@@ -1,0 +1,74 @@
+@model ThriveHealth.Web.Models.Scheduling.Appointment
+@{
+    ViewData["Title"] = "Appointment";
+    var statusTone = Model.Status switch
+    {
+        ThriveHealth.Web.Models.Scheduling.AppointmentStatus.Scheduled => "th-pill-info",
+        ThriveHealth.Web.Models.Scheduling.AppointmentStatus.CheckedIn => "th-pill-warning",
+        ThriveHealth.Web.Models.Scheduling.AppointmentStatus.InProgress => "th-pill-success",
+        ThriveHealth.Web.Models.Scheduling.AppointmentStatus.Completed => "th-pill-success",
+        ThriveHealth.Web.Models.Scheduling.AppointmentStatus.Cancelled => "th-pill-muted",
+        ThriveHealth.Web.Models.Scheduling.AppointmentStatus.NoShow => "th-pill-danger",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="th-section-title">Appointment</h1>
+        <p class="th-section-sub mb-0">@Model.ScheduledStartUtc.ToLocalTime().ToString("dddd, dd MMM yyyy · HH:mm") · @Model.DurationMinutes min</p>
+    </div>
+    <span class="th-pill @statusTone fs-6 px-3 py-2">@Model.Status</span>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient</h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="th-avatar" style="width:48px;height:48px;font-size:1rem;">@(Model.Patient!.FirstName.Length > 0 ? Model.Patient.FirstName[0].ToString() : "")@(Model.Patient.LastName.Length > 0 ? Model.Patient.LastName[0].ToString() : "")</span>
+                <div>
+                    <div class="fw-bold">@Model.Patient.FullName</div>
+                    <small class="font-monospace text-muted">@Model.Patient.HospitalNumber</small>
+                </div>
+                <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.PatientId" class="btn btn-sm btn-outline-primary ms-auto">Open chart</a>
+            </div>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-building me-1"></i> Clinic</h6>
+            <div><span class="th-pill" style="background:@Model.Clinic!.ColorHex;color:#fff;">@Model.Clinic.Code</span> <strong>@Model.Clinic.Name</strong></div>
+            <div class="small text-muted mt-2">Clinician: @(Model.Clinician?.FullName ?? "—") @if (Model.Room != null) { <span> · Room: @Model.Room.Name</span> }</div>
+            <div class="small text-muted">Type: @Model.Type · Priority: @Model.Priority · Channel: @Model.Channel</div>
+            @if (!string.IsNullOrEmpty(Model.ReasonForVisit))
+            { <div class="mt-2"><small class="text-muted">Reason:</small> @Model.ReasonForVisit</div> }
+        </div></div>
+    </div>
+</div>
+
+<div class="th-card mb-3"><div class="th-card-body">
+    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clock-history me-1"></i> Timeline</h6>
+    <div class="row small">
+        <div class="col-md-3"><strong>Booked</strong><br /><span class="text-muted">@Model.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</span><br /><span class="text-muted">by @(Model.BookedBy?.FullName ?? "—")</span></div>
+        <div class="col-md-3"><strong>Checked in</strong><br /><span class="text-muted">@(Model.CheckedInAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—")</span></div>
+        <div class="col-md-3"><strong>Started</strong><br /><span class="text-muted">@(Model.StartedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—")</span></div>
+        <div class="col-md-3"><strong>Completed</strong><br /><span class="text-muted">@(Model.CompletedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—")</span></div>
+    </div>
+</div></div>
+
+<div class="d-flex gap-2">
+    @if (Model.Status == ThriveHealth.Web.Models.Scheduling.AppointmentStatus.Scheduled)
+    {
+        <a asp-controller="Queue" asp-action="CheckIn" asp-route-appointmentId="@Model.Id" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueCheckIn" class="btn btn-success"><i class="bi bi-door-open me-1"></i> Check in patient</a>
+        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Cancel this appointment?');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AppointmentsBook">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="reason" value="Cancelled by staff" />
+            <button class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i> Cancel</button>
+        </form>
+        <form asp-action="MarkNoShow" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Mark as no-show?');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AppointmentsBook">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-warning"><i class="bi bi-person-x me-1"></i> No-show</button>
+        </form>
+    }
+</div>

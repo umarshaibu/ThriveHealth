@@ -1,0 +1,190 @@
+@model ThriveHealth.Web.Models.ViewModels.PortalLoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = "_AuthLayout";
+}
+
+<style>
+    :root {
+        --th-portal-primary: #1f6feb;
+        --th-portal-primary-dark: #1857c4;
+        --th-portal-accent: #14b8a6;
+        --th-portal-bg: #f5f7fa;
+        --th-portal-text: #0f172a;
+    }
+    body {
+        background: var(--th-portal-bg);
+        color: var(--th-portal-text);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .th-auth-shell { min-height: 100vh; display: flex; }
+    .th-auth-pane { flex: 1; display: flex; flex-direction: column; }
+    .th-auth-pane.brand { background: radial-gradient(circle at 0% 0%, #1f6feb 0%, #1857c4 50%, #0f3a8a 100%); color: #fff; padding: 48px 56px; position: relative; overflow: hidden; }
+    .th-auth-pane.brand::before {
+        content: ""; position: absolute; inset: 0;
+        background:
+            radial-gradient(800px 400px at 100% 100%, rgba(20, 184, 166, .25), transparent 60%),
+            radial-gradient(600px 300px at 30% 80%, rgba(255, 255, 255, .06), transparent 60%);
+        pointer-events: none;
+    }
+    .th-auth-pane.brand > * { position: relative; z-index: 1; }
+    .th-auth-pane.form { background: var(--th-portal-bg); padding: 48px; align-items: center; justify-content: center; }
+    .th-auth-card { background: #fff; border-radius: 18px; padding: 36px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(15, 58, 138, .08), 0 4px 20px rgba(15, 58, 138, .04); }
+    .th-auth-logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.4rem; letter-spacing: -.02em; }
+    .th-auth-logo .logo-mark {
+        width: 40px; height: 40px; border-radius: 11px;
+        background: rgba(255, 255, 255, .15); backdrop-filter: blur(8px);
+        display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid rgba(255, 255, 255, .25); color: #fff;
+    }
+    .th-auth-pane.brand .th-auth-logo { color: #fff; }
+    .th-auth-hero { margin-top: auto; margin-bottom: auto; max-width: 480px; }
+    .th-auth-hero h2 { font-size: 2.4rem; font-weight: 800; line-height: 1.15; letter-spacing: -.02em; margin-bottom: 18px; }
+    .th-auth-hero p { font-size: 1.05rem; line-height: 1.6; opacity: .9; }
+    .th-auth-features { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 36px; max-width: 460px; }
+    .th-auth-feature { display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); }
+    .th-auth-feature .icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 255, 255, .14); display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .th-auth-feature .label { font-weight: 600; margin-bottom: 2px; }
+    .th-auth-feature .desc { font-size: .85rem; opacity: .8; line-height: 1.4; }
+    .th-auth-trust { margin-top: 28px; font-size: .8rem; opacity: .75; display: flex; align-items: center; gap: 8px; }
+    .th-auth-card h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: 4px; }
+    .th-auth-card .lead { color: #64748b; font-size: .95rem; margin-bottom: 28px; }
+    .th-auth-card .form-label { font-size: .85rem; font-weight: 600; color: #334155; margin-bottom: 6px; }
+    .th-auth-card .form-control { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 1rem; transition: border-color .15s, box-shadow .15s, background-color .15s; }
+    .th-auth-card .form-control:focus { border-color: var(--th-portal-primary); box-shadow: 0 0 0 4px rgba(31, 111, 235, .12); background: #fff; }
+    .th-auth-card .input-group { position: relative; }
+    .th-auth-card .input-group .form-control { padding-right: 44px; }
+    .th-auth-card .input-group .toggle-pw { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; padding: 8px 12px; color: #64748b; z-index: 5; cursor: pointer; }
+    .th-auth-card .input-group .toggle-pw:hover { color: var(--th-portal-primary); }
+    .th-auth-card .form-check-input { width: 18px; height: 18px; margin-top: 2px; }
+    .th-auth-card .form-check-label { font-size: .9rem; color: #475569; }
+    .th-auth-card .btn-primary { background: linear-gradient(135deg, var(--th-portal-primary), var(--th-portal-primary-dark)); border: 0; padding: 13px; font-weight: 600; font-size: 1rem; border-radius: 11px; box-shadow: 0 8px 24px rgba(31, 111, 235, .3); transition: transform .12s, box-shadow .15s; }
+    .th-auth-card .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(31, 111, 235, .4); }
+    .th-auth-card .btn-primary:active { transform: translateY(0); }
+    .th-auth-card .alert { border-radius: 10px; font-size: .9rem; padding: 10px 14px; }
+    .th-auth-divider { display: flex; align-items: center; gap: 12px; color: #94a3b8; font-size: .8rem; margin: 24px 0 18px; }
+    .th-auth-divider::before, .th-auth-divider::after { content: ""; height: 1px; background: #e2e8f0; flex: 1; }
+    .th-auth-secondary { text-align: center; }
+    .th-auth-secondary a { color: var(--th-portal-primary); font-weight: 600; text-decoration: none; }
+    .th-auth-secondary a:hover { text-decoration: underline; }
+    .th-auth-staff-link { text-align: center; margin-top: 18px; font-size: .85rem; color: #64748b; }
+    .th-auth-staff-link a { color: #475569; text-decoration: none; border-bottom: 1px dotted #94a3b8; padding-bottom: 1px; }
+    .th-auth-staff-link a:hover { color: var(--th-portal-primary); border-color: var(--th-portal-primary); }
+    .th-auth-foot { font-size: .75rem; opacity: .65; text-align: center; margin-top: auto; padding-top: 24px; }
+
+    @@media (max-width: 991px) {
+        .th-auth-shell { flex-direction: column; }
+        .th-auth-pane.brand { padding: 36px 28px 48px; }
+        .th-auth-pane.brand .th-auth-features { display: none; }
+        .th-auth-pane.brand .th-auth-trust { display: none; }
+        .th-auth-pane.form { padding: 28px 16px 40px; }
+        .th-auth-hero h2 { font-size: 1.6rem; }
+        .th-auth-hero p { font-size: .95rem; }
+    }
+    @@media (min-width: 992px) {
+        .th-auth-pane.brand { flex: 1.1; }
+        .th-auth-pane.form { flex: 1; }
+    }
+</style>
+
+<div class="th-auth-shell">
+    <div class="th-auth-pane brand">
+        <div class="th-auth-logo">
+            <span class="logo-mark"><i class="bi bi-heart-pulse-fill"></i></span>
+            <span>ThriveHealth</span>
+        </div>
+
+        <div class="th-auth-hero">
+            <h2>Your health, in your pocket.</h2>
+            <p>Book consultations, chat with your doctor, view results and pay your bills — all from one secure portal.</p>
+
+            <div class="th-auth-features">
+                <div class="th-auth-feature">
+                    <div class="icon"><i class="bi bi-camera-video-fill"></i></div>
+                    <div>
+                        <div class="label">Tele-consult anywhere</div>
+                        <div class="desc">Video, audio or chat. Pay in-app, see your doctor in minutes.</div>
+                    </div>
+                </div>
+                <div class="th-auth-feature">
+                    <div class="icon"><i class="bi bi-clipboard2-pulse-fill"></i></div>
+                    <div>
+                        <div class="label">Records that travel with you</div>
+                        <div class="desc">Visits, prescriptions, lab results — always in one place.</div>
+                    </div>
+                </div>
+                <div class="th-auth-feature">
+                    <div class="icon"><i class="bi bi-shield-lock-fill"></i></div>
+                    <div>
+                        <div class="label">Private and encrypted</div>
+                        <div class="desc">Your messages and data are protected end-to-end.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="th-auth-trust">
+            <i class="bi bi-shield-check"></i> NDPR-compliant · Powered by ThriveHealth
+        </div>
+    </div>
+
+    <div class="th-auth-pane form">
+        <div class="th-auth-card">
+            <h1>Welcome back</h1>
+            <p class="lead">Sign in to manage your care.</p>
+
+            <form asp-action="Login" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">Email address</label>
+                    <input asp-for="Email" type="email" class="form-control" autofocus autocomplete="username" placeholder="you@email.com" />
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <label asp-for="Password" class="form-label">Password</label>
+                    </div>
+                    <div class="input-group">
+                        <input id="th-pw" asp-for="Password" type="password" class="form-control" autocomplete="current-password" placeholder="••••••••" />
+                        <button type="button" class="toggle-pw" id="th-pw-toggle" aria-label="Show password" tabindex="-1"><i class="bi bi-eye"></i></button>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">Keep me signed in on this device</label>
+                </div>
+
+                <button class="btn btn-primary w-100" type="submit">Sign in <i class="bi bi-arrow-right ms-1"></i></button>
+            </form>
+
+            <div class="th-auth-divider">First time here?</div>
+            <div class="th-auth-secondary">
+                <a asp-action="Register"><i class="bi bi-person-plus me-1"></i> Create your portal account</a>
+            </div>
+
+            <div class="th-auth-staff-link">
+                Are you a clinician or staff member? <a asp-controller="Account" asp-action="Login">Open the clinical app →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var btn = document.getElementById('th-pw-toggle');
+    var pw = document.getElementById('th-pw');
+    if (!btn || !pw) return;
+    btn.addEventListener('click', function () {
+        var hidden = pw.type === 'password';
+        pw.type = hidden ? 'text' : 'password';
+        btn.querySelector('i').className = hidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+        btn.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+    });
+})();
+</script>
+}

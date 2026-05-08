@@ -1,0 +1,176 @@
+@model ThriveHealth.Web.Models.ViewModels.IntegrationsDashboardViewModel
+@using ThriveHealth.Web.Models.Integrations
+@{
+    ViewData["Title"] = "Integrations";
+    string MsgTone(MessageStatus s) => s switch
+    {
+        MessageStatus.Sent or MessageStatus.Delivered => "th-pill-success",
+        MessageStatus.Queued or MessageStatus.Sending => "th-pill-warning",
+        MessageStatus.Failed => "th-pill-danger",
+        MessageStatus.Suppressed => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+    string PayTone(PaymentTransactionStatus s) => s switch
+    {
+        PaymentTransactionStatus.Successful => "th-pill-success",
+        PaymentTransactionStatus.Pending or PaymentTransactionStatus.Initiated => "th-pill-warning",
+        PaymentTransactionStatus.Failed or PaymentTransactionStatus.Cancelled => "th-pill-danger",
+        PaymentTransactionStatus.Refunded => "th-pill-muted",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Integrations</h1>
+        <p class="th-section-sub mb-0">SMS · Email · Payment provider gateways</p>
+    </div>
+    <a asp-action="Hardening" class="btn btn-outline-secondary"><i class="bi bi-shield-check me-1"></i> Hardening</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>This deployment uses no-op logging providers. Plug in Termii / Africa's Talking, SendGrid / SMTP, and Paystack / Flutterwave by replacing the registered <code>ISmsGateway</code>, <code>IEmailGateway</code>, and <code>IPaymentGateway</code> implementations in <code>Program.cs</code>.</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="th-card h-100"><div class="th-card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-chat-text me-1"></i> SMS</h6>
+                <span class="th-pill th-pill-info">@Model.SmsProvider</span>
+            </div>
+            <dl class="row mb-0 small">
+                <dt class="col-7">Queued</dt><dd class="col-5 text-end fw-semibold">@Model.SmsQueued</dd>
+                <dt class="col-7">Sent (24h)</dt><dd class="col-5 text-end text-success">@Model.SmsSent24h</dd>
+                <dt class="col-7">Failed (24h)</dt><dd class="col-5 text-end text-danger">@Model.SmsFailed24h</dd>
+            </dl>
+            <form asp-action="ProcessSmsQueue" method="post" class="mt-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage">@Html.AntiForgeryToken()<button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-play-circle me-1"></i>Process queue</button></form>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="th-card h-100"><div class="th-card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-envelope me-1"></i> Email</h6>
+                <span class="th-pill th-pill-info">@Model.EmailProvider</span>
+            </div>
+            <dl class="row mb-0 small">
+                <dt class="col-7">Queued</dt><dd class="col-5 text-end fw-semibold">@Model.EmailQueued</dd>
+                <dt class="col-7">Sent (24h)</dt><dd class="col-5 text-end text-success">@Model.EmailSent24h</dd>
+            </dl>
+            <form asp-action="ProcessEmailQueue" method="post" class="mt-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage">@Html.AntiForgeryToken()<button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-play-circle me-1"></i>Process queue</button></form>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="th-card h-100"><div class="th-card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-credit-card me-1"></i> Payment</h6>
+                <span class="th-pill th-pill-info">@Model.PaymentProvider</span>
+            </div>
+            <dl class="row mb-0 small">
+                <dt class="col-7">In progress</dt><dd class="col-5 text-end fw-semibold">@Model.PaymentInitiated</dd>
+                <dt class="col-7">Successful (24h)</dt><dd class="col-5 text-end text-success">@Model.PaymentSuccessful24h</dd>
+                <dt class="col-7">Amount (24h)</dt><dd class="col-5 text-end fw-semibold">₦@Model.PaymentSuccessfulAmount24h.ToString("N0")</dd>
+            </dl>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-send me-1"></i> Send test SMS</h6>
+            <form asp-action="SendTestSms" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage">
+                @Html.AntiForgeryToken()
+                <div class="mb-2"><label class="form-label">Phone (Nigerian format)</label><input name="ToPhone" class="form-control" required maxlength="20" placeholder="08031234567" /></div>
+                <div class="mb-2"><label class="form-label">Body</label><textarea name="Body" class="form-control" rows="3" required maxlength="640">ThriveHealth: This is a test message.</textarea></div>
+                <button class="btn btn-primary"><i class="bi bi-send me-1"></i> Queue test SMS</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="th-card"><div class="th-card-body">
+            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-envelope-check me-1"></i> Send test email</h6>
+            <form asp-action="SendTestEmail" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage">
+                @Html.AntiForgeryToken()
+                <div class="mb-2"><label class="form-label">To</label><input name="ToEmail" type="email" class="form-control" required maxlength="150" /></div>
+                <div class="mb-2"><label class="form-label">Subject</label><input name="Subject" class="form-control" required maxlength="200" value="ThriveHealth integration test" /></div>
+                <div class="mb-2"><label class="form-label">Body (HTML)</label><textarea name="BodyHtml" class="form-control" rows="3" required>&lt;p&gt;This is a test email from ThriveHealth.&lt;/p&gt;</textarea></div>
+                <button class="btn btn-primary"><i class="bi bi-send me-1"></i> Queue test email</button>
+            </form>
+        </div></div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-sms">Recent SMS (@Model.RecentSms.Count)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-email">Recent emails (@Model.RecentEmails.Count)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pay">Recent payments (@Model.RecentPayments.Count)</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tab-sms">
+        <div class="th-card"><div class="th-card-body p-0">
+        @if (!Model.RecentSms.Any()) { <div class="th-empty m-4"><i class="bi bi-chat-text"></i><h5 class="mt-2">No SMS yet</h5></div> }
+        else
+        {
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Time</th><th>To</th><th>Purpose</th><th>Body</th><th>Status</th><th>Provider ID</th></tr></thead>
+                <tbody>
+                @foreach (var m in Model.RecentSms)
+                {
+                    <tr><td><small>@m.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td><td>@m.ToPhone</td><td><small>@m.Purpose</small></td><td><small>@(m.Body.Length > 90 ? m.Body[..90] + "…" : m.Body)</small></td><td><span class="th-pill @MsgTone(m.Status)">@m.Status</span></td><td><small class="font-monospace text-muted">@m.ProviderMessageId</small></td></tr>
+                }
+                </tbody>
+            </table>
+        }
+        </div></div>
+    </div>
+    <div class="tab-pane fade" id="tab-email">
+        <div class="th-card"><div class="th-card-body p-0">
+        @if (!Model.RecentEmails.Any()) { <div class="th-empty m-4"><i class="bi bi-envelope"></i><h5 class="mt-2">No emails yet</h5></div> }
+        else
+        {
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Time</th><th>To</th><th>Subject</th><th>Purpose</th><th>Status</th></tr></thead>
+                <tbody>
+                @foreach (var m in Model.RecentEmails)
+                {
+                    <tr><td><small>@m.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td><td>@m.ToEmail</td><td><small>@m.Subject</small></td><td><small>@m.Purpose</small></td><td><span class="th-pill @MsgTone(m.Status)">@m.Status</span></td></tr>
+                }
+                </tbody>
+            </table>
+        }
+        </div></div>
+    </div>
+    <div class="tab-pane fade" id="tab-pay">
+        <div class="th-card"><div class="th-card-body p-0">
+        @if (!Model.RecentPayments.Any()) { <div class="th-empty m-4"><i class="bi bi-credit-card"></i><h5 class="mt-2">No transactions yet</h5></div> }
+        else
+        {
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Time</th><th>Reference</th><th>Bill</th><th class="text-end">Amount (₦)</th><th>Status</th><th class="text-end"></th></tr></thead>
+                <tbody>
+                @foreach (var t in Model.RecentPayments)
+                {
+                    <tr>
+                        <td><small>@t.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td>
+                        <td><span class="font-monospace small">@t.Reference</span></td>
+                        <td><small>@(t.Bill?.BillNumber ?? "—")</small></td>
+                        <td class="text-end">@t.Amount.ToString("N2")</td>
+                        <td><span class="th-pill @PayTone(t.Status)">@t.Status</span></td>
+                        <td class="text-end">
+                            @if (t.Status is PaymentTransactionStatus.Initiated or PaymentTransactionStatus.Pending)
+                            {
+                                <a asp-action="PaymentCallback" asp-route-txId="@t.Id" asp-route-status="success" class="btn btn-sm btn-outline-success" onclick="return confirm('Mark this transaction as successful and apply to bill?')"><i class="bi bi-check2-circle me-1"></i>Confirm</a>
+                                <a asp-action="PaymentCallback" asp-route-txId="@t.Id" asp-route-status="failed" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark this transaction as failed?')"><i class="bi bi-x-circle"></i></a>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+        </div></div>
+    </div>
+</div>

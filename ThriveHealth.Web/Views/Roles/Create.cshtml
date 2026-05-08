@@ -1,0 +1,27 @@
+@model ThriveHealth.Web.Controllers.RolesController.CreateRoleVm
+@{ ViewData["Title"] = "New role"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="th-section-title">Create role</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Roles</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+            <div class="th-card"><div class="th-card-body">
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Role name</label>
+                    <input asp-for="Name" class="form-control" placeholder="e.g. Quality Assurance Officer" />
+                    <div class="small text-muted mt-1">After creating, you'll pick the permissions this role gets.</div>
+                </div>
+                <button class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Create role</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div></div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

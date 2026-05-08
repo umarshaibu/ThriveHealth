@@ -1,0 +1,95 @@
+@model ThriveHealth.Web.Models.ViewModels.BedBoardViewModel
+@{
+    ViewData["Title"] = "Bed board";
+    var fid = (int)(ViewBag.FacilityId ?? 0);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">Bed board</h1>
+        <p class="th-section-sub mb-0">@Model.TotalBeds beds · live updates <span id="bedConn" class="th-pill th-pill-muted ms-2">connecting…</span></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="Admissions" asp-action="Index" class="btn btn-outline-primary"><i class="bi bi-people me-1"></i> Admissions</a>
+        <a asp-controller="Admissions" asp-action="Admit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Admit patient</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Free</div><div class="th-stat-value">@Model.FreeBeds</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-person-fill"></i></div><div class="th-stat-label">Occupied</div><div class="th-stat-value">@Model.OccupiedBeds</div></div></div>
+    <div class="col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-tools"></i></div><div class="th-stat-label">Cleaning / maintenance</div><div class="th-stat-value">@Model.OutOfServiceBeds</div></div></div>
+    <div class="col-md-3"><div class="th-stat"><div class="th-stat-icon"><i class="bi bi-percent"></i></div><div class="th-stat-label">Occupancy</div><div class="th-stat-value">@(Model.TotalBeds == 0 ? 0 : Math.Round(100.0 * Model.OccupiedBeds / Model.TotalBeds))%</div></div></div>
+</div>
+
+@foreach (var w in Model.Wards)
+{
+    <div class="th-card mb-3">
+        <div class="th-card-header">
+            <h5 class="th-card-title">
+                <span class="d-inline-block rounded-circle me-2" style="width:12px;height:12px;background:@w.Ward.ColorHex"></span>
+                <span class="font-monospace small me-1">@w.Ward.Code</span> @w.Ward.Name
+                <small class="text-muted ms-2">@w.Ward.Type · @w.Beds.Count(b => b.Bed.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Free)/@w.Beds.Count free</small>
+            </h5>
+        </div>
+        <div class="th-card-body">
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var bv in w.Beds)
+                {
+                    var b = bv.Bed;
+                    var cls = b.Status switch
+                    {
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Free => "border-success bg-light",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied => "border-primary text-white",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Cleaning => "border-warning bg-warning-subtle",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Maintenance => "border-secondary bg-secondary-subtle",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Reserved => "border-info bg-info-subtle",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Blocked => "border-danger bg-danger-subtle",
+                        _ => "border-secondary"
+                    };
+                    var bg = b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied ? $"background:{w.Ward.ColorHex};" : "";
+                    <div class="border rounded-3 p-2 @cls" style="min-width:160px; @bg">
+                        <div class="d-flex justify-content-between">
+                            <strong class="font-monospace">@b.BedNumber</strong>
+                            <small>@b.Status</small>
+                        </div>
+                        @if (bv.CurrentPatient != null)
+                        {
+                            <div class="small fw-semibold text-truncate" style="max-width:140px;">@bv.CurrentPatient.FullName</div>
+                            <div class="small">@bv.CurrentPatient.Sex@(bv.CurrentPatient.AgeYears.HasValue ? " · " + bv.CurrentPatient.AgeYears + "y" : "")</div>
+                            <a asp-controller="Admissions" asp-action="Details" asp-route-id="@bv.CurrentAdmission!.Id" class="small @(b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied ? "text-white text-decoration-underline" : "")">Open chart</a>
+                        }
+                        else if (b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Free)
+                        {
+                            <a asp-controller="Admissions" asp-action="Admit" class="btn btn-sm btn-success w-100 mt-1" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage"><i class="bi bi-plus"></i> Admit</a>
+                        }
+                        else
+                        {
+                            <div class="small text-muted">@b.Restriction</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@if (!Model.Wards.Any())
+{
+    <div class="th-empty"><i class="bi bi-hospital"></i><h5 class="mt-2">No wards configured</h5><p>Create wards and beds to start admitting patients.</p>
+        <a asp-action="Index" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Configure wards</a></div>
+}
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+<script>
+(function() {
+    const $s = document.getElementById('bedConn');
+    const c = new signalR.HubConnectionBuilder().withUrl('/hubs/beds').withAutomaticReconnect().build();
+    c.on('bedsUpdated', () => window.location.reload());
+    c.start().then(() => c.invoke('SubscribeBeds', @fid))
+        .then(() => { $s.className = 'th-pill th-pill-success ms-2'; $s.innerHTML = '<i class="bi bi-broadcast"></i> live'; })
+        .catch(e => { $s.className = 'th-pill th-pill-danger ms-2'; $s.textContent = 'offline'; });
+})();
+</script>
+}

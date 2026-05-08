@@ -1,0 +1,74 @@
+@model ThriveHealth.Web.Models.ViewModels.NhmisListViewModel
+@using ThriveHealth.Web.Models.Reporting
+@{
+    ViewData["Title"] = "NHMIS · monthly reports";
+    var thisYear = DateTime.UtcNow.Year;
+    var thisMonth = DateTime.UtcNow.Month;
+    var months = Enumerable.Range(1, 12).ToList();
+    var existing = Model.Reports.ToDictionary(r => r.Month);
+
+    string Tone(NhmisReportStatus s) => s switch
+    {
+        NhmisReportStatus.Submitted => "th-pill-success",
+        NhmisReportStatus.Generated => "th-pill-info",
+        _ => "th-pill-muted"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">NHMIS · monthly summary</h1>
+        <p class="th-section-sub mb-0">FMOH National Health Management Information System aggregates · year @Model.Year</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Idsr" class="btn btn-outline-secondary"><i class="bi bi-shield-shaded me-1"></i> IDSR</a>
+        <form method="get" class="d-flex">
+            <select name="year" class="form-select" onchange="this.form.submit()">
+                @for (var y = thisYear; y >= thisYear - 3; y--)
+                {
+                    <option value="@y" selected="@(y == Model.Year)">@y</option>
+                }
+            </select>
+        </form>
+    </div>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div class="th-card"><div class="th-card-body p-0">
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Month</th><th>Status</th><th>Generated</th><th>Submitted</th><th class="text-end"></th></tr></thead>
+        <tbody>
+        @foreach (var m in months)
+        {
+            var monthDate = new DateTime(Model.Year, m, 1);
+            var future = monthDate.Year > thisYear || (monthDate.Year == thisYear && monthDate.Month > thisMonth);
+            existing.TryGetValue(m, out var report);
+            <tr class="@(future ? "text-muted" : "")">
+                <td><strong>@monthDate.ToString("MMMM yyyy")</strong></td>
+                <td>
+                    @if (report != null) { <span class="th-pill @Tone(report.Status)">@report.Status</span> }
+                    else if (!future) { <span class="th-pill th-pill-warning">Not generated</span> }
+                </td>
+                <td>@(report?.GeneratedAt.ToLocalTime().ToString("dd MMM HH:mm") ?? "—") @if (report?.GeneratedBy != null) { <small class="text-muted">@report.GeneratedBy.FullName</small> }</td>
+                <td>@(report?.SubmittedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—") @if (report?.SubmittedBy != null) { <small class="text-muted">@report.SubmittedBy.FullName</small> }</td>
+                <td class="text-end">
+                    @if (report != null)
+                    {
+                        <a asp-action="NhmisDetail" asp-route-id="@report.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open me-1"></i> Open</a>
+                    }
+                    @if (!future && (report is null || report.Status != NhmisReportStatus.Submitted))
+                    {
+                        <form asp-action="NhmisGenerate" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.NhmisGenerate">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="year" value="@Model.Year" />
+                            <input type="hidden" name="month" value="@m" />
+                            <button class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-repeat me-1"></i> @(report is null ? "Generate" : "Regenerate")</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div></div>

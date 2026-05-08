@@ -1,0 +1,111 @@
+@model ThriveHealth.Web.Models.ViewModels.QueueBoardViewModel
+@{
+    ViewData["Title"] = $"Queue · {Model.Clinic.Name}";
+    var facilityId = (int)(ViewBag.FacilityId ?? 0);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="th-section-title">
+            <span class="th-pill" style="background:@Model.Clinic.ColorHex;color:#fff;">@Model.Clinic.Code</span>
+            @Model.Clinic.Name <span class="text-muted small">queue</span>
+        </h1>
+        <p class="th-section-sub mb-0">@Model.Entries.Count active · live updates <span id="connStatus" class="th-pill th-pill-muted ms-2">connecting…</span></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Display" asp-route-clinicId="@Model.Clinic.Id" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-display me-1"></i> Public display</a>
+        <a asp-action="CheckIn" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueCheckIn" class="btn btn-primary"><i class="bi bi-door-open me-1"></i> Check in</a>
+    </div>
+</div>
+
+<div id="queueRoot">
+    @if (!Model.Entries.Any())
+    {
+        <div class="th-empty"><i class="bi bi-people"></i><h5 class="mt-2">No one in the queue</h5><p>When patients check in, they'll appear here.</p></div>
+    }
+    else
+    {
+        <div class="th-card"><div class="th-card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Ticket</th><th>Patient</th><th>Priority</th><th>Status</th><th>Wait</th><th>MEWS</th><th class="text-end">Actions</th></tr></thead>
+                    <tbody>
+                    @foreach (var e in Model.Entries)
+                    {
+                        var pTone = e.Priority switch
+                        {
+                            ThriveHealth.Web.Models.Scheduling.AppointmentPriority.Emergency => "th-pill-danger",
+                            ThriveHealth.Web.Models.Scheduling.AppointmentPriority.Urgent => "th-pill-warning",
+                            _ => "th-pill-muted"
+                        };
+                        var sTone = e.Status switch
+                        {
+                            ThriveHealth.Web.Models.Scheduling.QueueStatus.Waiting => "th-pill-info",
+                            ThriveHealth.Web.Models.Scheduling.QueueStatus.Triaged => "th-pill-warning",
+                            ThriveHealth.Web.Models.Scheduling.QueueStatus.Called => "th-pill-success",
+                            ThriveHealth.Web.Models.Scheduling.QueueStatus.InConsultation => "th-pill-success",
+                            _ => "th-pill-muted"
+                        };
+                        var wait = (DateTime.UtcNow - e.CheckedInAt).TotalMinutes;
+                        <tr>
+                            <td><span class="font-monospace fs-5">@e.TicketNumber</span></td>
+                            <td><strong>@e.Patient!.FullName</strong><br /><small class="font-monospace text-muted">@e.Patient.HospitalNumber</small></td>
+                            <td><span class="th-pill @pTone">@e.Priority</span></td>
+                            <td><span class="th-pill @sTone">@e.Status</span></td>
+                            <td>@((int)wait) min</td>
+                            <td>@(e.TriageMews?.ToString() ?? "—")</td>
+                            <td class="text-end">
+                                @if (e.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.Waiting)
+                                {
+                                    <a asp-action="Triage" asp-route-id="@e.Id" class="btn btn-sm btn-outline-warning"><i class="bi bi-bandaid"></i> Triage</a>
+                                }
+                                @if (e.Status != ThriveHealth.Web.Models.Scheduling.QueueStatus.InConsultation && e.Status != ThriveHealth.Web.Models.Scheduling.QueueStatus.Completed)
+                                {
+                                    <form asp-action="Call" asp-route-id="@e.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueServe">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-outline-success"><i class="bi bi-megaphone"></i> Call</button>
+                                    </form>
+                                    <form asp-action="Start" asp-route-id="@e.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueServe">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-success"><i class="bi bi-clipboard2-pulse"></i> Start</button>
+                                    </form>
+                                }
+                                @if (e.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.InConsultation)
+                                {
+                                    <form asp-action="Complete" asp-route-id="@e.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueServe">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-primary"><i class="bi bi-check2-circle"></i> Complete</button>
+                                    </form>
+                                }
+                                <form asp-action="Skip" asp-route-id="@e.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueCheckIn">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-secondary" title="Skip"><i class="bi bi-skip-forward"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    }
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+<script>
+(function() {
+    const facilityId = @facilityId;
+    const clinicId = @Model.Clinic.Id;
+    const $status = document.getElementById('connStatus');
+    const conn = new signalR.HubConnectionBuilder().withUrl('/hubs/queue').withAutomaticReconnect().build();
+    conn.on('queueUpdated', () => window.location.reload());
+    conn.onreconnecting(() => { $status.className = 'th-pill th-pill-warning ms-2'; $status.textContent = 'reconnecting…'; });
+    conn.onreconnected(() => { $status.className = 'th-pill th-pill-success ms-2'; $status.textContent = 'live'; });
+    conn.start()
+        .then(() => conn.invoke('SubscribeQueue', facilityId, clinicId))
+        .then(() => { $status.className = 'th-pill th-pill-success ms-2'; $status.innerHTML = '<i class="bi bi-broadcast"></i> live'; })
+        .catch(err => { $status.className = 'th-pill th-pill-danger ms-2'; $status.textContent = 'offline'; console.error(err); });
+})();
+</script>
+}
