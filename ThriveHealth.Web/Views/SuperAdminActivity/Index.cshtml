@@ -1,0 +1,106 @@
+@model IReadOnlyList<ThriveHealth.Web.Controllers.SuperAdminActivityController.ActivityRow>
+@{
+    ViewData["Title"] = "Activity";
+    var kind = ViewBag.Kind as string;
+    var days = (int)ViewBag.Days;
+    var totals = (Dictionary<string, int>)ViewBag.TotalsByKind;
+
+    string KindLabel(string k) => k switch
+    {
+        "signup"            => "Signups",
+        "payment-submitted" => "Payments submitted",
+        "payment-approved"  => "Payments approved",
+        "payment-rejected"  => "Payments rejected",
+        "suspended"         => "Suspensions",
+        "domain-verified"   => "Domain verifications",
+        "plan-change"       => "Plan changes",
+        _                   => k
+    };
+    string KindIcon(string k) => k switch
+    {
+        "signup"            => "person-plus-fill",
+        "payment-submitted" => "cash-coin",
+        "payment-approved"  => "check-circle-fill",
+        "payment-rejected"  => "x-circle-fill",
+        "suspended"         => "pause-circle-fill",
+        "domain-verified"   => "globe2",
+        "plan-change"       => "arrow-repeat",
+        _                   => "circle-fill"
+    };
+}
+
+<style>
+    .activity-table td { vertical-align: middle; }
+    .kind-icon { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .9rem; }
+    .kind-icon.success { background: rgba(34,197,94,.15); color: #22c55e; }
+    .kind-icon.warning { background: rgba(245,158,11,.15); color: #f59e0b; }
+    .kind-icon.danger  { background: rgba(239,68,68,.15);  color: #ef4444; }
+    .kind-icon.info    { background: rgba(96,165,250,.15); color: #60a5fa; }
+    .filter-chip { padding: 4px 12px; border-radius: 999px; font-size: .8rem; border: 1px solid #334155; color: #94a3b8; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .filter-chip:hover { background: #1e293b; color: #fff; }
+    .filter-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .filter-chip .count { background: rgba(255,255,255,.15); padding: 1px 8px; border-radius: 999px; font-size: .7rem; }
+</style>
+
+<h1 class="sa-h1">Activity log</h1>
+<p class="sa-sub">Every platform-level event in the last @days day@(days == 1 ? "" : "s") — synthesised from tenant, subscription and payment data so it's always in sync with reality.</p>
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <span class="text-muted small me-2">Kind:</span>
+    <a class="filter-chip @(string.IsNullOrEmpty(kind) ? "active" : "")" asp-action="Index" asp-route-days="@days">All <span class="count">@totals.Values.Sum()</span></a>
+    @foreach (var k in new[] { "signup", "payment-submitted", "payment-approved", "payment-rejected", "plan-change", "suspended", "domain-verified" })
+    {
+        var c = totals.TryGetValue(k, out var v) ? v : 0;
+        <a class="filter-chip @(kind == k ? "active" : "")" asp-action="Index" asp-route-kind="@k" asp-route-days="@days">
+            <i class="bi bi-@KindIcon(k)"></i>@KindLabel(k) <span class="count">@c</span>
+        </a>
+    }
+    <span class="text-muted small ms-3 me-2">Range:</span>
+    @foreach (var d in new[] { 7, 30, 90, 365 })
+    {
+        <a class="filter-chip @(days == d ? "active" : "")" asp-action="Index" asp-route-kind="@kind" asp-route-days="@d">
+            @d days
+        </a>
+    }
+</div>
+
+<div class="sa-card p-0">
+    <table class="table activity-table mb-0">
+        <thead><tr><th></th><th>Event</th><th>Tenant</th><th>Detail</th><th>When</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td><span class="kind-icon @r.Tone"><i class="bi bi-@KindIcon(r.Kind)"></i></span></td>
+                    <td>
+                        <div>@r.Title</div>
+                        <div class="small text-muted">@KindLabel(r.Kind)</div>
+                    </td>
+                    <td>
+                        @if (r.TenantId.HasValue)
+                        {
+                            <a asp-controller="SuperAdminTenants" asp-action="Detail" asp-route-id="@r.TenantId.Value">@r.Tenant</a>
+                            <div class="small text-muted">@r.TenantSlug</div>
+                        }
+                        else
+                        {
+                            <span>@r.Tenant</span>
+                        }
+                    </td>
+                    <td class="small text-muted">@r.Detail</td>
+                    <td class="small">
+                        @r.At.ToString("dd MMM HH:mm")
+                        <div class="text-muted" style="font-size: .7rem;">@r.At.ToString("yyyy-MM-dd")</div>
+                    </td>
+                    <td>
+                        @if (r.TenantId.HasValue)
+                        {
+                            <a asp-controller="SuperAdminTenants" asp-action="Detail" asp-route-id="@r.TenantId.Value" class="btn btn-sm btn-outline-primary">Open</a>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="6" class="text-center py-4 text-muted">No events match this filter.</td></tr> }
+        </tbody>
+    </table>
+</div>

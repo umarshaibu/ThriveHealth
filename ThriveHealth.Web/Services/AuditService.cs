@@ -64,6 +64,29 @@ public class AuditService : IAuditService
                 }
             }
 
+            // Resolve the tenant the audit row should belong to. The AuditEntries table is
+            // tenant-scoped (FK to Tenants), so platform-level events (SuperAdmin signing in,
+            // background jobs in admin context) can't be persisted here — they're emitted to
+            // ILogger instead, which is the natural sink for cross-tenant operational events.
+            int? tenantId = null;
+            if (facilityId.HasValue)
+                tenantId = await _db.Facilities.IgnoreQueryFilters()
+                    .Where(f => f.Id == facilityId.Value)
+                    .Select(f => (int?)f.TenantId)
+                    .FirstOrDefaultAsync(ct);
+            if (tenantId is null && userId is not null)
+                tenantId = await _db.Users.IgnoreQueryFilters()
+                    .Where(u => u.Id == userId)
+                    .Select(u => u.TenantId)
+                    .FirstOrDefaultAsync(ct);
+
+            if (tenantId is null)
+            {
+                _log.LogInformation("[audit/platform] {Action} {Outcome} by {Actor}: {Summary}",
+                    action, outcome, name ?? "anonymous", summary);
+                return;
+            }
+
             var entry = new AuditEntry
             {
                 AtUtc = DateTime.UtcNow,
@@ -84,6 +107,10 @@ public class AuditService : IAuditService
                 Metadata = metadata
             };
             _db.AuditEntries.Add(entry);
+            // Stamp the shadow TenantId explicitly — the auto-stamp interceptor only fires when
+            // a request-scoped ITenantContext has CurrentId set, which isn't the case for
+            // marketing/admin requests where audit may also be needed (e.g. tenant signup).
+            _db.Entry(entry).Property("TenantId").CurrentValue = tenantId.Value;
             await _db.SaveChangesAsync(ct);
         }
         catch (Exception ex)

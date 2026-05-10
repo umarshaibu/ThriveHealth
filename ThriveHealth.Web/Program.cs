@@ -48,9 +48,9 @@ builder.Services
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.LoginPath = "/login";
+    options.LogoutPath = "/logout";
+    options.AccessDeniedPath = "/access-denied";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
 });
@@ -168,6 +168,10 @@ builder.Services.AddHealthChecks()
 builder.Services.AddSignalR();
 
 builder.Services.AddControllersWithViews();
+// Generate clean lowercase URLs from tag helpers (`asp-controller`, `asp-action`, `Url.Action`)
+// so /Patients/Index renders as /patients and /Account/Login as /login. Affects link generation
+// only — incoming routes are case-insensitive either way.
+builder.Services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
 // Allow AJAX endpoints to send the antiforgery token via a header so they can stay [ValidateAntiForgeryToken]
 // instead of carrying a hidden form field. Keeps the SPA-style auto-save endpoints CSRF-safe.
 builder.Services.AddAntiforgery(o => o.HeaderName = "X-CSRF-Token");

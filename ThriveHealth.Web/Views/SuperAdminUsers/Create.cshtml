@@ -1,0 +1,81 @@
+@model ThriveHealth.Web.Controllers.SuperAdminUsersController.CreateUserModel
+@using ThriveHealth.Web.Models.Identity
+@{
+    ViewData["Title"] = "New user";
+    var allRoles = (List<string>)ViewBag.AllRoles;
+    var tenants = (List<ThriveHealth.Web.Models.Tenancy.Tenant>)ViewBag.Tenants;
+}
+
+<a asp-action="Index" class="small">← Back to all users</a>
+<h1 class="sa-h1 mt-2">New user</h1>
+<p class="sa-sub">Create an account directly. A temporary password is generated and shown once after submit.</p>
+
+<form asp-action="Save" method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+
+    <div class="col-md-8">
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Identity</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small">Email</label>
+                    <input asp-for="Email" class="form-control" type="email" required placeholder="user@example.com" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Staff number</label>
+                    <input asp-for="StaffNumber" class="form-control" placeholder="optional" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">First name</label>
+                    <input asp-for="FirstName" class="form-control" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Last name</label>
+                    <input asp-for="LastName" class="form-control" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Designation</label>
+                    <input asp-for="Designation" class="form-control" placeholder="e.g. Doctor, Cashier" />
+                </div>
+            </div>
+        </div>
+
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Tenant attachment</h5>
+            <p class="text-muted small mb-3">Leave the tenant blank if the user is a Super Admin (cross-tenant). Otherwise pick the hospital they work for.</p>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label small">Tenant</label>
+                    <select asp-for="TenantId" class="form-select">
+                        <option value="">— Platform-only (Super Admin) —</option>
+                        @foreach (var t in tenants)
+                        {
+                            <option value="@t.Id">@t.LegalName (@t.Slug)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Roles</h5>
+            <div style="max-height: 360px; overflow-y: auto; padding-right: 4px;">
+                @foreach (var r in allRoles.OrderBy(x => x))
+                {
+                    var tone = r == Roles.SuperAdmin ? "color:#a855f7;" : "";
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="Roles" value="@r" id="role-@r.Replace(' ', '-')" />
+                        <label class="form-check-label small" for="role-@r.Replace(' ', '-')" style="@tone">@r</label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary"><i class="bi bi-person-plus-fill me-1"></i> Create user</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </div>
+</form>

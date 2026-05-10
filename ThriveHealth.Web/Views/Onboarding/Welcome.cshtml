@@ -1,7 +1,7 @@
 @model ThriveHealth.Web.Models.Tenancy.Tenant
 @{
     ViewData["Title"] = "Welcome to ThriveHealth";
-    var loginUrl = $"https://{Model.Slug}.thrivehealth.ng/Account/Login";
+    var loginUrl = $"https://{Model.Slug}.thrivehealth.ng/login";
     var devUrl = $"/?tenant={Model.Slug}";
 }
 

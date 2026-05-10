@@ -1,0 +1,115 @@
+@model ThriveHealth.Web.Models.Tenancy.Plan
+@{
+    ViewData["Title"] = Model.Id == 0 ? "New plan" : $"Edit · {Model.Name}";
+}
+
+<a asp-action="Index" class="small">← Back to plans</a>
+
+<h1 class="sa-h1 mt-2">@(Model.Id == 0 ? "New plan" : $"Edit · {Model.Name}")</h1>
+<p class="sa-sub">Prices and caps are stored per-plan; existing subscriptions keep their snapshot, so changes here only affect new signups and plan switches.</p>
+
+<form asp-action="Save" method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="col-md-8">
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Identity</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small">Code</label>
+                    <input asp-for="Code" class="form-control" placeholder="standard" />
+                    <div class="form-text small">Lowercase, used in URLs and signup payloads. Cannot change once subscriptions exist.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Display name</label>
+                    <input asp-for="Name" class="form-control" placeholder="Standard" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Sort order</label>
+                    <input asp-for="SortOrder" type="number" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label small">Tagline</label>
+                    <input asp-for="Tagline" class="form-control" placeholder="Mid-sized clinics & polyclinics" />
+                </div>
+            </div>
+        </div>
+
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Pricing (NGN)</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small">Monthly</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₦</span>
+                        <input asp-for="MonthlyNgn" type="number" step="0.01" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Annual</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₦</span>
+                        <input asp-for="AnnualNgn" type="number" step="0.01" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        <input asp-for="IsCustomQuote" class="form-check-input" />
+                        <label asp-for="IsCustomQuote" class="form-check-label small">Custom quote (hide prices on pricing page)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Hard caps</h5>
+            <p class="text-muted small mb-3">Leave blank for unlimited. Tenants on this plan can't exceed these values.</p>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">Max staff</label>
+                    <input asp-for="MaxStaff" type="number" min="0" class="form-control" placeholder="∞" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Patients / month</label>
+                    <input asp-for="MaxPatientsPerMonth" type="number" min="0" class="form-control" placeholder="∞" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Facilities</label>
+                    <input asp-for="MaxFacilities" type="number" min="0" class="form-control" placeholder="∞" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Tele-consults / mo</label>
+                    <input asp-for="MaxTeleConsultsPerMonth" type="number" min="0" class="form-control" placeholder="∞" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Features</h5>
+            <div class="form-check"><input asp-for="TelemedicineEnabled" class="form-check-input" /><label asp-for="TelemedicineEnabled" class="form-check-label small">Telemedicine</label></div>
+            <div class="form-check"><input asp-for="ChatPackagesEnabled" class="form-check-input" /><label asp-for="ChatPackagesEnabled" class="form-check-label small">Chat packages (24h care)</label></div>
+            <div class="form-check"><input asp-for="AiEnabled" class="form-check-input" /><label asp-for="AiEnabled" class="form-check-label small">AI assist (symptom check, summarisation)</label></div>
+            <div class="form-check"><input asp-for="MultiFacilityEnabled" class="form-check-input" /><label asp-for="MultiFacilityEnabled" class="form-check-label small">Multi-facility</label></div>
+            <div class="form-check"><input asp-for="ClaimsEnabled" class="form-check-input" /><label asp-for="ClaimsEnabled" class="form-check-label small">Insurance claims (NHIS / HMO)</label></div>
+            <div class="form-check"><input asp-for="AnalyticsEnabled" class="form-check-input" /><label asp-for="AnalyticsEnabled" class="form-check-label small">Analytics dashboards</label></div>
+            <div class="form-check"><input asp-for="PrioritySupport" class="form-check-input" /><label asp-for="PrioritySupport" class="form-check-label small">Priority support</label></div>
+            <div class="form-check"><input asp-for="SsoEnabled" class="form-check-input" /><label asp-for="SsoEnabled" class="form-check-label small">SSO (SAML / OIDC)</label></div>
+            <div class="form-check"><input asp-for="OnPremiseAvailable" class="form-check-input" /><label asp-for="OnPremiseAvailable" class="form-check-label small">On-premise deployment available</label></div>
+        </div>
+
+        <div class="sa-card mb-3">
+            <h5 class="text-white mb-3">Visibility</h5>
+            <div class="form-check"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label small">Active — show on signup &amp; plan-change pages</label></div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save plan</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </div>
+
+    <div asp-validation-summary="All" class="text-danger small"></div>
+</form>

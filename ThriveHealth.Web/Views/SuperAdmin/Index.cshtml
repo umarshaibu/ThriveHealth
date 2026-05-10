@@ -1,7 +1,7 @@
+@model ThriveHealth.Web.Controllers.SuperAdminController.SuperAdminDashboard
 @using ThriveHealth.Web.Models.Tenancy
 @{
     ViewData["Title"] = "Dashboard";
-    var recent = (List<Tenant>)ViewBag.RecentTenants;
     string Tone(TenantStatus s) => s switch
     {
         TenantStatus.Trialing => "trialing",
@@ -12,40 +12,303 @@
         TenantStatus.Cancelled => "cancelled",
         _ => "pendingverification"
     };
+    string KindIcon(string kind) => kind switch
+    {
+        "signup"            => "person-plus-fill",
+        "payment-submitted" => "cash-coin",
+        "payment-approved"  => "check-circle-fill",
+        "payment-rejected"  => "x-circle-fill",
+        "suspended"         => "pause-circle-fill",
+        "domain-verified"   => "globe2",
+        _                   => "circle-fill"
+    };
+    var mrrDelta = Model.MrrLastMonth == 0 ? 0 : (int)Math.Round((double)((Model.MrrNgn - Model.MrrLastMonth) / Model.MrrLastMonth) * 100);
+    var signupDelta = Model.NewThisMonth - Model.NewLastMonth;
 }
+
+<style>
+    .sa-kpi { display: flex; flex-direction: column; gap: 6px; }
+    .sa-kpi .label { color: #94a3b8; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+    .sa-kpi .value { font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1; }
+    .sa-kpi .sub { font-size: .8rem; color: #64748b; display: flex; align-items: center; gap: 4px; }
+    .sa-kpi .sub.up { color: #22c55e; }
+    .sa-kpi .sub.down { color: #ef4444; }
+    .sa-kpi .sub.warn { color: #f59e0b; }
+    .sa-card-tight { padding: 16px 18px; }
+    .sa-section-title { font-size: .85rem; text-transform: uppercase; letter-spacing: .07em; color: #94a3b8; font-weight: 600; margin-bottom: 12px; }
+
+    .sa-feed { max-height: 340px; overflow-y: auto; padding-right: 4px; }
+    .sa-feed::-webkit-scrollbar { width: 6px; }
+    .sa-feed::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .feed-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px dashed #334155; }
+    .feed-item:last-child { border-bottom: 0; }
+    .feed-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .8rem; }
+    .feed-icon.success { background: rgba(34,197,94,.15); color: #22c55e; }
+    .feed-icon.warning { background: rgba(245,158,11,.15); color: #f59e0b; }
+    .feed-icon.danger  { background: rgba(239,68,68,.15);  color: #ef4444; }
+    .feed-icon.info    { background: rgba(96,165,250,.15); color: #60a5fa; }
+    .feed-body { flex: 1; min-width: 0; }
+    .feed-title { font-size: .88rem; color: #e2e8f0; }
+    .feed-detail { font-size: .75rem; color: #64748b; }
+    .feed-time { font-size: .72rem; color: #475569; white-space: nowrap; }
+
+    .health-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #334155; font-size: .85rem; }
+    .health-row:last-child { border-bottom: 0; }
+    .health-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    .health-dot.green { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,.5); }
+    .health-dot.amber { background: #f59e0b; }
+    .health-dot.red   { background: #ef4444; }
+
+    .at-risk-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #334155; }
+    .at-risk-row:last-child { border-bottom: 0; }
+    .at-risk-name { font-size: .88rem; color: #e2e8f0; }
+    .at-risk-meta { font-size: .72rem; color: #64748b; }
+    .at-risk-pill { font-size: .7rem; padding: 2px 8px; border-radius: 999px; }
+</style>
 
 <h1 class="sa-h1">Platform overview</h1>
 <p class="sa-sub">Tenants, billing and operations across all hospitals running on ThriveHealth.</p>
 
+@* ---------- KPI ROW ---------- *@
 <div class="row g-3 mb-4">
-    <div class="col-md-3"><div class="sa-card"><div class="label">Total tenants</div><div class="value">@ViewBag.TotalTenants</div></div></div>
-    <div class="col-md-3"><div class="sa-card"><div class="label">Trialing</div><div class="value">@ViewBag.Trialing</div></div></div>
-    <div class="col-md-3"><div class="sa-card"><div class="label">Paying</div><div class="value">@ViewBag.Active</div></div></div>
-    <div class="col-md-3"><div class="sa-card"><div class="label">MRR (NGN)</div><div class="value">₦@(((decimal)ViewBag.MrrNgn).ToString("N0"))</div></div></div>
+    <div class="col-md-2 col-6"><div class="sa-card sa-card-tight sa-kpi">
+        <span class="label">Tenants</span>
+        <span class="value">@Model.TotalTenants</span>
+        @if (Model.NewThisMonth > 0)
+        { <span class="sub up"><i class="bi bi-arrow-up"></i> @Model.NewThisMonth this month</span> }
+        else
+        { <span class="sub">no new this month</span> }
+    </div></div>
+    <div class="col-md-2 col-6"><div class="sa-card sa-card-tight sa-kpi">
+        <span class="label">Trialing</span>
+        <span class="value">@Model.Trialing</span>
+        <span class="sub">awaiting conversion</span>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="sa-card sa-card-tight sa-kpi">
+        <span class="label">Paying</span>
+        <span class="value">@Model.Active</span>
+        <span class="sub up">active subscriptions</span>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="sa-card sa-card-tight sa-kpi">
+        <span class="label">MRR</span>
+        <span class="value">₦@Model.MrrNgn.ToString("N0")</span>
+        @if (mrrDelta > 0) { <span class="sub up"><i class="bi bi-arrow-up"></i> @mrrDelta% vs last mo</span> }
+        else if (mrrDelta < 0) { <span class="sub down"><i class="bi bi-arrow-down"></i> @Math.Abs(mrrDelta)% vs last mo</span> }
+        else { <span class="sub">flat vs last mo</span> }
+    </div></div>
+    <div class="col-md-2 col-6"><div class="sa-card sa-card-tight sa-kpi">
+        <span class="label">ARR run-rate</span>
+        <span class="value">₦@Model.ArrNgn.ToString("N0")</span>
+        <span class="sub">annualised MRR × 12</span>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="sa-card sa-card-tight sa-kpi">
+        <span class="label">Pending review</span>
+        <span class="value">@(Model.PendingPayments + Model.PendingDomainVerifications)</span>
+        <span class="sub @(Model.PendingPayments > 0 ? "warn" : "")">
+            @Model.PendingPayments payments · @Model.PendingDomainVerifications domains
+        </span>
+    </div></div>
 </div>
 
+@* ---------- CHARTS ROW ---------- *@
 <div class="row g-3 mb-4">
-    <div class="col-md-6"><div class="sa-card"><div class="label">Pending payment approvals</div><div class="value">@ViewBag.PendingPayments</div><a asp-controller="SuperAdminPayments" asp-action="Index" class="small">Review queue →</a></div></div>
-    <div class="col-md-6"><div class="sa-card"><div class="label">Past due</div><div class="value">@ViewBag.PastDue</div><a asp-controller="SuperAdminTenants" asp-action="Index" asp-route-status="@TenantStatus.PastDue" class="small">View list →</a></div></div>
+    <div class="col-lg-8"><div class="sa-card">
+        <div class="sa-section-title d-flex justify-content-between align-items-center">
+            <span>Tenant signups · last 6 months</span>
+            <span style="text-transform:none; letter-spacing:0; color:@(signupDelta >= 0 ? "#22c55e" : "#ef4444"); font-weight:500;">
+                @(signupDelta >= 0 ? "+" : "")@signupDelta vs previous month
+            </span>
+        </div>
+        <div style="position: relative; height: 240px;">
+            <canvas id="signupChart"></canvas>
+        </div>
+    </div></div>
+    <div class="col-lg-4"><div class="sa-card">
+        <div class="sa-section-title">Plan distribution</div>
+        @if (Model.PlanShares.Any())
+        {
+            <div style="position: relative; height: 200px;">
+                <canvas id="planChart"></canvas>
+            </div>
+            <div class="mt-3 small">
+                @foreach (var p in Model.PlanShares)
+                {
+                    <div class="d-flex justify-content-between py-1" style="border-bottom: 1px dashed #334155;">
+                        <span><span class="health-dot" style="background:#3b82f6;"></span>@p.Plan</span>
+                        <span class="text-muted">@p.Count tenants · ₦@p.MrrShare.ToString("N0")/mo</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted small mb-0">No active subscriptions yet.</p>
+        }
+    </div></div>
 </div>
 
-<h5 class="mb-2 text-white">Recent signups</h5>
+@* ---------- ACTIVITY + HEALTH + AT-RISK ROW ---------- *@
+<div class="row g-3 mb-4">
+    <div class="col-lg-5"><div class="sa-card">
+        <div class="sa-section-title">Recent activity · last 30 days</div>
+        @if (Model.RecentActivity.Any())
+        {
+            <div class="sa-feed">
+                @foreach (var a in Model.RecentActivity)
+                {
+                    <div class="feed-item">
+                        <div class="feed-icon @a.Tone"><i class="bi bi-@KindIcon(a.Kind)"></i></div>
+                        <div class="feed-body">
+                            <div class="feed-title">@a.Title</div>
+                            @if (!string.IsNullOrEmpty(a.Detail)) { <div class="feed-detail">@a.Detail</div> }
+                        </div>
+                        <div class="feed-time">@a.At.ToString("dd MMM HH:mm")</div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted small mb-0">Quiet — no platform activity in the last 30 days.</p>
+        }
+    </div></div>
+
+    <div class="col-lg-4"><div class="sa-card h-100">
+        <div class="sa-section-title">At-risk tenants</div>
+        @if (Model.AtRiskTenants.Any())
+        {
+            @foreach (var t in Model.AtRiskTenants)
+            {
+                <div class="at-risk-row">
+                    <div>
+                        <div class="at-risk-name">@t.LegalName</div>
+                        <div class="at-risk-meta">@t.Slug</div>
+                    </div>
+                    <div class="text-end">
+                        @if (t.Status == TenantStatus.Trialing && t.TrialEndsAt.HasValue)
+                        {
+                            var days = (int)Math.Ceiling((t.TrialEndsAt.Value - DateTime.UtcNow).TotalDays);
+                            <span class="at-risk-pill" style="background:rgba(245,158,11,.15);color:#f59e0b;">trial · @days d left</span>
+                        }
+                        else
+                        {
+                            <span class="at-risk-pill" style="background:rgba(239,68,68,.15);color:#ef4444;">past due</span>
+                        }
+                        <a asp-controller="SuperAdminTenants" asp-action="Detail" asp-route-id="@t.Id" class="d-block small mt-1">open →</a>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="text-muted small mb-0">No tenants currently at risk.</p>
+        }
+    </div></div>
+
+    <div class="col-lg-3"><div class="sa-card h-100">
+        <div class="sa-section-title">System health</div>
+        <div class="health-row">
+            <span><span class="health-dot green"></span>Database</span>
+            <span class="text-muted small">connected</span>
+        </div>
+        <div class="health-row">
+            <span><span class="health-dot @(Model.PendingPayments == 0 ? "green" : Model.PendingPayments > 5 ? "red" : "amber")"></span>Pending payments</span>
+            <span class="text-muted small">@Model.PendingPayments queued</span>
+        </div>
+        <div class="health-row">
+            <span><span class="health-dot @(Model.PendingDomainVerifications == 0 ? "green" : "amber")"></span>Domain verifications</span>
+            <span class="text-muted small">@Model.PendingDomainVerifications pending</span>
+        </div>
+        <div class="health-row">
+            <span><span class="health-dot @(Model.PastDue == 0 ? "green" : Model.PastDue > 3 ? "red" : "amber")"></span>Past-due tenants</span>
+            <span class="text-muted small">@Model.PastDue</span>
+        </div>
+        <div class="health-row">
+            <span><span class="health-dot @(Model.Suspended == 0 ? "green" : "amber")"></span>Suspended</span>
+            <span class="text-muted small">@Model.Suspended</span>
+        </div>
+        <div class="health-row">
+            <span><span class="health-dot green"></span>Lifecycle sweep</span>
+            <span class="text-muted small">hourly</span>
+        </div>
+    </div></div>
+</div>
+
+@* ---------- RECENT SIGNUPS TABLE ---------- *@
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0 text-white">Recent signups</h5>
+    <a asp-controller="SuperAdminTenants" asp-action="Index" class="small">View all tenants →</a>
+</div>
 <div class="sa-card p-0">
     <table class="table mb-0">
-        <thead><tr><th>Tenant</th><th>Owner</th><th>Status</th><th>Plan</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Tenant</th><th>Owner</th><th>Status</th><th>Country</th><th>Created</th><th></th></tr></thead>
         <tbody>
-            @foreach (var t in recent)
+            @foreach (var t in Model.RecentTenants)
             {
                 <tr>
-                    <td><strong>@t.LegalName</strong><div class="small text-muted">@(t.Slug + ".thrivehealth.ng")</div></td>
+                    <td><strong>@t.LegalName</strong><div class="small text-muted">@(t.CustomDomain ?? t.Slug + ".thrivehealth.ng")</div></td>
                     <td>@t.OwnerName<div class="small text-muted">@t.OwnerEmail</div></td>
                     <td><span class="badge-pill badge-@Tone(t.Status)">@t.Status</span></td>
                     <td>@(t.IsTeachingHospital ? "Teaching (free)" : t.CountryCode)</td>
-                    <td class="small">@t.CreatedAt:dd MMM HH:mm</td>
+                    <td class="small">@t.CreatedAt.ToString("dd MMM HH:mm")</td>
                     <td><a asp-controller="SuperAdminTenants" asp-action="Detail" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary">Open</a></td>
                 </tr>
             }
-            @if (!recent.Any()) { <tr><td colspan="6" class="text-center py-4 text-muted">No tenants yet.</td></tr> }
+            @if (!Model.RecentTenants.Any()) { <tr><td colspan="6" class="text-center py-4 text-muted">No tenants yet.</td></tr> }
         </tbody>
     </table>
 </div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#334155';
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+
+    new Chart(document.getElementById('signupChart'), {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SignupTrend.Select(p => p.Label))),
+            datasets: [{
+                label: 'New tenants',
+                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SignupTrend.Select(p => p.Count))),
+                backgroundColor: 'rgba(59,130,246,.6)',
+                borderColor: '#3b82f6',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } }
+            }
+        }
+    });
+
+    @if (Model.PlanShares.Any())
+    {
+        <text>
+        new Chart(document.getElementById('planChart'), {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlanShares.Select(p => p.Plan))),
+                datasets: [{
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlanShares.Select(p => p.Count))),
+                    backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#06b6d4'],
+                    borderColor: '#1e293b', borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { display: false } }
+            }
+        });
+        </text>
+    }
+</script>
+}

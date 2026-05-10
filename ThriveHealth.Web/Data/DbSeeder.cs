@@ -72,6 +72,10 @@ public static class DbSeeder
         }
 
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+
+        // ----- Tenant System Administrator -----
+        // Manages users / roles / facility settings inside one tenant. Has full operational
+        // permissions but no platform-level access.
         var adminCfg = config.GetSection("Seed:Admin");
         var adminEmail = adminCfg["Email"] ?? "admin@thrivehealth.ng";
         var admin = await userManager.FindByEmailAsync(adminEmail);
@@ -95,19 +99,48 @@ public static class DbSeeder
             {
                 await userManager.AddToRoleAsync(admin, Roles.SystemAdministrator);
                 await userManager.AddToRoleAsync(admin, Roles.MedicalDirector);
-                // Platform owner — also grants the cross-tenant SuperAdmin role.
-                if (!await roleManager.RoleExistsAsync(Roles.SuperAdmin))
-                    await roleManager.CreateAsync(new IdentityRole(Roles.SuperAdmin));
-                await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
             }
         }
-        else
+
+        // Cleanup: any pre-multi-tenant admin who was granted SuperAdmin gets it removed —
+        // platform-level access now lives on the dedicated superadmin@ account below.
+        if (admin is not null && await userManager.IsInRoleAsync(admin, Roles.SuperAdmin))
+            await userManager.RemoveFromRoleAsync(admin, Roles.SuperAdmin);
+
+        // ----- Platform Super Admin -----
+        // Cross-tenant operator. Sees /superadmin/* only — no tenant data, no facility, no
+        // user-management permissions inside any tenant. Operates from admin.thrivehealth.ng.
+        if (!await roleManager.RoleExistsAsync(Roles.SuperAdmin))
+            await roleManager.CreateAsync(new IdentityRole(Roles.SuperAdmin));
+
+        var superCfg = config.GetSection("Seed:SuperAdmin");
+        var superEmail = superCfg["Email"] ?? "superadmin@thrivehealth.ng";
+        var superAdmin = await userManager.FindByEmailAsync(superEmail);
+        if (superAdmin is null)
         {
-            // Existing demo admin from before the multi-tenant work — make sure they get SuperAdmin.
-            if (!await roleManager.RoleExistsAsync(Roles.SuperAdmin))
-                await roleManager.CreateAsync(new IdentityRole(Roles.SuperAdmin));
-            if (!await userManager.IsInRoleAsync(admin, Roles.SuperAdmin))
-                await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
+            superAdmin = new ApplicationUser
+            {
+                UserName = superEmail,
+                Email = superEmail,
+                EmailConfirmed = true,
+                FirstName = superCfg["FirstName"] ?? "Platform",
+                LastName = superCfg["LastName"] ?? "Owner",
+                StaffNumber = "TH-SU-0001",
+                Designation = "Platform Owner",
+                Department = "ThriveHealth",
+                // Deliberately no FacilityId / TenantId — a SuperAdmin doesn't belong to any
+                // single hospital, and the per-request tenant resolver should never pin them to one.
+                FacilityId = null,
+                TenantId = null,
+                IsActive = true
+            };
+            var result = await userManager.CreateAsync(superAdmin, superCfg["Password"] ?? "SuperAdmin@12345");
+            if (result.Succeeded)
+                await userManager.AddToRoleAsync(superAdmin, Roles.SuperAdmin);
+        }
+        else if (!await userManager.IsInRoleAsync(superAdmin, Roles.SuperAdmin))
+        {
+            await userManager.AddToRoleAsync(superAdmin, Roles.SuperAdmin);
         }
 
         var demoDoc = await userManager.FindByEmailAsync("doc@thrivehealth.ng");

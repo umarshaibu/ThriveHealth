@@ -1,0 +1,129 @@
+@model IReadOnlyList<ThriveHealth.Web.Controllers.SuperAdminUsersController.UserRow>
+@using ThriveHealth.Web.Models.Identity
+@{
+    ViewData["Title"] = "Users";
+    var q = ViewBag.Q as string;
+    var tenantId = ViewBag.TenantId as int?;
+    var role = ViewBag.Role as string;
+    var activeOnly = (bool)ViewBag.ActiveOnly;
+    var currentPage = (int)ViewBag.Page;
+    var pageSize = (int)ViewBag.PageSize;
+    var total = (int)ViewBag.Total;
+    var tenants = (List<ThriveHealth.Web.Controllers.SuperAdminUsersController.TenantOption>)ViewBag.Tenants;
+    var allRoles = (List<string>)ViewBag.AllRoles;
+    var lastPage = (int)Math.Ceiling((double)total / pageSize);
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="sa-h1">Users</h1>
+        <p class="sa-sub mb-0">Every account on the platform — staff, super admins, and patients (via the portal). Tenant boundaries don't apply to this view.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-person-plus-fill me-1"></i> New user</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input type="text" name="q" value="@q" placeholder="Search by name, email or staff number…" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <select name="tenantId" class="form-select">
+            <option value="">All tenants</option>
+            @foreach (var t in tenants)
+            {
+                <option value="@t.Id" selected="@(tenantId == t.Id)">@t.LegalName</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="role" class="form-select">
+            <option value="">Any role</option>
+            @foreach (var r in allRoles)
+            {
+                <option value="@r" selected="@(role == r)">@r</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-center">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="activeOnly" name="activeOnly" value="true"
+                   @(activeOnly ? "checked" : "") />
+            <label for="activeOnly" class="form-check-label small text-muted">Active only</label>
+        </div>
+        <button class="btn btn-primary btn-sm ms-auto"><i class="bi bi-search"></i></button>
+    </div>
+</form>
+
+<div class="sa-card p-0">
+    <table class="table mb-0">
+        <thead><tr>
+            <th>User</th><th>Tenant</th><th>Roles</th><th>Last login</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td>
+                        <strong>@u.FullName</strong>
+                        <div class="small text-muted">@u.Email</div>
+                    </td>
+                    <td>
+                        @if (u.TenantName != null)
+                        {
+                            <span>@u.TenantName</span>
+                        }
+                        else if (u.Roles.Contains(ThriveHealth.Web.Models.Identity.Roles.SuperAdmin))
+                        {
+                            <span class="badge" style="background:#a855f7;color:#fff;">Platform</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">— unattached —</span>
+                        }
+                    </td>
+                    <td class="small">
+                        @foreach (var r in u.Roles)
+                        {
+                            var tone = r == ThriveHealth.Web.Models.Identity.Roles.SuperAdmin
+                                ? "background:rgba(168,85,247,.15);color:#a855f7;"
+                                : "background:rgba(96,165,250,.15);color:#60a5fa;";
+                            <span class="badge me-1" style="@tone">@r</span>
+                        }
+                    </td>
+                    <td class="small text-muted">@(u.LastLoginAt?.ToString("dd MMM HH:mm") ?? "—")</td>
+                    <td>
+                        @if (u.IsActive)
+                        {
+                            <span class="badge-pill badge-active">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge-pill badge-suspended">Inactive</span>
+                        }
+                    </td>
+                    <td><a asp-action="Detail" asp-route-id="@u.Id" class="btn btn-sm btn-outline-primary">Open</a></td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="6" class="text-center py-4 text-muted">No users match.</td></tr> }
+        </tbody>
+    </table>
+</div>
+
+@if (lastPage > 1)
+{
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <span class="text-muted small">Showing page @currentPage of @lastPage · @total users</span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                @if (currentPage > 1)
+                {
+                    <li class="page-item"><a class="page-link" asp-action="Index" asp-route-q="@q" asp-route-tenantId="@tenantId" asp-route-role="@role" asp-route-activeOnly="@activeOnly" asp-route-page="@(currentPage - 1)">Previous</a></li>
+                }
+                @if (currentPage < lastPage)
+                {
+                    <li class="page-item"><a class="page-link" asp-action="Index" asp-route-q="@q" asp-route-tenantId="@tenantId" asp-route-role="@role" asp-route-activeOnly="@activeOnly" asp-route-page="@(currentPage + 1)">Next</a></li>
+                }
+            </ul>
+        </nav>
+    </div>
+}
