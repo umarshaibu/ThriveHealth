@@ -1,0 +1,156 @@
+@model ThriveHealth.Web.Models.ViewModels.NursingBoardVm
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-capsule me-1 text-primary"></i> Medications due (next 2 hours)</h5>
+                <a asp-controller="Inpatient" asp-action="Mar" class="small">Open MAR →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.MedicationDue.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">No drugs due in the next 2 hours</h6>
+                        <p class="mb-0 small">Schedule looks clear on the ward right now.</p>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Time</th><th>Patient</th><th>Bed</th><th>Drug</th><th>Dose · Route</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var m in Model.MedicationDue)
+                        {
+                            <tr class="@(m.Overdue ? "table-danger" : "")">
+                                <td class="font-monospace small">
+                                    @m.ScheduledUtc.ToLocalTime().ToString("HH:mm")
+                                    @if (m.Overdue) { <div class="text-danger small fw-bold">OVERDUE</div> }
+                                </td>
+                                <td class="fw-semibold">@m.PatientName</td>
+                                <td class="small">@m.Bed</td>
+                                <td>@m.Drug</td>
+                                <td class="small text-muted">@m.Dose · @m.Route</td>
+                                <td><a asp-controller="Inpatient" asp-action="Admission" asp-route-id="@m.AdmissionId" class="btn btn-sm btn-primary">Administer</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-bandaid me-1 text-warning"></i> Triage queue</h5>
+                <a asp-controller="Emergency" asp-action="Index" class="small">A&amp;E →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.TriageQueue.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">Triage queue is empty</h6>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                    @foreach (var t in Model.TriageQueue)
+                    {
+                        var tone = t.Colour switch { "Red" => "danger", "Orange" => "warning", "Yellow" => "info", _ => "muted" };
+                        <li class="border-bottom px-3 py-2 d-flex align-items-start gap-2">
+                            <span class="th-pill th-pill-@tone" style="min-width:65px;text-align:center;">@t.Colour</span>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">@t.PatientName</div>
+                                <div class="small text-muted">@(t.Complaint ?? "—") · arrived @t.TriagedAt.ToLocalTime().ToString("HH:mm")</div>
+                            </div>
+                            <a asp-controller="Emergency" asp-action="Encounter" asp-route-id="@t.EncounterId" class="btn btn-sm btn-outline-primary">Open</a>
+                        </li>
+                    }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-hospital me-1 text-info"></i> Ward occupancy</h5>
+                <a asp-controller="Inpatient" asp-action="Wards" class="small">All wards →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.Wards.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-hospital"></i>
+                        <h6 class="mt-2 mb-1">No wards configured yet</h6>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Ward</th><th>Occupied</th><th>Free</th><th class="text-end">Capacity</th></tr></thead>
+                        <tbody>
+                        @foreach (var w in Model.Wards)
+                        {
+                            var pct = w.Total == 0 ? 0 : (int)Math.Round(100.0 * w.Occupied / w.Total);
+                            <tr>
+                                <td class="fw-semibold">@w.WardName</td>
+                                <td>@w.Occupied</td>
+                                <td><span class="text-success">@w.Free</span></td>
+                                <td class="text-end" style="min-width:160px;">
+                                    <div class="d-flex align-items-center justify-content-end gap-2">
+                                        <div class="progress" style="height:8px;width:120px;">
+                                            <div class="progress-bar @(pct > 85 ? "bg-danger" : pct > 60 ? "bg-warning" : "bg-success")" style="width:@(pct)%;"></div>
+                                        </div>
+                                        <span class="small text-muted">@w.Occupied/@w.Total</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header">
+                <h5 class="th-card-title mb-0"><i class="bi bi-heart-pulse me-1 text-danger"></i> Vitals overdue</h5>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.VitalsDue.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">Vitals on every admission are up to date</h6>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                    @foreach (var v in Model.VitalsDue)
+                    {
+                        <li class="border-bottom px-3 py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">@v.PatientName</div>
+                                <div class="small text-muted">@v.Bed · @(v.HoursSinceVitals >= 999 ? "never recorded" : $"{v.HoursSinceVitals:F0}h ago")</div>
+                            </div>
+                            <a asp-controller="Inpatient" asp-action="Admission" asp-route-id="@v.AdmissionId" class="btn btn-sm btn-outline-danger">Record</a>
+                        </li>
+                    }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>

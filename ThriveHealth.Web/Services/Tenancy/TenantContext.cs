@@ -77,7 +77,13 @@ public sealed class TenantResolverMiddleware
             await _next(ctx); return;
         }
 
-        // Apex / dev — first try the dev override, then the cookie, otherwise marketing context.
+        // Apex / dev — resolution order:
+        //   1. ?tenant=slug query override (one-time)
+        //   2. th_tenant cookie (persisted dev override)
+        //   3. Authenticated user's TenantId — so a logged-in staff member on localhost
+        //      doesn't need to set ?tenant= manually. Without this, every staff write
+        //      would hit a marketing context and trip the TenantId FK constraint.
+        //   4. Marketing context (sign-up / pricing pages, unauthenticated)
         if (ApexHosts.Contains(host) || host.EndsWith(".localhost"))
         {
             var devSlug = ctx.Request.Query[DevTenantQueryParam].ToString();
@@ -98,6 +104,27 @@ public sealed class TenantResolverMiddleware
                     await _next(ctx); return;
                 }
             }
+
+            // Auth-aware fallback (this middleware now runs after UseAuthentication, so the
+            // user principal is populated). Try the user's stored TenantId — works for both
+            // staff-cookie and portal-cookie schemes since both end up on ctx.User.
+            if (ctx.User?.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userIdClaim))
+                {
+                    var tid = await db.Users.AsNoTracking()
+                        .Where(u => u.Id == userIdClaim)
+                        .Select(u => u.TenantId)
+                        .FirstOrDefaultAsync();
+                    if (tid.HasValue)
+                    {
+                        var t = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(x => x.Id == tid.Value);
+                        if (t is not null) { tenantCtx.Set(t); await _next(ctx); return; }
+                    }
+                }
+            }
+
             tenantCtx.SetMarketing();
             await _next(ctx); return;
         }

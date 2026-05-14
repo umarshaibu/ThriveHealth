@@ -1,0 +1,110 @@
+@model ThriveHealth.Web.Models.ViewModels.FrontOfficeBoardVm
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i> Queue snapshot · today</h5>
+                <a asp-controller="Queue" asp-action="Index" class="small">Open queue →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.QueueByClinic.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-clipboard"></i>
+                        <h6 class="mt-2 mb-1">No clinics configured</h6>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Clinic</th><th>Waiting</th><th>In room</th><th>Done</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var c in Model.QueueByClinic)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@c.ClinicName</td>
+                                <td><span class="th-pill th-pill-@(c.Waiting > 0 ? "warning" : "muted")">@c.Waiting</span></td>
+                                <td><span class="th-pill th-pill-info">@c.InRoom</span></td>
+                                <td><span class="th-pill th-pill-success">@c.Done</span></td>
+                                <td><a asp-controller="Queue" asp-action="CheckIn" asp-route-clinicId="@c.ClinicId" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueCheckIn" class="btn btn-sm btn-outline-primary">Check in</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-calendar2 me-1 text-info"></i> Today's appointments</h5>
+                <a asp-controller="Appointments" asp-action="Index" class="small">All →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.TodaysAppointments.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-calendar2"></i>
+                        <h6 class="mt-2 mb-1">No appointments scheduled today</h6>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                    @foreach (var a in Model.TodaysAppointments)
+                    {
+                        <li class="border-bottom px-3 py-2 d-flex align-items-start gap-2">
+                            <div class="text-center" style="min-width:54px;">
+                                <div class="fw-bold">@a.ScheduledAt.ToLocalTime().ToString("HH:mm")</div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">@a.PatientName</div>
+                                <div class="small text-muted">@(a.Clinic ?? "—") · @a.Status</div>
+                            </div>
+                        </li>
+                    }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="th-card mb-4">
+    <div class="th-card-header d-flex justify-content-between align-items-center">
+        <h5 class="th-card-title mb-0"><i class="bi bi-person-plus me-1 text-success"></i> New registrations today</h5>
+        <a asp-controller="Patients" asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i> Register</a>
+    </div>
+    <div class="th-card-body p-0">
+        @if (!Model.NewRegistrations.Any())
+        {
+            <div class="th-empty p-4">
+                <i class="bi bi-person-plus"></i>
+                <h6 class="mt-2 mb-1">No new patients registered yet today</h6>
+            </div>
+        }
+        else
+        {
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>Patient</th><th>Registered</th><th>ID verified?</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var p in Model.NewRegistrations)
+                {
+                    <tr>
+                        <td class="fw-semibold">@p.Name</td>
+                        <td class="small text-muted">@p.At.ToLocalTime().ToString("HH:mm")</td>
+                        <td>
+                            @if (p.NinVerified) { <span class="th-pill th-pill-success">Verified</span> }
+                            else { <span class="th-pill th-pill-warning">Pending</span> }
+                        </td>
+                        <td><a asp-controller="Patients" asp-action="Profile" asp-route-id="@p.PatientId" class="small">Open →</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

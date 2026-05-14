@@ -72,13 +72,16 @@
                     {
                         <a asp-controller="Appointments" asp-action="Index" class="th-nav-link"><i class="bi bi-calendar2-week"></i> Appointments</a>
                     }
-                    @if (Can(ThriveHealth.Web.Models.Identity.Permissions.QueueRead))
-                    {
-                        <a asp-controller="Queue" asp-action="Index" class="th-nav-link"><i class="bi bi-list-check"></i> Queues</a>
-                    }
+                    @* Clinicians work their own queue; only the all-clinics overview is shown to roles
+                       that route across clinics (receptionist / records / triage). Mutually exclusive
+                       so the sidebar never shows both "Queues" and "My queue" together. *@
                     @if (Can(ThriveHealth.Web.Models.Identity.Permissions.QueueServe))
                     {
                         <a asp-controller="Queue" asp-action="MyQueue" class="th-nav-link"><i class="bi bi-clipboard2-pulse"></i> My queue</a>
+                    }
+                    else if (Can(ThriveHealth.Web.Models.Identity.Permissions.QueueRead))
+                    {
+                        <a asp-controller="Queue" asp-action="Index" class="th-nav-link"><i class="bi bi-list-check"></i> Queues</a>
                     }
                     @if (Can(ThriveHealth.Web.Models.Identity.Permissions.WardsManage) || Can(ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage))
                     {

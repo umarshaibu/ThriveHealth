@@ -92,6 +92,12 @@ public class QueueController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
+        // Clinicians see their own queue, not the all-clinics overview that's intended for
+        // front-desk / triage staff routing tickets between clinics. Other roles fall through
+        // to the clinic list.
+        if (User.IsInRole(Roles.Doctor) || User.IsInRole(Roles.Consultant) || User.IsInRole(Roles.MedicalOfficer))
+            return RedirectToAction(nameof(MyQueue));
+
         var fid = await FacilityIdAsync();
         if (fid is null) return NotFound();
         var clinics = await _db.Clinics.AsNoTracking()

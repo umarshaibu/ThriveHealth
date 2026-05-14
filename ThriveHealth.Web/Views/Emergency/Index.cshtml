@@ -63,7 +63,7 @@
                         <div class="mt-2">
                             <div class="fw-bold text-truncate">@enc!.Patient!.FullName</div>
                             <div class="small">@enc.Patient.Sex@(enc.Patient.AgeYears.HasValue ? " · " + enc.Patient.AgeYears + "y" : "")</div>
-                            <a asp-action="Encounter" asp-route-id="@enc.Id" class="text-white text-decoration-underline small">Open</a>
+                            <a asp-action="Consultation" asp-route-id="@enc.Id" class="text-white text-decoration-underline small">Open</a>
                         </div>
                     }
                     else
@@ -111,7 +111,7 @@
                                         { <div><span class="th-pill th-pill-danger">@(r.MinutesOverdue) min late</span></div> }
                                     </td>
                                     <td class="text-end">
-                                        <a asp-action="Encounter" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-primary"><i class="bi bi-clipboard2-pulse me-1"></i> Open</a>
+                                        <a asp-action="Consultation" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-primary"><i class="bi bi-clipboard2-pulse me-1"></i> Open</a>
                                     </td>
                                 </tr>
                             }
@@ -144,7 +144,7 @@
                                     <td><span class="font-monospace fw-bold">@r.Encounter.ResusBay?.Code</span></td>
                                     <td><strong>@r.Patient.FullName</strong><br /><span class="th-pill" style="background:@ColourHex(r.Triage.Colour);color:#fff;font-size:9px;">@r.Triage.Colour</span></td>
                                     <td>@min m</td>
-                                    <td><a asp-action="Encounter" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-right"></i></a></td>
+                                    <td><a asp-action="Consultation" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-right"></i></a></td>
                                 </tr>
                             }
                             </tbody>

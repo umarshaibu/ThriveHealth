@@ -26,18 +26,28 @@
     </div>
 }
 
-<div class="row g-3 mb-4">
-    @foreach (var s in Model.Stats)
-    {
-        <div class="col-sm-6 col-xl-3">
-            <div class="th-stat tone-@s.Tone">
-                <div class="th-stat-icon"><i class="bi @(s.Icon ?? "bi-graph-up")"></i></div>
-                <div class="th-stat-label">@s.Label</div>
-                <div class="th-stat-value">@s.Value</div>
+@* KPI strip — shown for every persona (high-level summary above the working surface). *@
+@if (Model.BoardKey != "Executive")  @* Executive partial owns its own KPI strip. *@
+{
+    <div class="row g-3 mb-4">
+        @foreach (var s in Model.Stats)
+        {
+            <div class="col-sm-6 col-xl-3">
+                <div class="th-stat tone-@s.Tone">
+                    <div class="th-stat-icon"><i class="bi @(s.Icon ?? "bi-graph-up")"></i></div>
+                    <div class="th-stat-label">@s.Label</div>
+                    <div class="th-stat-value">@s.Value</div>
+                </div>
             </div>
-        </div>
-    }
-</div>
+        }
+    </div>
+}
+
+@* Role-specific working surface (real lists of items to action). *@
+@if (!string.IsNullOrEmpty(Model.BoardKey) && Model.Board is not null)
+{
+    @await Html.PartialAsync($"Partials/_Board{Model.BoardKey}", Model.Board)
+}
 
 <div class="row g-3 mb-4">
     <div class="col-lg-8">

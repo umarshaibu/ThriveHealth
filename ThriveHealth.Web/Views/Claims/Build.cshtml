@@ -3,10 +3,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h1 class="th-section-title">Build claim from encounter</h1>
+        <h1 class="th-section-title">Build claim from consultation</h1>
         <p class="th-section-sub mb-0">@Model.PatientName · @Model.EncounterSummary</p>
     </div>
-    <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@Model.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-arrow-left me-1"></i> Back to encounter</a>
+    <a asp-controller="Consultations" asp-action="Summary" asp-route-id="@Model.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-arrow-left me-1"></i> Back to consultation</a>
 </div>
 
 <form asp-action="Build" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClaimsManage">
@@ -46,12 +46,12 @@
         </div>
         <div class="alert alert-info mt-3 small mb-0">
             <i class="bi bi-info-circle me-1"></i>
-            Charges from this encounter (consultation, labs, imaging, procedures, dispenses) will be priced at the plan's tariff multiplier × facility list price. Drugs are checked against the plan's formulary; uncovered drugs become out-of-pocket. The draft can be reviewed before submission.
+            Charges from this consultation (consultation, labs, imaging, procedures, dispenses) will be priced at the plan's tariff multiplier × facility list price. Drugs are checked against the plan's formulary; uncovered drugs become out-of-pocket. The draft can be reviewed before submission.
         </div>
     </div></div>
 
     <div class="d-flex justify-content-end gap-2">
-        <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@Model.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Cancel</a>
+        <a asp-controller="Consultations" asp-action="Summary" asp-route-id="@Model.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-file-earmark-plus me-1"></i> Generate draft claim</button>
     </div>
 </form>

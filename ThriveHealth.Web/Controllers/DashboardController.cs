@@ -90,7 +90,371 @@ public class DashboardController : Controller
         vm.ActiveAlerts = await BuildAlertsAsync(persona, fid.Value);
         vm.RecentActivity = await BuildRecentActivityAsync(persona, fid.Value, user.Id);
 
+        // Persona-specific working surface (real lists of items to action, not just count tiles).
+        // BoardKey selects the partial in Views/Dashboard/Partials/_Board{Key}.cshtml; the
+        // strongly-typed payload lives on Board and is cast in the view.
+        (vm.BoardKey, vm.Board) = await BuildBoardAsync(persona, fid.Value, user.Id);
+
         return View(vm);
+    }
+
+    /// <summary>
+    /// Builds the strongly-typed per-persona payload that the role-specific partial renders.
+    /// Returns (null, null) when no specialised partial exists — the view falls back to the
+    /// generic Stats + Activity + Quick-actions shell.
+    /// </summary>
+    private async Task<(string?, object?)> BuildBoardAsync(Persona p, int fid, string userId) => p switch
+    {
+        Persona.Clinician   => ("Clinician",   await BuildClinicianBoardAsync(fid, userId)),
+        Persona.Nursing     => ("Nursing",     await BuildNursingBoardAsync(fid)),
+        Persona.Pharmacy    => ("Pharmacy",    await BuildPharmacyBoardAsync(fid)),
+        Persona.Lab         => ("Lab",         await BuildLabBoardAsync(fid)),
+        Persona.FrontOffice => ("FrontOffice", await BuildFrontOfficeBoardAsync(fid)),
+        Persona.Finance     => ("Finance",     await BuildFinanceBoardAsync(fid)),
+        Persona.Executive   => ("Executive",   await BuildExecutiveBoardAsync(fid)),
+        _ => (null, null)
+    };
+
+    private async Task<ClinicianBoardVm> BuildClinicianBoardAsync(int fid, string userId)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var todayStart = DateTime.UtcNow.Date;
+        var tomorrow = todayStart.AddDays(1);
+        var now = DateTime.UtcNow;
+
+        var waiting = await _db.QueueEntries.AsNoTracking()
+            .Include(q => q.Patient)
+            .Where(q => q.FacilityId == fid && q.TicketDate == today && q.ClinicianId == userId
+                && (q.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.Waiting
+                 || q.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.InConsultation
+                 || q.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.Called))
+            .OrderByDescending(q => q.Priority).ThenBy(q => q.CheckedInAt)
+            .Take(20).ToListAsync();
+
+        var appts = await _db.Appointments.AsNoTracking()
+            .Include(a => a.Patient).Include(a => a.Clinic)
+            .Where(a => a.FacilityId == fid && a.ClinicianId == userId
+                && a.ScheduledStartUtc >= todayStart && a.ScheduledStartUtc < tomorrow)
+            .OrderBy(a => a.ScheduledStartUtc).Take(20).ToListAsync();
+
+        var labs = await _db.LabResults.AsNoTracking()
+            .Include(r => r.LabOrder).ThenInclude(o => o!.Patient)
+            .Include(r => r.LabOrder).ThenInclude(o => o!.LabTest)
+            .Where(r => r.LabOrder!.Patient!.FacilityId == fid
+                && r.LabOrder.OrderedById == userId
+                && r.Status == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Authorized
+                && r.LabOrder.Status != ThriveHealth.Web.Models.Clinical.OrderStatus.Completed)
+            .OrderByDescending(r => r.AuthorizedAt).Take(10).ToListAsync();
+
+        var recent = await _db.Encounters.AsNoTracking()
+            .Include(e => e.Patient)
+            .Include(e => e.Diagnoses)
+            .Where(e => e.FacilityId == fid && e.ClinicianId == userId
+                && e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.Signed)
+            .OrderByDescending(e => e.SignedAt).Take(5).ToListAsync();
+
+        return new ClinicianBoardVm
+        {
+            WaitingList = waiting.Select(q => new WaitingPatient(
+                q.Id, q.PatientId,
+                q.TicketNumber ?? "—",
+                q.Patient is null ? "Unknown" : $"{q.Patient.FirstName} {q.Patient.LastName}".Trim(),
+                q.TriageNotes,
+                q.Priority.ToString(),
+                (int)Math.Max(0, (now - q.CheckedInAt).TotalMinutes))).ToList(),
+
+            TodaysAppointments = appts.Select(a => new TodayAppointment(
+                a.Id, a.PatientId,
+                a.Patient is null ? "Unknown" : $"{a.Patient.FirstName} {a.Patient.LastName}".Trim(),
+                a.ScheduledStartUtc, a.Clinic?.Name, a.Status.ToString())).ToList(),
+
+            LabsToReview = labs.Select(r => new LabReviewItem(
+                r.LabOrderId, r.LabOrder!.PatientId,
+                r.LabOrder.Patient is null ? "Unknown" : $"{r.LabOrder.Patient.FirstName} {r.LabOrder.Patient.LastName}".Trim(),
+                r.LabOrder.LabTest?.Name ?? "Test",
+                r.HasCriticalValue, r.AuthorizedAt ?? r.EnteredAt)).ToList(),
+
+            RecentConsultations = recent.Select(e => new RecentConsult(
+                e.Id, e.PatientId,
+                e.Patient is null ? "Unknown" : $"{e.Patient.FirstName} {e.Patient.LastName}".Trim(),
+                e.Diagnoses.FirstOrDefault()?.Description ?? e.Diagnoses.FirstOrDefault()?.IcdCode,
+                e.SignedAt ?? e.StartedAt)).ToList()
+        };
+    }
+
+    private async Task<NursingBoardVm> BuildNursingBoardAsync(int fid)
+    {
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+
+        var mar = await _db.MarSlots.AsNoTracking()
+            .Include(s => s.InpatientMedication).ThenInclude(m => m!.Admission).ThenInclude(a => a!.Patient)
+            .Include(s => s.InpatientMedication).ThenInclude(m => m!.Admission).ThenInclude(a => a!.Bed)
+            .Where(s => s.InpatientMedication!.Admission!.FacilityId == fid
+                && s.Status == ThriveHealth.Web.Models.Inpatient.MarSlotStatus.Scheduled
+                && s.ScheduledUtc <= now.AddHours(2))
+            .OrderBy(s => s.ScheduledUtc).Take(20).ToListAsync();
+
+        var triage = await _db.Encounters.AsNoTracking()
+            .Include(e => e.Patient)
+            .Where(e => e.FacilityId == fid
+                && e.Type == ThriveHealth.Web.Models.Clinical.EncounterType.Emergency
+                && e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.InProgress
+                && e.ResusBayId == null)
+            .OrderBy(e => e.StartedAt).Take(15).ToListAsync();
+
+        var wards = await _db.Wards.AsNoTracking()
+            .Where(w => w.FacilityId == fid)
+            .Select(w => new
+            {
+                w.Id, w.Name,
+                Total = w.Beds!.Count(),
+                Occupied = w.Beds!.Count(b => b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied)
+            }).ToListAsync();
+
+        var vitalsDue = await _db.Admissions.AsNoTracking()
+            .Include(a => a.Patient).Include(a => a.Bed)
+            .Where(a => a.FacilityId == fid && a.Status == ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Active)
+            .Select(a => new
+            {
+                a.Id, a.PatientId,
+                Patient = a.Patient,
+                Bed = a.Bed,
+                LastVitalsAt = _db.Vitals.Where(v => v.PatientId == a.PatientId)
+                    .OrderByDescending(v => v.RecordedAt).Select(v => (DateTime?)v.RecordedAt).FirstOrDefault()
+            })
+            .Where(x => x.LastVitalsAt == null || x.LastVitalsAt < now.AddHours(-4))
+            .Take(15).ToListAsync();
+
+        return new NursingBoardVm
+        {
+            MedicationDue = mar.Select(s => new DueMedication(
+                s.Id, s.InpatientMedication!.AdmissionId,
+                s.InpatientMedication.Admission!.PatientId,
+                s.InpatientMedication.Admission.Patient is null ? "Unknown"
+                    : $"{s.InpatientMedication.Admission.Patient.FirstName} {s.InpatientMedication.Admission.Patient.LastName}".Trim(),
+                s.InpatientMedication.Admission.Bed?.BedNumber ?? "—",
+                s.InpatientMedication.DrugName, s.InpatientMedication.Dose,
+                s.InpatientMedication.Route,
+                s.ScheduledUtc, s.ScheduledUtc < now)).ToList(),
+
+            TriageQueue = triage.Select(e => new TriagePatient(
+                e.Id, e.PatientId,
+                e.Patient is null ? "Unknown" : $"{e.Patient.FirstName} {e.Patient.LastName}".Trim(),
+                e.ChiefComplaint, e.Triage == null ? "None" : e.Triage.Colour.ToString(), e.StartedAt)).ToList(),
+
+            Wards = wards.Select(w => new WardSnapshot(w.Id, w.Name, w.Total, w.Occupied, w.Total - w.Occupied)).ToList(),
+
+            VitalsDue = vitalsDue.Select(x => new VitalsDuePatient(
+                x.Id, x.PatientId,
+                x.Patient is null ? "Unknown" : $"{x.Patient.FirstName} {x.Patient.LastName}".Trim(),
+                x.Bed?.BedNumber ?? "—",
+                x.LastVitalsAt.HasValue ? (now - x.LastVitalsAt.Value).TotalHours : 999)).ToList()
+        };
+    }
+
+    private async Task<PharmacyBoardVm> BuildPharmacyBoardAsync(int fid)
+    {
+        var todayStart = DateTime.UtcNow.Date;
+
+        var pending = await _db.Prescriptions.AsNoTracking()
+            .Include(p => p.Patient).Include(p => p.Items).Include(p => p.PrescribedBy)
+            .Where(p => p.Patient!.FacilityId == fid
+                && p.Status != ThriveHealth.Web.Models.Clinical.PrescriptionStatus.Dispensed
+                && p.Status != ThriveHealth.Web.Models.Clinical.PrescriptionStatus.Cancelled)
+            .OrderBy(p => p.IssuedAt).Take(20).ToListAsync();
+
+        var lowStock = await _db.DrugStocks.AsNoTracking()
+            .Include(s => s.Drug).Include(s => s.Store)
+            .Where(s => s.Store!.FacilityId == fid && s.Drug != null
+                && s.QuantityOnHand <= (s.Drug.ReorderLevel ?? 0))
+            .OrderBy(s => s.QuantityOnHand).Take(15).ToListAsync();
+
+        var dispenses = await _db.Dispenses.AsNoTracking()
+            .Include(d => d.Patient).Include(d => d.Items)
+            .Where(d => d.FacilityId == fid && d.DispensedAt >= todayStart)
+            .OrderByDescending(d => d.DispensedAt).Take(10).ToListAsync();
+
+        return new PharmacyBoardVm
+        {
+            PendingPrescriptions = pending.Select(p => new PendingPrescription(
+                p.Id, p.PatientId,
+                p.Patient is null ? "Unknown" : $"{p.Patient.FirstName} {p.Patient.LastName}".Trim(),
+                p.Items.Count, p.PrescribedBy is null ? null : $"{p.PrescribedBy.FirstName} {p.PrescribedBy.LastName}".Trim(),
+                p.IssuedAt)).ToList(),
+
+            LowStock = lowStock.Select(s => new LowStockDrug(
+                s.Id, s.Drug == null ? "Unknown" : s.Drug.Display, s.Store?.Name ?? "—",
+                s.QuantityOnHand, s.Drug?.ReorderLevel ?? 0)).ToList(),
+
+            TodaysDispenses = dispenses.Select(d => new TodayDispense(
+                d.Id,
+                d.Patient is null ? "Unknown" : $"{d.Patient.FirstName} {d.Patient.LastName}".Trim(),
+                d.Items.Count, d.DispensedAt)).ToList()
+        };
+    }
+
+    private async Task<LabBoardVm> BuildLabBoardAsync(int fid)
+    {
+        var open = await _db.LabOrders.AsNoTracking()
+            .Include(o => o.Patient).Include(o => o.LabTest)
+            .Where(o => o.Patient!.FacilityId == fid
+                && o.Status != ThriveHealth.Web.Models.Clinical.OrderStatus.Completed
+                && o.Status != ThriveHealth.Web.Models.Clinical.OrderStatus.Cancelled)
+            .OrderBy(o => o.OrderedAt).Take(15).ToListAsync();
+
+        var auth = await _db.LabResults.AsNoTracking()
+            .Include(r => r.LabOrder).ThenInclude(o => o!.Patient)
+            .Include(r => r.LabOrder).ThenInclude(o => o!.LabTest)
+            .Where(r => r.LabOrder!.Patient!.FacilityId == fid
+                && r.Status == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Final)
+            .OrderBy(r => r.AuthorizedAt).Take(15).ToListAsync();
+
+        var critical = await _db.LabResults.AsNoTracking()
+            .Include(r => r.LabOrder).ThenInclude(o => o!.Patient)
+            .Include(r => r.LabOrder).ThenInclude(o => o!.LabTest)
+            .Where(r => r.LabOrder!.Patient!.FacilityId == fid && r.HasCriticalValue && !r.CriticalNotified)
+            .OrderByDescending(r => r.AuthorizedAt).Take(15).ToListAsync();
+
+        OpenLabSample MapOpen(ThriveHealth.Web.Models.Clinical.LabOrder o) => new(
+            o.Id, o.PatientId,
+            o.Patient is null ? "Unknown" : $"{o.Patient.FirstName} {o.Patient.LastName}".Trim(),
+            o.LabTest?.Name ?? "—", o.OrderedAt, o.Status.ToString());
+
+        return new LabBoardVm
+        {
+            OpenSamples = open.Select(MapOpen).ToList(),
+            AwaitingAuthorisation = auth.Select(r => MapOpen(r.LabOrder!)).ToList(),
+            CriticalUnnotified = critical.Select(r => new CriticalValue(
+                r.Id, r.LabOrderId, r.LabOrder!.PatientId,
+                r.LabOrder.Patient is null ? "Unknown" : $"{r.LabOrder.Patient.FirstName} {r.LabOrder.Patient.LastName}".Trim(),
+                r.LabOrder.LabTest?.Name ?? "—",
+                r.GeneralComment ?? "see report",
+                r.AuthorizedAt ?? r.EnteredAt)).ToList()
+        };
+    }
+
+    private async Task<FrontOfficeBoardVm> BuildFrontOfficeBoardAsync(int fid)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var todayStart = DateTime.UtcNow.Date;
+        var tomorrow = todayStart.AddDays(1);
+
+        var queueByClinic = await _db.Clinics.AsNoTracking()
+            .Where(c => c.FacilityId == fid)
+            .Select(c => new
+            {
+                c.Id, c.Name,
+                Waiting = _db.QueueEntries.Count(q => q.ClinicId == c.Id && q.TicketDate == today
+                    && q.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.Waiting),
+                InRoom = _db.QueueEntries.Count(q => q.ClinicId == c.Id && q.TicketDate == today
+                    && q.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.InConsultation),
+                Done = _db.QueueEntries.Count(q => q.ClinicId == c.Id && q.TicketDate == today
+                    && q.Status == ThriveHealth.Web.Models.Scheduling.QueueStatus.Completed)
+            }).ToListAsync();
+
+        var appts = await _db.Appointments.AsNoTracking()
+            .Include(a => a.Patient).Include(a => a.Clinic)
+            .Where(a => a.FacilityId == fid && a.ScheduledStartUtc >= todayStart && a.ScheduledStartUtc < tomorrow)
+            .OrderBy(a => a.ScheduledStartUtc).Take(15).ToListAsync();
+
+        var newPatients = await _db.Patients.AsNoTracking()
+            .Where(p => p.FacilityId == fid && p.CreatedAt >= todayStart && !p.IsMergedAlias)
+            .OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
+
+        return new FrontOfficeBoardVm
+        {
+            QueueByClinic = queueByClinic.Select(c => new ClinicQueueCount(c.Id, c.Name, c.Waiting, c.InRoom, c.Done)).ToList(),
+            TodaysAppointments = appts.Select(a => new TodayAppointment(
+                a.Id, a.PatientId,
+                a.Patient is null ? "Unknown" : $"{a.Patient.FirstName} {a.Patient.LastName}".Trim(),
+                a.ScheduledStartUtc, a.Clinic?.Name, a.Status.ToString())).ToList(),
+            NewRegistrations = newPatients.Select(p => new TodayRegistration(
+                p.Id, $"{p.FirstName} {p.LastName}".Trim(), p.CreatedAt, p.NinVerified)).ToList()
+        };
+    }
+
+    private async Task<FinanceBoardVm> BuildFinanceBoardAsync(int fid)
+    {
+        var todayStart = DateTime.UtcNow.Date;
+
+        var openBills = await _db.Bills.AsNoTracking()
+            .Include(b => b.Patient)
+            .Where(b => b.FacilityId == fid
+                && b.Status != ThriveHealth.Web.Models.Billing.BillStatus.Paid
+                && b.Status != ThriveHealth.Web.Models.Billing.BillStatus.Cancelled)
+            .OrderByDescending(b => b.CreatedAt).Take(20).ToListAsync();
+
+        var payments = await _db.Payments.AsNoTracking()
+            .Include(p => p.Bill).ThenInclude(b => b!.Patient)
+            .Where(p => p.Bill!.FacilityId == fid
+                && p.Status == ThriveHealth.Web.Models.Billing.PaymentStatus.Recorded
+                && p.ReceivedAt >= todayStart)
+            .OrderByDescending(p => p.ReceivedAt).ToListAsync();
+
+        return new FinanceBoardVm
+        {
+            OpenBills = openBills.Select(b => new OpenBill(
+                b.Id, b.PatientId,
+                b.Patient is null ? "Unknown" : $"{b.Patient.FirstName} {b.Patient.LastName}".Trim(),
+                b.GrossAmount, b.Balance, b.CreatedAt)).ToList(),
+            CollectedToday = payments.Sum(p => p.Amount),
+            CollectedByMethod = payments.GroupBy(p => p.Method.ToString()).ToDictionary(g => g.Key, g => g.Sum(p => p.Amount)),
+            RecentPayments = payments.Take(10).Select(p => new RecentPayment(
+                p.Id,
+                p.Bill?.Patient is null ? "Unknown" : $"{p.Bill.Patient.FirstName} {p.Bill.Patient.LastName}".Trim(),
+                p.Amount, p.Method.ToString(), p.ReceivedAt)).ToList()
+        };
+    }
+
+    private async Task<ExecutiveBoardVm> BuildExecutiveBoardAsync(int fid)
+    {
+        var todayStart = DateTime.UtcNow.Date;
+        var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var revenueToday = await _db.Payments.AsNoTracking()
+            .Where(p => p.Bill!.FacilityId == fid
+                && p.Status == ThriveHealth.Web.Models.Billing.PaymentStatus.Recorded
+                && p.ReceivedAt >= todayStart)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+        var revenueMonth = await _db.Payments.AsNoTracking()
+            .Where(p => p.Bill!.FacilityId == fid
+                && p.Status == ThriveHealth.Web.Models.Billing.PaymentStatus.Recorded
+                && p.ReceivedAt >= monthStart)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+        var visitsToday = await _db.Encounters.AsNoTracking()
+            .CountAsync(e => e.FacilityId == fid && e.StartedAt >= todayStart);
+        var visitsMonth = await _db.Encounters.AsNoTracking()
+            .CountAsync(e => e.FacilityId == fid && e.StartedAt >= monthStart);
+
+        var activeAdmissions = await _db.Admissions.AsNoTracking()
+            .CountAsync(a => a.FacilityId == fid && a.Status == ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Active);
+
+        var ae = await _db.Encounters.AsNoTracking()
+            .CountAsync(e => e.FacilityId == fid && e.Type == ThriveHealth.Web.Models.Clinical.EncounterType.Emergency
+                && e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.InProgress);
+
+        var bedsTotal = await _db.Beds.AsNoTracking().CountAsync(b => b.Ward!.FacilityId == fid);
+        var bedsOcc = await _db.Beds.AsNoTracking()
+            .CountAsync(b => b.Ward!.FacilityId == fid && b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied);
+
+        var recentAdm = await _db.Admissions.AsNoTracking()
+            .Include(a => a.Patient).Include(a => a.Ward).Include(a => a.Bed)
+            .Where(a => a.FacilityId == fid && a.Status == ThriveHealth.Web.Models.Inpatient.AdmissionStatus.Active)
+            .OrderByDescending(a => a.AdmittedAt).Take(8).ToListAsync();
+
+        return new ExecutiveBoardVm
+        {
+            RevenueToday = revenueToday, RevenueMonth = revenueMonth,
+            VisitsToday = visitsToday, VisitsMonth = visitsMonth,
+            ActiveAdmissions = activeAdmissions, EmergencyInProgress = ae,
+            BedsTotal = bedsTotal, BedsOccupied = bedsOcc,
+            RecentAdmissions = recentAdm.Select(a => new AdmissionTile(
+                a.Id, a.PatientId,
+                a.Patient is null ? "Unknown" : $"{a.Patient.FirstName} {a.Patient.LastName}".Trim(),
+                a.Ward?.Name ?? "—", a.Bed?.BedNumber ?? "—", a.AdmittedAt)).ToList()
+        };
     }
 
     // ====================================================================================

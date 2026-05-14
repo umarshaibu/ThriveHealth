@@ -51,7 +51,7 @@
             </div>
             <div class="d-flex gap-2">
                 <a asp-controller="Emr" asp-action="AddVitals" asp-route-patientId="@p.Id" class="btn btn-outline-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-heart-pulse me-1"></i> Vitals</a>
-                <a asp-controller="Encounters" asp-action="ListByPatient" asp-route-patientId="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-clipboard-data me-1"></i> Encounters</a>
+                <a asp-controller="Consultations" asp-action="ListByPatient" asp-route-patientId="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-clipboard-data me-1"></i> Consultations</a>
                 <a asp-controller="Lab" asp-action="Patient" asp-route-id="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.LabRead"><i class="bi bi-droplet-half me-1"></i> Labs</a>
                 <a asp-controller="Imaging" asp-action="Patient" asp-route-id="@p.Id" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ImagingRead"><i class="bi bi-radioactive me-1"></i> Imaging</a>
             </div>
@@ -124,7 +124,7 @@
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-meds" type="button">Medications <span class="th-pill th-pill-muted ms-1">@Model.Medications.Count</span></button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-vitals" type="button">Vitals <span class="th-pill th-pill-muted ms-1">@Model.Vitals.Count</span></button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-docs" type="button">Documents <span class="th-pill th-pill-muted ms-1">@Model.Documents.Count</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-encounters" type="button">Encounters <span class="th-pill th-pill-muted ms-1">@Model.Encounters.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-consultations" type="button">Consultations <span class="th-pill th-pill-muted ms-1">@Model.Encounters.Count</span></button></li>
 </ul>
 
 <div class="tab-content">
@@ -352,14 +352,14 @@
         </div>
     </div>
 
-    @* ----- Encounters ----- *@
-    <div class="tab-pane fade" id="tab-encounters">
+    @* ----- Consultations ----- *@
+    <div class="tab-pane fade" id="tab-consultations">
         <div class="d-flex justify-content-between mb-2">
-            <h5 class="mb-0">Encounters</h5>
+            <h5 class="mb-0">Consultations</h5>
         </div>
         @if (!Model.Encounters.Any())
         {
-            <div class="th-empty"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No encounters yet</h5><p class="mb-0">When a clinician starts a consultation from the queue, the encounter appears here.</p></div>
+            <div class="th-empty"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No consultations yet</h5><p class="mb-0">When a clinician starts a consultation from the queue, the consultation appears here.</p></div>
         }
         else
         {
@@ -380,9 +380,9 @@
                         </td>
                         <td class="text-end">
                             @if (e.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.Signed)
-                            { <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@e.Id" class="btn btn-sm btn-outline-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Summary</a> }
+                            { <a asp-controller="Consultations" asp-action="Summary" asp-route-id="@e.Id" class="btn btn-sm btn-outline-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Summary</a> }
                             else
-                            { <a asp-controller="Encounters" asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Open</a> }
+                            { <a asp-controller="Consultations" asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">Open</a> }
                         </td>
                     </tr>
                 }

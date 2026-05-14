@@ -102,7 +102,7 @@ public class ClaimsController : Controller
         if (existing)
         {
             var existingClaim = await _db.Claims.FirstAsync(c => c.EncounterId == encounterId && c.Status != ClaimStatus.Closed);
-            TempData["Error"] = $"A claim already exists for this encounter (#{existingClaim.Id}).";
+            TempData["Error"] = $"A claim already exists for this consultation (#{existingClaim.Id}).";
             return RedirectToAction(nameof(Details), new { id = existingClaim.Id });
         }
 
@@ -134,7 +134,7 @@ public class ClaimsController : Controller
         }
         var claimId = await _claims.BuildFromEncounterAsync(
             ctx.Value.facilityId, m.EncounterId, m.PayerId.Value, m.PayerPlanId, ctx.Value.userId);
-        TempData["Success"] = "Claim drafted from encounter.";
+        TempData["Success"] = "Claim drafted from consultation.";
         return RedirectToAction(nameof(Details), new { id = claimId });
     }
 

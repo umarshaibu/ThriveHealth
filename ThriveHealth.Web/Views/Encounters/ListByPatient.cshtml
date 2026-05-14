@@ -1,18 +1,18 @@
 @model IEnumerable<ThriveHealth.Web.Models.Clinical.Encounter>
 @{
-    ViewData["Title"] = "Encounters";
+    ViewData["Title"] = "Consultations";
     var pid = (int)ViewBag.PatientId;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="th-section-title">Patient encounters</h1>
+    <h1 class="th-section-title">Patient consultations</h1>
     <a asp-controller="Patients" asp-action="Profile" asp-route-id="@pid" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to chart</a>
 </div>
 
 <div class="th-card"><div class="th-card-body p-0">
 @if (!Model.Any())
 {
-    <div class="th-empty m-4"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No encounters yet</h5></div>
+    <div class="th-empty m-4"><i class="bi bi-clipboard2-pulse"></i><h5 class="mt-2">No consultations yet</h5></div>
 }
 else
 {

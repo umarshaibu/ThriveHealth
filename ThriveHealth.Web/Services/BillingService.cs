@@ -97,10 +97,10 @@ public class BillingService : IBillingService
             .Include(e => e.ProcedureOrders)
             .Include(e => e.Prescriptions).ThenInclude(p => p.Items).ThenInclude(i => i.Drug)
             .FirstOrDefaultAsync(e => e.Id == encounterId && e.FacilityId == facilityId, ct)
-            ?? throw new InvalidOperationException("Encounter not found.");
+            ?? throw new InvalidOperationException("Consultation not found.");
 
         var existing = await _db.Bills.FirstOrDefaultAsync(b => b.EncounterId == encounterId && b.Status != BillStatus.Cancelled, ct);
-        if (existing is not null) throw new InvalidOperationException($"A bill already exists for this encounter (#{existing.Id}).");
+        if (existing is not null) throw new InvalidOperationException($"A bill already exists for this consultation (#{existing.Id}).");
 
         var dispenseItems = await _db.DispenseItems.AsNoTracking()
             .Include(di => di.Dispense).ThenInclude(d => d!.Prescription)

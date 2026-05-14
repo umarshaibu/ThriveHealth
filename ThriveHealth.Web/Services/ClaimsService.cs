@@ -64,7 +64,7 @@ public class ClaimsService : IClaimsService
             .Include(e => e.ProcedureOrders)
             .Include(e => e.Prescriptions).ThenInclude(p => p.Items).ThenInclude(i => i.Drug)
             .FirstOrDefaultAsync(e => e.Id == encounterId && e.FacilityId == facilityId, ct)
-            ?? throw new InvalidOperationException("Encounter not found.");
+            ?? throw new InvalidOperationException("Consultation not found.");
 
         var payer = await _db.Payers.FirstOrDefaultAsync(p => p.Id == payerId, ct)
             ?? throw new InvalidOperationException("Payer not found.");

@@ -1,0 +1,159 @@
+@model ThriveHealth.Web.Models.ViewModels.ClinicianBoardVm
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-person-lines-fill me-1 text-primary"></i> My waiting list</h5>
+                <a asp-controller="Queue" asp-action="MyQueue" class="small">Open queue →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.WaitingList.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">No one is waiting for you right now</h6>
+                        <p class="mb-0 small">When patients are checked into your clinic they'll show up here.</p>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr>
+                            <th>Ticket</th><th>Patient</th><th>Complaint</th><th>Priority</th><th>Waiting</th><th></th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach (var p in Model.WaitingList)
+                        {
+                            var tone = p.WaitingMinutes > 30 ? "danger" : p.WaitingMinutes > 15 ? "warning" : "muted";
+                            <tr>
+                                <td class="font-monospace small">@p.TicketNo</td>
+                                <td class="fw-semibold">@p.PatientName</td>
+                                <td class="small text-muted">@(p.Complaint ?? "—")</td>
+                                <td>
+                                    @if (p.Priority == "Stat" || p.Priority == "Urgent")
+                                    { <span class="th-pill th-pill-danger">@p.Priority</span> }
+                                    else
+                                    { <span class="th-pill th-pill-info">@p.Priority</span> }
+                                </td>
+                                <td><span class="text-@tone">@p.WaitingMinutes m</span></td>
+                                <td><a asp-controller="Encounters" asp-action="OpenFromQueue" asp-route-queueEntryId="@p.QueueEntryId" class="btn btn-sm btn-primary">Open</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-calendar2-check me-1 text-info"></i> Today's appointments</h5>
+                <a asp-controller="Appointments" asp-action="Index" class="small">All →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.TodaysAppointments.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-calendar2"></i>
+                        <h6 class="mt-2 mb-1">No appointments scheduled today</h6>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                    @foreach (var a in Model.TodaysAppointments)
+                    {
+                        <li class="border-bottom px-3 py-2 d-flex align-items-start gap-2">
+                            <div class="text-center" style="min-width:54px;">
+                                <div class="fw-bold">@a.ScheduledAt.ToLocalTime().ToString("HH:mm")</div>
+                                <div class="small text-muted">@a.ScheduledAt.ToLocalTime().ToString("dd MMM")</div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">@a.PatientName</div>
+                                <div class="small text-muted">@(a.Clinic ?? "—") · @a.Status</div>
+                            </div>
+                            <a asp-controller="Appointments" asp-action="Details" asp-route-id="@a.AppointmentId" class="btn btn-sm btn-outline-primary">Open</a>
+                        </li>
+                    }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-droplet-half me-1 text-warning"></i> Lab results awaiting your review</h5>
+                <a asp-controller="Lab" asp-action="Index" class="small">Lab worklist →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.LabsToReview.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">All caught up</h6>
+                        <p class="mb-0 small">No authorised results are waiting for your sign-off.</p>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Patient</th><th>Test</th><th>Critical?</th><th>Resulted</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var l in Model.LabsToReview)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@l.PatientName</td>
+                                <td class="small">@l.Tests</td>
+                                <td>
+                                    @if (l.HasCritical)
+                                    { <span class="th-pill th-pill-danger">CRITICAL</span> }
+                                    else
+                                    { <span class="th-pill th-pill-muted">Normal</span> }
+                                </td>
+                                <td class="small text-muted">@l.ResultedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                <td><a asp-controller="Lab" asp-action="Order" asp-route-id="@l.LabOrderId" class="btn btn-sm btn-outline-primary">Review</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header">
+                <h5 class="th-card-title mb-0"><i class="bi bi-clock-history me-1 text-success"></i> Recent consultations</h5>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.RecentConsultations.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-clipboard2-pulse"></i>
+                        <h6 class="mt-2 mb-1">No signed consultations yet</h6>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                    @foreach (var c in Model.RecentConsultations)
+                    {
+                        <li class="border-bottom px-3 py-2">
+                            <a class="fw-semibold text-decoration-none" asp-controller="Encounters" asp-action="Summary" asp-route-id="@c.EncounterId">@c.PatientName</a>
+                            <div class="small text-muted">@(c.Diagnosis ?? "no diagnosis") · @c.SignedAt.ToLocalTime().ToString("dd MMM HH:mm")</div>
+                        </li>
+                    }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>

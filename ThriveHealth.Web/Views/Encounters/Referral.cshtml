@@ -7,9 +7,9 @@
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h1 class="th-section-title"><i class="bi bi-stars text-primary me-1"></i> Referral letter <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h1>
-        <p class="th-section-sub mb-0"><strong>@enc.Patient!.FullName</strong> · @enc.Patient.HospitalNumber · encounter @enc.StartedAt.ToLocalTime().ToString("dd MMM HH:mm")</p>
+        <p class="th-section-sub mb-0"><strong>@enc.Patient!.FullName</strong> · @enc.Patient.HospitalNumber · consultation @enc.StartedAt.ToLocalTime().ToString("dd MMM HH:mm")</p>
     </div>
-    <a asp-action="Edit" asp-route-id="@enc.Id" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to encounter</a>
+    <a asp-action="Edit" asp-route-id="@enc.Id" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to consultation</a>
 </div>
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }

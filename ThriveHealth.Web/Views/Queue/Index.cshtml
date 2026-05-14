@@ -6,7 +6,7 @@
         <h1 class="th-section-title">Live queues</h1>
         <p class="th-section-sub mb-0">Pick a clinic to view and manage its waiting queue.</p>
     </div>
-    <a asp-action="CheckIn" class="btn btn-primary"><i class="bi bi-door-open me-1"></i> Check in walk-in</a>
+    <a asp-action="CheckIn" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueCheckIn" class="btn btn-primary"><i class="bi bi-door-open me-1"></i> Check in walk-in</a>
 </div>
 
 <div class="row g-3">

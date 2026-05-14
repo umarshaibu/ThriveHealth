@@ -18,6 +18,14 @@ namespace ThriveHealth.Web.Data;
 
 public static class DbSeeder
 {
+    /// <summary>
+    /// Unified password for every seeded demo user. Picked so it satisfies Identity's default
+    /// requirements (length 8+, upper, lower, digit) without trying to be secret — this is
+    /// dev/demo data only. Override via <c>Seed:DemoPassword</c> in appsettings if you ever
+    /// want to harden a shared demo environment.
+    /// </summary>
+    public const string DemoPassword = "Demo@12345";
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
@@ -94,7 +102,7 @@ public static class DbSeeder
                 FacilityId = facility.Id,
                 IsActive = true
             };
-            var result = await userManager.CreateAsync(admin, adminCfg["Password"] ?? "Admin@12345");
+            var result = await userManager.CreateAsync(admin, adminCfg["Password"] ?? DemoPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(admin, Roles.SystemAdministrator);
@@ -134,7 +142,7 @@ public static class DbSeeder
                 TenantId = null,
                 IsActive = true
             };
-            var result = await userManager.CreateAsync(superAdmin, superCfg["Password"] ?? "SuperAdmin@12345");
+            var result = await userManager.CreateAsync(superAdmin, superCfg["Password"] ?? DemoPassword);
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(superAdmin, Roles.SuperAdmin);
         }
@@ -161,7 +169,7 @@ public static class DbSeeder
                 FacilityId = facility.Id,
                 IsActive = true
             };
-            var r = await userManager.CreateAsync(demoDoc, "Doctor@12345");
+            var r = await userManager.CreateAsync(demoDoc, DemoPassword);
             if (r.Succeeded) await userManager.AddToRoleAsync(demoDoc, Roles.Doctor);
         }
 
@@ -183,7 +191,7 @@ public static class DbSeeder
                 FacilityId = facility.Id,
                 IsActive = true
             };
-            var r = await userManager.CreateAsync(demoNurse, "Nurse@12345");
+            var r = await userManager.CreateAsync(demoNurse, DemoPassword);
             if (r.Succeeded) await userManager.AddToRoleAsync(demoNurse, Roles.Nurse);
         }
 
@@ -387,7 +395,7 @@ public static class DbSeeder
                 FacilityId = facility.Id,
                 IsActive = true
             };
-            var r = await userManager.CreateAsync(demoCashier, "Cashier@12345");
+            var r = await userManager.CreateAsync(demoCashier, DemoPassword);
             if (r.Succeeded) await userManager.AddToRoleAsync(demoCashier, Roles.Cashier);
         }
 
@@ -474,7 +482,7 @@ public static class DbSeeder
                 FacilityId = facility.Id,
                 IsActive = true
             };
-            var r = await userManager.CreateAsync(demoLab, "LabSci@12345");
+            var r = await userManager.CreateAsync(demoLab, DemoPassword);
             if (r.Succeeded) await userManager.AddToRoleAsync(demoLab, Roles.LabScientist);
         }
 
@@ -496,7 +504,7 @@ public static class DbSeeder
                 FacilityId = facility.Id,
                 IsActive = true
             };
-            var r = await userManager.CreateAsync(demoRad, "Radio@12345");
+            var r = await userManager.CreateAsync(demoRad, DemoPassword);
             if (r.Succeeded) await userManager.AddToRoleAsync(demoRad, Roles.Radiographer);
         }
 
@@ -504,28 +512,28 @@ public static class DbSeeder
         var demoRoleUsers = new[]
         {
             // (email, password, role, first, last, staff #, designation, department, licenseBody, licenseNumber)
-            ("md@thrivehealth.ng",        "Director@12345",  Roles.MedicalDirector,        "Adebola", "Akande",   "TH-MD-0001",  "Medical Director",        "Executive",          "MDCN",   "MDCN/2002/00099"),
-            ("ceo@thrivehealth.ng",       "Ceo@12345",       Roles.ChiefExecutive,         "Funmi",   "Bakare",   "TH-CEO-0001", "Chief Executive",         "Executive",          (string?)null, (string?)null),
-            ("cfo@thrivehealth.ng",       "Cfo@12345",       Roles.ChiefFinancialOfficer,  "Olumide", "Eze",      "TH-CFO-0001", "Chief Financial Officer", "Finance",            null, null),
-            ("consultant@thrivehealth.ng","Consult@12345",   Roles.Consultant,             "Kemi",    "Olawale",  "TH-CON-0001", "Consultant Physician",    "Internal Medicine",  "MDCN",   "MDCN/2008/12345"),
-            ("mo@thrivehealth.ng",        "Officer@12345",   Roles.MedicalOfficer,         "Tunde",   "Lawal",    "TH-MO-0001",  "Medical Officer",         "General Practice",   "MDCN",   "MDCN/2020/77123"),
-            ("cno@thrivehealth.ng",       "Nursing@12345",   Roles.ChiefNursingOfficer,    "Grace",   "Iwu",      "TH-CNO-0001", "Chief Nursing Officer",   "Nursing",            "NMCN",   "NMCN/1998/00112"),
-            ("midwife@thrivehealth.ng",   "Midwife@12345",   Roles.Midwife,                "Ngozi",   "Okeke",    "TH-MW-0001",  "Senior Midwife",          "Maternity",          "NMCN",   "NMCN/2014/22390"),
-            ("pharm@thrivehealth.ng",     "Pharm@12345",     Roles.Pharmacist,             "Ifeoma",  "Nwankwo",  "TH-PHM-0001", "Senior Pharmacist",       "Pharmacy",           "PCN",    "PCN/2015/8810"),
-            ("phtech@thrivehealth.ng",    "PhTech@12345",    Roles.PharmacyTechnician,     "Bashir",  "Yusuf",    "TH-PHT-0001", "Pharmacy Technician",     "Pharmacy",           "PCN",    "PCN-T/2021/3320"),
-            ("labtech@thrivehealth.ng",   "LabTech@12345",   Roles.LabTechnician,          "Aisha",   "Garba",    "TH-LBT-0001", "Lab Technician",          "Laboratory",         "MLSCN",  "MLSCN-T/2022/5566"),
-            ("physio@thrivehealth.ng",    "Physio@12345",    Roles.Physiotherapist,        "Tobi",    "Adesanya", "TH-PHY-0001", "Senior Physiotherapist",  "Physiotherapy",      "MRTBN",  "MRTBN/2017/4421"),
-            ("recep@thrivehealth.ng",     "Recep@12345",     Roles.Receptionist,           "Blessing","Eze",      "TH-RCP-0001", "Front-desk Receptionist", "Front Office",       null, null),
-            ("records@thrivehealth.ng",   "Records@12345",   Roles.RecordsOfficer,         "Yetunde", "Olu",      "TH-REC-0001", "Records Officer",         "Health Records",     null, null),
-            ("triage@thrivehealth.ng",    "Triage@12345",    Roles.TriageClerk,            "Sade",    "Bello",    "TH-TRG-0001", "Triage Clerk",            "Front Office",       null, null),
-            ("acct@thrivehealth.ng",      "Acct@12345",      Roles.Accountant,             "Emeka",   "Onuoha",   "TH-ACT-0001", "Accountant",              "Finance",            null, null),
-            ("claims@thrivehealth.ng",    "Claims@12345",    Roles.ClaimsOfficer,          "Hadiza",  "Mohammed", "TH-CLM-0001", "Claims Officer",          "Finance",            null, null),
-            ("hr@thrivehealth.ng",        "Hr@12345",        Roles.HrOfficer,              "Patience","Ojo",      "TH-HR-0001",  "HR Officer",              "Human Resources",    null, null),
-            ("procure@thrivehealth.ng",   "Procure@12345",   Roles.ProcurementOfficer,     "Suleiman","Bala",     "TH-PRC-0001", "Procurement Officer",     "Procurement",        null, null),
-            ("store@thrivehealth.ng",     "Store@12345",     Roles.StoreOfficer,           "Ada",     "Nnamdi",   "TH-STR-0001", "Central Store Officer",   "Stores",             null, null),
-            ("biomed@thrivehealth.ng",    "Biomed@12345",    Roles.BiomedicalEngineer,     "Ibrahim", "Suleiman", "TH-BME-0001", "Biomedical Engineer",     "Biomedical",         null, null),
-            ("nurse2@thrivehealth.ng",    "Nurse@12345",     Roles.Nurse,                  "Maryam",  "Yakubu",   "TH-NRS-0002", "Staff Nurse",             "A&E",                "NMCN",   "NMCN/2019/55432"),
-            ("ph@thrivehealth.ng",        "PubHealth@12345", Roles.PublicHealthOfficer,    "Ngozi",   "Eze",      "TH-PHO-0001", "Public Health Officer",   "Public Health",      null, null)
+            ("md@thrivehealth.ng",        DemoPassword,  Roles.MedicalDirector,        "Adebola", "Akande",   "TH-MD-0001",  "Medical Director",        "Executive",          "MDCN",   "MDCN/2002/00099"),
+            ("ceo@thrivehealth.ng",       DemoPassword,       Roles.ChiefExecutive,         "Funmi",   "Bakare",   "TH-CEO-0001", "Chief Executive",         "Executive",          (string?)null, (string?)null),
+            ("cfo@thrivehealth.ng",       DemoPassword,       Roles.ChiefFinancialOfficer,  "Olumide", "Eze",      "TH-CFO-0001", "Chief Financial Officer", "Finance",            null, null),
+            ("consultant@thrivehealth.ng",DemoPassword,   Roles.Consultant,             "Kemi",    "Olawale",  "TH-CON-0001", "Consultant Physician",    "Internal Medicine",  "MDCN",   "MDCN/2008/12345"),
+            ("mo@thrivehealth.ng",        DemoPassword,   Roles.MedicalOfficer,         "Tunde",   "Lawal",    "TH-MO-0001",  "Medical Officer",         "General Practice",   "MDCN",   "MDCN/2020/77123"),
+            ("cno@thrivehealth.ng",       DemoPassword,   Roles.ChiefNursingOfficer,    "Grace",   "Iwu",      "TH-CNO-0001", "Chief Nursing Officer",   "Nursing",            "NMCN",   "NMCN/1998/00112"),
+            ("midwife@thrivehealth.ng",   DemoPassword,   Roles.Midwife,                "Ngozi",   "Okeke",    "TH-MW-0001",  "Senior Midwife",          "Maternity",          "NMCN",   "NMCN/2014/22390"),
+            ("pharm@thrivehealth.ng",     DemoPassword,     Roles.Pharmacist,             "Ifeoma",  "Nwankwo",  "TH-PHM-0001", "Senior Pharmacist",       "Pharmacy",           "PCN",    "PCN/2015/8810"),
+            ("phtech@thrivehealth.ng",    DemoPassword,    Roles.PharmacyTechnician,     "Bashir",  "Yusuf",    "TH-PHT-0001", "Pharmacy Technician",     "Pharmacy",           "PCN",    "PCN-T/2021/3320"),
+            ("labtech@thrivehealth.ng",   DemoPassword,   Roles.LabTechnician,          "Aisha",   "Garba",    "TH-LBT-0001", "Lab Technician",          "Laboratory",         "MLSCN",  "MLSCN-T/2022/5566"),
+            ("physio@thrivehealth.ng",    DemoPassword,    Roles.Physiotherapist,        "Tobi",    "Adesanya", "TH-PHY-0001", "Senior Physiotherapist",  "Physiotherapy",      "MRTBN",  "MRTBN/2017/4421"),
+            ("recep@thrivehealth.ng",     DemoPassword,     Roles.Receptionist,           "Blessing","Eze",      "TH-RCP-0001", "Front-desk Receptionist", "Front Office",       null, null),
+            ("records@thrivehealth.ng",   DemoPassword,   Roles.RecordsOfficer,         "Yetunde", "Olu",      "TH-REC-0001", "Records Officer",         "Health Records",     null, null),
+            ("triage@thrivehealth.ng",    DemoPassword,    Roles.TriageClerk,            "Sade",    "Bello",    "TH-TRG-0001", "Triage Clerk",            "Front Office",       null, null),
+            ("acct@thrivehealth.ng",      DemoPassword,      Roles.Accountant,             "Emeka",   "Onuoha",   "TH-ACT-0001", "Accountant",              "Finance",            null, null),
+            ("claims@thrivehealth.ng",    DemoPassword,    Roles.ClaimsOfficer,          "Hadiza",  "Mohammed", "TH-CLM-0001", "Claims Officer",          "Finance",            null, null),
+            ("hr@thrivehealth.ng",        DemoPassword,        Roles.HrOfficer,              "Patience","Ojo",      "TH-HR-0001",  "HR Officer",              "Human Resources",    null, null),
+            ("procure@thrivehealth.ng",   DemoPassword,   Roles.ProcurementOfficer,     "Suleiman","Bala",     "TH-PRC-0001", "Procurement Officer",     "Procurement",        null, null),
+            ("store@thrivehealth.ng",     DemoPassword,     Roles.StoreOfficer,           "Ada",     "Nnamdi",   "TH-STR-0001", "Central Store Officer",   "Stores",             null, null),
+            ("biomed@thrivehealth.ng",    DemoPassword,    Roles.BiomedicalEngineer,     "Ibrahim", "Suleiman", "TH-BME-0001", "Biomedical Engineer",     "Biomedical",         null, null),
+            ("nurse2@thrivehealth.ng",    DemoPassword,     Roles.Nurse,                  "Maryam",  "Yakubu",   "TH-NRS-0002", "Staff Nurse",             "A&E",                "NMCN",   "NMCN/2019/55432"),
+            ("ph@thrivehealth.ng",        DemoPassword, Roles.PublicHealthOfficer,    "Ngozi",   "Eze",      "TH-PHO-0001", "Public Health Officer",   "Public Health",      null, null)
         };
 
         foreach (var u in demoRoleUsers)
@@ -548,6 +556,29 @@ public static class DbSeeder
             };
             var res = await userManager.CreateAsync(user, u.Item2);
             if (res.Succeeded) await userManager.AddToRoleAsync(user, u.Item3);
+        }
+
+        // Demo-mode password sync: idempotently force every demo user's password to the
+        // unified DemoPassword. This catches accounts that were created on earlier seed
+        // runs with per-role passwords (Doctor@12345, Nurse@12345, …) and brings them
+        // in line on the next startup without needing a DB wipe.
+        var demoEmails = demoRoleUsers.Select(x => x.Item1)
+            .Append("admin@thrivehealth.ng")
+            .Append("superadmin@thrivehealth.ng")
+            .Append("doc@thrivehealth.ng")
+            .Append("nurse@thrivehealth.ng")
+            .Append("cashier@thrivehealth.ng")
+            .Append("lab@thrivehealth.ng")
+            .Append("rad@thrivehealth.ng")
+            .ToList();
+
+        foreach (var email in demoEmails)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+            if (user is null) continue;
+            if (await userManager.CheckPasswordAsync(user, DemoPassword)) continue; // already in sync
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            await userManager.ResetPasswordAsync(user, token, DemoPassword);
         }
     }
 

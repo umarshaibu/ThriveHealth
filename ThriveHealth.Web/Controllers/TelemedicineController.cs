@@ -214,7 +214,7 @@ public class TelemedicineController : Controller
         var ctx = await Ctx();
         if (ctx is null) return Unauthorized();
         var ok = await _tele.SaveNotesAsync(id, ctx.Value.userId, req.Subjective, req.Objective, req.Assessment, req.Plan);
-        return ok ? Ok(new { savedAt = DateTime.UtcNow }) : BadRequest(new { error = "No active encounter — try refreshing the room." });
+        return ok ? Ok(new { savedAt = DateTime.UtcNow }) : BadRequest(new { error = "No active consultation — try refreshing the room." });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -238,7 +238,7 @@ public class TelemedicineController : Controller
         if (ctx is null) return Unauthorized();
         if (string.IsNullOrWhiteSpace(req.DrugName)) return BadRequest(new { error = "Drug name is required." });
         var newId = await _actions.AddPrescriptionItemAsync(id, ctx.Value.userId, req);
-        if (newId is null) return BadRequest(new { error = "No active encounter or you're not the assigned clinician." });
+        if (newId is null) return BadRequest(new { error = "No active consultation or you're not the assigned clinician." });
         return Ok(new { id = newId });
     }
 
@@ -249,7 +249,7 @@ public class TelemedicineController : Controller
         if (ctx is null) return Unauthorized();
         if (string.IsNullOrWhiteSpace(req.TestName)) return BadRequest(new { error = "Test name is required." });
         var newId = await _actions.CreateLabOrderAsync(id, ctx.Value.userId, req);
-        if (newId is null) return BadRequest(new { error = "No active encounter." });
+        if (newId is null) return BadRequest(new { error = "No active consultation." });
         return Ok(new { id = newId });
     }
 
@@ -260,7 +260,7 @@ public class TelemedicineController : Controller
         if (ctx is null) return Unauthorized();
         if (string.IsNullOrWhiteSpace(req.StudyDescription)) return BadRequest(new { error = "Study description is required." });
         var newId = await _actions.CreateImagingOrderAsync(id, ctx.Value.userId, req);
-        if (newId is null) return BadRequest(new { error = "No active encounter." });
+        if (newId is null) return BadRequest(new { error = "No active consultation." });
         return Ok(new { id = newId });
     }
 
@@ -271,7 +271,7 @@ public class TelemedicineController : Controller
         if (ctx is null) return Unauthorized();
         if (req.EndDate < req.StartDate) return BadRequest(new { error = "End date cannot be before start date." });
         var newId = await _actions.IssueMedicalCertificateAsync(id, ctx.Value.userId, req);
-        if (newId is null) return BadRequest(new { error = "No active encounter." });
+        if (newId is null) return BadRequest(new { error = "No active consultation." });
         return Ok(new { id = newId, viewUrl = Url.Action(nameof(SickNote), new { certId = newId }) });
     }
 
@@ -283,7 +283,7 @@ public class TelemedicineController : Controller
         if (string.IsNullOrWhiteSpace(req.Specialty) && string.IsNullOrWhiteSpace(req.ReferredToClinicianId))
             return BadRequest(new { error = "Pick a specialty or a specific clinician." });
         var newId = await _actions.CreateReferralAsync(id, ctx.Value.userId, req);
-        if (newId is null) return BadRequest(new { error = "No active encounter." });
+        if (newId is null) return BadRequest(new { error = "No active consultation." });
         return Ok(new { id = newId });
     }
 

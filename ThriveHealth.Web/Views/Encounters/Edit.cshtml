@@ -22,9 +22,9 @@
     <div class="d-flex gap-2">
         <a asp-controller="Patients" asp-action="Profile" asp-route-id="@p.Id" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i> Open chart</a>
         <a asp-action="Referral" asp-route-id="@enc.Id" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiReferralDraft" class="btn btn-outline-primary"><i class="bi bi-stars me-1"></i> Referral letter</a>
-        <a asp-controller="Admissions" asp-action="Admit" asp-route-sourceEncounterId="@enc.Id" class="btn btn-outline-warning" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage"><i class="bi bi-hospital me-1"></i> Admit</a>
+        <button type="button" class="btn btn-warning text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#admitModal" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage"><i class="bi bi-hospital me-1"></i> Admit</button>
         <button type="button" class="btn btn-outline-primary" onclick="aiDocQuality(@enc.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDocQuality"><i class="bi bi-stars me-1"></i> AI quality check</button>
-        <form asp-action="SignOff" asp-route-id="@enc.Id" method="post" onsubmit="return confirm('Sign off this encounter? This locks the record.');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+        <form asp-action="SignOff" asp-route-id="@enc.Id" method="post" onsubmit="return confirm('Sign off this consultation? This locks the record.');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
             @Html.AntiForgeryToken()
             <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Sign off</button>
         </form>
@@ -436,7 +436,7 @@
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase small text-muted"><i class="bi bi-clock-history me-1"></i> Past encounters</h6>
+            <h6 class="text-uppercase small text-muted"><i class="bi bi-clock-history me-1"></i> Past consultations</h6>
             @if (!Model.PastEncounters.Any()) { <div class="text-muted">None.</div> }
             else { foreach (var e in Model.PastEncounters) {
                 <div class="border-bottom pb-2 mb-2 small">
@@ -459,7 +459,7 @@ async function aiIcdSuggest(encounterId) {
     out.textContent = 'Thinking…';
     var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
     try {
-        var r = await fetch('/Encounters/IcdSuggest', { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token }, body: JSON.stringify({ encounterId: encounterId, diagnosisText: text }) });
+        var r = await fetch('/Consultations/IcdSuggest', { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token }, body: JSON.stringify({ encounterId: encounterId, diagnosisText: text }) });
         var j = await r.json();
         out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
     } catch (e) { out.textContent = 'AI failed: ' + e.message; }
@@ -494,7 +494,7 @@ async function aiStructureSoap(encounterId) {
     if (!n) { out.textContent = 'Dictate or type a narrative first.'; return; }
     out.textContent = 'Structuring…';
     try {
-        var r = await fetch('/Encounters/SoapStructure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encounterId: encounterId, narrative: n }) });
+        var r = await fetch('/Consultations/SoapStructure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encounterId: encounterId, narrative: n }) });
         var j = await r.json();
         out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
     } catch (e) { out.textContent = 'AI failed: ' + e.message; }
@@ -505,7 +505,7 @@ async function aiDocQuality(encounterId) {
     card.style.display = 'block';
     out.textContent = 'Reviewing…';
     try {
-        var r = await fetch('/Encounters/DocQuality?id=' + encounterId, { method: 'POST' });
+        var r = await fetch('/Consultations/DocQuality?id=' + encounterId, { method: 'POST' });
         var j = await r.json();
         out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
     } catch (e) { out.textContent = 'AI failed: ' + e.message; }
@@ -516,7 +516,7 @@ async function aiEcg(encounterId) {
     if (!f) { out.textContent = 'Enter ECG findings first.'; return; }
     out.textContent = 'Interpreting…';
     try {
-        var r = await fetch('/Encounters/EcgInterpret', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encounterId: encounterId, findings: f }) });
+        var r = await fetch('/Consultations/EcgInterpret', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encounterId: encounterId, findings: f }) });
         var j = await r.json();
         out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
     } catch (e) { out.textContent = 'AI failed: ' + e.message; }
@@ -528,7 +528,7 @@ async function aiDrugCheck(encounterId) {
     out.textContent = 'Checking…';
     var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
     try {
-        var r = await fetch('/Encounters/DrugCheck', { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token }, body: JSON.stringify({ encounterId: encounterId, proposed: proposed, existing: [] }) });
+        var r = await fetch('/Consultations/DrugCheck', { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token }, body: JSON.stringify({ encounterId: encounterId, proposed: proposed, existing: [] }) });
         var j = await r.json();
         out.textContent = j.ok ? j.text : ('AI failed: ' + (j.error || 'unknown'));
     } catch (e) { out.textContent = 'AI failed: ' + e.message; }
@@ -549,7 +549,7 @@ async function autoSave(){
         assessment: document.getElementById('soap-a').value,
         plan: document.getElementById('soap-p').value };
     try {
-        const r = await fetch('/Encounters/SaveSoap', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const r = await fetch('/Consultations/SaveSoap', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         if (r.ok) { dirty = false; $status.textContent = 'saved ' + new Date().toLocaleTimeString(); $status.className = 'th-pill th-pill-success'; }
         else { $status.textContent = 'save failed'; $status.className = 'th-pill th-pill-danger'; }
     } catch(e) { $status.textContent = 'offline'; $status.className = 'th-pill th-pill-danger'; }
@@ -699,7 +699,7 @@ if ($labIn) {
         $labId.value = '';
         if (q.length < 2) { $labRes.innerHTML = ''; return; }
         lt = setTimeout(async () => {
-            const r = await fetch('/Encounters/SearchLabTests?q=' + encodeURIComponent(q));
+            const r = await fetch('/Consultations/SearchLabTests?q=' + encodeURIComponent(q));
             const items = await r.json();
             $labRes.innerHTML = items.map(t =>
                 `<a href="#" class="list-group-item list-group-item-action small" data-id="${t.id}" data-name="${t.name}" data-specimen="${t.specimen ?? ''}">
@@ -715,5 +715,87 @@ if ($labIn) {
         }, 200);
     });
 }
+
+// --------- Admit modal: cascade Bed dropdown to the selected Ward ----------
+(function () {
+    const wardSelect = document.getElementById('admitWardSelect');
+    const bedSelect = document.getElementById('admitBedSelect');
+    if (!wardSelect || !bedSelect) return;
+    const allBeds = JSON.parse(document.getElementById('admitBedsData').textContent || '[]');
+    function refillBeds() {
+        const wid = parseInt(wardSelect.value || '0', 10);
+        bedSelect.innerHTML = '<option value="">— pick a bed —</option>';
+        allBeds.filter(b => b.wardId === wid).forEach(b => {
+            const o = document.createElement('option');
+            o.value = b.id; o.textContent = b.label;
+            bedSelect.appendChild(o);
+        });
+    }
+    wardSelect.addEventListener('change', refillBeds);
+})();
 </script>
 }
+
+@* ====================== Admit modal ====================== *@
+@{
+    var admitWards   = (System.Collections.IEnumerable?)ViewBag.AdmitWards ?? Array.Empty<object>();
+    var admitBeds    = ViewBag.AdmitFreeBeds ?? new object[0];
+    var admitDoctors = (System.Collections.IEnumerable?)ViewBag.AdmitDoctors ?? Array.Empty<object>();
+}
+<div class="modal fade" id="admitModal" tabindex="-1" aria-labelledby="admitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="Admissions" asp-action="Admit" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PatientId" value="@p.Id" />
+                <input type="hidden" name="SourceEncounterId" value="@enc.Id" />
+
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold" id="admitModalLabel"><i class="bi bi-hospital me-2"></i>Admit @p.FullName</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">From this consultation · @p.HospitalNumber</p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Ward</label>
+                            <select id="admitWardSelect" name="WardId" class="form-select" required>
+                                <option value="">— select ward —</option>
+                                @foreach (dynamic w in admitWards) { <option value="@w.Id">@w.Name</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Bed</label>
+                            <select id="admitBedSelect" name="BedId" class="form-select" required>
+                                <option value="">— pick a ward first —</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small">Admitting doctor</label>
+                            <select name="AdmittingDoctorId" class="form-select" required>
+                                <option value="">— select doctor —</option>
+                                @foreach (dynamic d in admitDoctors) { <option value="@d.Id">@d.Label</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small">Reason for admission</label>
+                            <textarea name="ReasonForAdmission" class="form-control" rows="2" required placeholder="e.g. Severe malaria for IV therapy and monitoring."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small">Working diagnosis (optional)</label>
+                            <input name="WorkingDiagnosis" class="form-control" placeholder="e.g. Falciparum malaria" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-semibold"><i class="bi bi-hospital me-1"></i> Admit patient</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* JSON bag for cascading the bed dropdown. *@
+<script id="admitBedsData" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(admitBeds))</script>

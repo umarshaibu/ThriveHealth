@@ -174,7 +174,7 @@ public class OrderSetService : IOrderSetService
     {
         var set = Sets.FirstOrDefault(s => s.Key == key) ?? throw new InvalidOperationException("Unknown order set");
         var enc = await _db.Encounters.FirstOrDefaultAsync(e => e.Id == encounterId, ct)
-            ?? throw new InvalidOperationException("Encounter not found");
+            ?? throw new InvalidOperationException("Consultation not found");
 
         var labCatalog = await _db.LabTests.AsNoTracking().Where(t => t.IsActive).ToListAsync(ct);
         foreach (var l in set.Labs)

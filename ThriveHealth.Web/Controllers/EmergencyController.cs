@@ -256,7 +256,7 @@ public class EmergencyController : Controller
         var ctx = await Ctx();
         if (ctx is null) return NotFound();
         var ok = await _triage.AssignToBayAsync(encounterId, bayId, ctx.Value.userId);
-        if (!ok) TempData["Error"] = "Bay is occupied or encounter not found.";
+        if (!ok) TempData["Error"] = "Bay is occupied or consultation not found.";
         else TempData["Success"] = "Patient moved to resus.";
         return RedirectToAction(nameof(Encounter), new { id = encounterId });
     }
@@ -392,7 +392,7 @@ public class EmergencyController : Controller
         });
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"A&E encounter signed off · {m.Disposition}.";
+        TempData["Success"] = $"A&E consultation signed off · {m.Disposition}.";
         return RedirectToAction("Summary", "Encounters", new { id = enc.Id });
     }
 

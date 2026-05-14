@@ -1,0 +1,111 @@
+@model ThriveHealth.Web.Models.ViewModels.PharmacyBoardVm
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-prescription2 me-1 text-primary"></i> Prescriptions awaiting dispense</h5>
+                <a asp-controller="Pharmacy" asp-action="Queue" class="small">Open Rx queue →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.PendingPrescriptions.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">No prescriptions waiting</h6>
+                        <p class="mb-0 small">When clinicians issue prescriptions they'll queue here for dispensing.</p>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Patient</th><th>Items</th><th>Prescriber</th><th>Issued</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var p in Model.PendingPrescriptions)
+                        {
+                            var ageMin = (int)Math.Max(0, (DateTime.UtcNow - p.PrescribedAt).TotalMinutes);
+                            <tr>
+                                <td class="fw-semibold">@p.PatientName</td>
+                                <td><span class="badge bg-light text-dark">@p.ItemCount item@(p.ItemCount == 1 ? "" : "s")</span></td>
+                                <td class="small">@(p.Prescriber ?? "—")</td>
+                                <td class="small text-muted">@ageMin m ago</td>
+                                <td><a asp-controller="Pharmacy" asp-action="Dispense" asp-route-prescriptionId="@p.PrescriptionId" class="btn btn-sm btn-primary">Dispense</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-exclamation-triangle me-1 text-danger"></i> Low stock alerts</h5>
+                <a asp-controller="Pharmacy" asp-action="Stocks" class="small">All stock →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.LowStock.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-check2-circle"></i>
+                        <h6 class="mt-2 mb-1">No items below reorder level</h6>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Drug</th><th>Store</th><th class="text-end">Stock / Reorder</th></tr></thead>
+                        <tbody>
+                        @foreach (var d in Model.LowStock)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@d.DrugName</td>
+                                <td class="small text-muted">@d.StoreName</td>
+                                <td class="text-end">
+                                    <span class="text-danger fw-bold">@d.Quantity</span>
+                                    <span class="text-muted small">/ @d.ReorderPoint</span>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="th-card mb-4">
+    <div class="th-card-header d-flex justify-content-between align-items-center">
+        <h5 class="th-card-title mb-0"><i class="bi bi-bag-check me-1 text-success"></i> Today's dispenses</h5>
+        <a asp-controller="Pharmacy" asp-action="Dispenses" class="small">All dispenses →</a>
+    </div>
+    <div class="th-card-body p-0">
+        @if (!Model.TodaysDispenses.Any())
+        {
+            <div class="th-empty p-4">
+                <i class="bi bi-bag"></i>
+                <h6 class="mt-2 mb-1">Nothing dispensed yet today</h6>
+            </div>
+        }
+        else
+        {
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>Time</th><th>Patient</th><th>Items</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var d in Model.TodaysDispenses)
+                {
+                    <tr>
+                        <td class="font-monospace small">@d.DispensedAt.ToLocalTime().ToString("HH:mm")</td>
+                        <td class="fw-semibold">@d.PatientName</td>
+                        <td>@d.Items</td>
+                        <td><a asp-controller="Pharmacy" asp-action="DispenseDetail" asp-route-id="@d.DispenseId" class="small">View →</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

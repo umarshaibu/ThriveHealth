@@ -88,7 +88,7 @@ public class CashierController : Controller
         try
         {
             var billId = await _billing.BuildBillFromEncounterAsync(ctx.Value.facilityId, encounterId, ctx.Value.userId);
-            TempData["Success"] = "Bill drafted from encounter charges.";
+            TempData["Success"] = "Bill drafted from consultation charges.";
             return RedirectToAction(nameof(Bill), new { id = billId });
         }
         catch (InvalidOperationException ex)
@@ -270,11 +270,11 @@ public class CashierController : Controller
         var contextLines = new List<string>();
         if (b.Encounter != null)
         {
-            contextLines.Add($"Encounter type: {b.Encounter.Type}");
+            contextLines.Add($"Consultation type: {b.Encounter.Type}");
             if (!string.IsNullOrEmpty(b.Encounter.ChiefComplaint)) contextLines.Add("Chief complaint: " + b.Encounter.ChiefComplaint);
             var dx = b.Encounter.Diagnoses?.FirstOrDefault(d => d.IsPrimary)?.Description ?? b.Encounter.Diagnoses?.FirstOrDefault()?.Description;
             if (!string.IsNullOrEmpty(dx)) contextLines.Add("Diagnosis: " + dx);
-            contextLines.Add($"Encounter started: {b.Encounter.StartedAt:yyyy-MM-dd HH:mm} signed: {b.Encounter.SignedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—"}");
+            contextLines.Add($"Consultation started: {b.Encounter.StartedAt:yyyy-MM-dd HH:mm} signed: {b.Encounter.SignedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—"}");
         }
         var adm = await _db.Admissions.AsNoTracking()
             .Where(a => a.PatientId == b.PatientId && a.FacilityId == ctx.Value.facilityId
@@ -285,7 +285,7 @@ public class CashierController : Controller
             var los = (int)Math.Max(1, ((adm.DischargedAt ?? DateTime.UtcNow) - adm.AdmittedAt).TotalDays);
             contextLines.Add($"Admission length-of-stay: {los} day(s)");
         }
-        var contextText = contextLines.Count == 0 ? "(no encounter/admission context)" : string.Join("\n", contextLines);
+        var contextText = contextLines.Count == 0 ? "(no consultation/admission context)" : string.Join("\n", contextLines);
 
         var charges = b.Items.Select(i => $"{i.Description} qty {i.Quantity} @ ₦{i.UnitPrice:N2}");
         var input = new BillAnomalyInput(ctx.Value.facilityId, b.Id, contextText, charges);

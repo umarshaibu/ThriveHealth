@@ -106,6 +106,30 @@ public class EncountersController : Controller
             .OrderByDescending(s => s.CreatedAtUtc)
             .FirstOrDefaultAsync();
 
+        // Data for the in-place Admit modal — wards + free beds + doctors so the modal can
+        // post straight to /admissions/admit without the user navigating away.
+        var wards = await _db.Wards.AsNoTracking()
+            .Where(w => w.FacilityId == ctx.Value.facilityId && w.IsActive)
+            .OrderBy(w => w.Name)
+            .Select(w => new { w.Id, w.Name }).ToListAsync();
+        var freeBeds = await _db.Beds.AsNoTracking()
+            .Include(b => b.Ward)
+            .Where(b => b.Ward!.FacilityId == ctx.Value.facilityId && b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Free)
+            .OrderBy(b => b.Ward!.Name).ThenBy(b => b.BedNumber)
+            .Select(b => new { b.Id, b.WardId, Label = b.Ward!.Code + " · " + b.BedNumber })
+            .ToListAsync();
+        var clinicalRoleNames = new[] { Roles.Doctor, Roles.Consultant, Roles.MedicalOfficer };
+        var clinicalRoleIds = await _db.Roles.Where(r => clinicalRoleNames.Contains(r.Name!)).Select(r => r.Id).ToListAsync();
+        var clinicianIds = await _db.UserRoles.Where(ur => clinicalRoleIds.Contains(ur.RoleId)).Select(ur => ur.UserId).Distinct().ToListAsync();
+        var doctors = await _db.Users
+            .Where(u => clinicianIds.Contains(u.Id) && u.FacilityId == ctx.Value.facilityId && u.IsActive)
+            .Select(u => new { u.Id, Label = u.FirstName + " " + u.LastName + (u.Designation != null ? " · " + u.Designation : "") })
+            .ToListAsync();
+
+        ViewBag.AdmitWards = wards;
+        ViewBag.AdmitFreeBeds = freeBeds;
+        ViewBag.AdmitDoctors = doctors;
+
         return View(new ConsultationViewModel
         {
             Encounter = enc,
@@ -644,7 +668,7 @@ public class EncountersController : Controller
             TempData["Error"] = "Add at least one diagnosis before signing off.";
             return RedirectToAction(nameof(Edit), new { id });
         }
-        TempData["Success"] = "Encounter signed off.";
+        TempData["Success"] = "Consultation signed off.";
         return RedirectToAction(nameof(Summary), new { id });
     }
 

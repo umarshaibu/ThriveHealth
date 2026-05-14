@@ -110,7 +110,7 @@
             }
             else
             {
-                <div class="text-muted">Encounter signed off.</div>
+                <div class="text-muted">Consultation signed off.</div>
             }
         </div></div>
     </div>
@@ -289,7 +289,7 @@
         <div class="alert alert-info mt-3 small">
             <i class="bi bi-info-circle me-1"></i>
             Need an ad-hoc order outside a bundle? Open the
-            <a asp-controller="Encounters" asp-action="Edit" asp-route-id="@enc.Id">full encounter view</a>
+            <a asp-controller="Consultations" asp-action="Edit" asp-route-id="@enc.Id">full consultation view</a>
             to add labs, imaging, prescriptions, or diagnoses individually.
         </div>
     }
@@ -298,7 +298,7 @@
 @* VITALS *@
 <div class="tab-pane fade" id="t-vitals">
     <div class="d-flex justify-content-between mb-2">
-        <h6 class="mb-0">Vitals during this encounter</h6>
+        <h6 class="mb-0">Vitals during this consultation</h6>
         @if (active) { <a asp-controller="Emr" asp-action="AddVitals" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg me-1"></i> Record vitals</a> }
     </div>
     @if (!Model.Vitals.Any())
@@ -335,7 +335,7 @@
 <div class="tab-pane fade" id="t-clinical">
     <div class="alert alert-info">
         <i class="bi bi-info-circle me-1"></i> Full clinical documentation (SOAP note, diagnoses, ad-hoc orders) is in the
-        <a asp-controller="Encounters" asp-action="Edit" asp-route-id="@enc.Id">general encounter view</a>.
+        <a asp-controller="Consultations" asp-action="Edit" asp-route-id="@enc.Id">general consultation view</a>.
     </div>
     @if (enc.Soap is not null && (!string.IsNullOrEmpty(enc.Soap.Subjective) || !string.IsNullOrEmpty(enc.Soap.Plan)))
     {

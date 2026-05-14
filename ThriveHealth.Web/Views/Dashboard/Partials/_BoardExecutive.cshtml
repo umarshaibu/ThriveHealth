@@ -1,0 +1,92 @@
+@model ThriveHealth.Web.Models.ViewModels.ExecutiveBoardVm
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="th-stat tone-success">
+            <div class="th-stat-icon"><i class="bi bi-cash-coin"></i></div>
+            <div class="th-stat-label">Revenue today</div>
+            <div class="th-stat-value">₦@Model.RevenueToday.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="th-stat tone-primary">
+            <div class="th-stat-icon"><i class="bi bi-graph-up"></i></div>
+            <div class="th-stat-label">Revenue this month</div>
+            <div class="th-stat-value">₦@Model.RevenueMonth.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="th-stat tone-info">
+            <div class="th-stat-icon"><i class="bi bi-calendar2-check"></i></div>
+            <div class="th-stat-label">Visits today / month</div>
+            <div class="th-stat-value">@Model.VisitsToday <span class="small text-muted">/ @Model.VisitsMonth</span></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="th-stat tone-warning">
+            <div class="th-stat-icon"><i class="bi bi-bandaid"></i></div>
+            <div class="th-stat-label">A&amp;E in progress</div>
+            <div class="th-stat-value">@Model.EmergencyInProgress</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-5">
+        <div class="th-card h-100">
+            <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-hospital me-1 text-info"></i> Bed utilisation</h5></div>
+            <div class="th-card-body">
+                @{
+                    var pct = Model.BedsTotal == 0 ? 0 : (int)Math.Round(100.0 * Model.BedsOccupied / Model.BedsTotal);
+                }
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="fw-semibold">@Model.BedsOccupied <span class="text-muted">/ @Model.BedsTotal occupied</span></span>
+                    <span class="fw-semibold @(pct > 85 ? "text-danger" : pct > 60 ? "text-warning" : "text-success")">@pct%</span>
+                </div>
+                <div class="progress" style="height: 12px;">
+                    <div class="progress-bar @(pct > 85 ? "bg-danger" : pct > 60 ? "bg-warning" : "bg-success")" style="width:@(pct)%;"></div>
+                </div>
+                <hr class="my-3" />
+                <div class="row g-2 text-center small">
+                    <div class="col"><div class="text-muted">Active admissions</div><div class="fw-bold fs-5">@Model.ActiveAdmissions</div></div>
+                    <div class="col"><div class="text-muted">A&amp;E open</div><div class="fw-bold fs-5">@Model.EmergencyInProgress</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="th-card h-100">
+            <div class="th-card-header d-flex justify-content-between align-items-center">
+                <h5 class="th-card-title mb-0"><i class="bi bi-clipboard2-heart me-1 text-primary"></i> Most-recent admissions</h5>
+                <a asp-controller="Inpatient" asp-action="Index" class="small">All →</a>
+            </div>
+            <div class="th-card-body p-0">
+                @if (!Model.RecentAdmissions.Any())
+                {
+                    <div class="th-empty p-4">
+                        <i class="bi bi-hospital"></i>
+                        <h6 class="mt-2 mb-1">No active admissions</h6>
+                    </div>
+                }
+                else
+                {
+                    <table class="table mb-0 align-middle">
+                        <thead><tr><th>Patient</th><th>Ward</th><th>Bed</th><th>Admitted</th></tr></thead>
+                        <tbody>
+                        @foreach (var a in Model.RecentAdmissions)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@a.PatientName</td>
+                                <td>@a.Ward</td>
+                                <td class="small">@a.Bed</td>
+                                <td class="small text-muted">@a.AdmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>

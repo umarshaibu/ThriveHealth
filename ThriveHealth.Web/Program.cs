@@ -216,10 +216,13 @@ app.Use(async (ctx, next) =>
 });
 
 app.UseRouting();
-app.UseMiddleware<TenantResolverMiddleware>();
 app.UseRateLimiter();
 
 app.UseAuthentication();
+// Tenant resolver runs AFTER authentication so it can fall back to the signed-in user's
+// TenantId when the host doesn't carry tenant info (dev on localhost, etc). Authorization
+// still happens after — endpoint policies see the resolved tenant on _tenant.Current.
+app.UseMiddleware<TenantResolverMiddleware>();
 app.UseAuthorization();
 
 // Attribute-routed controllers (SuperAdmin*, Onboarding, ...) and the conventional
@@ -242,6 +245,9 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await DbSeeder.SeedAsync(services);
     await DemoSeeder.SeedAsync(services);
+    // End-to-end walk-in→walk-out lifecycle + AI suggestion samples. Idempotent — skips
+    // if its marker patient (TH-WF-001) already exists.
+    await WorkflowSeeder.SeedAsync(services);
 }
 
 app.Run();
