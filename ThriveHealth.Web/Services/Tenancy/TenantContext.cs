@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using ThriveHealth.Web.Data;
 using ThriveHealth.Web.Models.Tenancy;
@@ -70,6 +71,21 @@ public sealed class TenantResolverMiddleware
     public async Task InvokeAsync(HttpContext ctx, ITenantContext tenantCtx, ApplicationDbContext db)
     {
         var host = ctx.Request.Host.Host?.Trim().ToLowerInvariant() ?? "";
+
+        // Native/mobile API clients carry their tenant inside the JWT (no tenant subdomain). The
+        // PortalJwt scheme is not the default, so authenticate it explicitly here — this runs before
+        // UseAuthorization, so without this the tenant would be unresolved for bearer requests.
+        var authHeader = ctx.Request.Headers.Authorization.ToString();
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var jwt = await ctx.AuthenticateAsync(Services.Api.PortalJwt.Scheme);
+            var tenantClaim = jwt.Principal?.FindFirst(Services.Api.PortalJwt.ClaimTenantId)?.Value;
+            if (jwt.Succeeded && int.TryParse(tenantClaim, out var jwtTenantId) && jwtTenantId > 0)
+            {
+                var t = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(x => x.Id == jwtTenantId);
+                if (t is not null) { tenantCtx.Set(t); await _next(ctx); return; }
+            }
+        }
 
         if (host.StartsWith(AdminHostPrefix))
         {

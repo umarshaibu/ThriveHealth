@@ -81,7 +81,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         typeof(Vaccine), typeof(VaccineSchedule),
         typeof(NotifiableDisease),
         typeof(Payer), typeof(PayerPlan), typeof(PayerFormulary),
-        typeof(RolePermission)
+        typeof(RolePermission),
+        // Refresh tokens are issued at login before a tenant is resolved (apex/API host, no subdomain).
+        // They are looked up by their unique cryptographic hash and joined to a tenant-scoped
+        // PortalAccount, so they need no tenant column of their own.
+        typeof(PortalRefreshToken),
+        // Device push tokens are registered from the app and looked up by PatientId — no tenant column.
+        typeof(PortalDeviceToken),
+        // Staff refresh tokens are issued at login (no tenant resolved yet) and looked up by hash.
+        typeof(StaffRefreshToken)
     };
 
     private static bool IsIdentityType(Type t) =>
@@ -217,6 +225,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Referral> Referrals => Set<Referral>();
     public DbSet<MedicalCertificate> MedicalCertificates => Set<MedicalCertificate>();
     public DbSet<PortalAccount> PortalAccounts => Set<PortalAccount>();
+    public DbSet<PortalRefreshToken> PortalRefreshTokens => Set<PortalRefreshToken>();
+    public DbSet<PortalDeviceToken> PortalDeviceTokens => Set<PortalDeviceToken>();
+    public DbSet<StaffRefreshToken> StaffRefreshTokens => Set<StaffRefreshToken>();
     public DbSet<PortalSymptomIntake> PortalSymptomIntakes => Set<PortalSymptomIntake>();
 
     public DbSet<NotifiableDisease> NotifiableDiseases => Set<NotifiableDisease>();
@@ -1177,6 +1188,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             b.HasIndex(x => x.Email).IsUnique();
             b.HasIndex(x => x.PatientId).IsUnique();
             b.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PortalRefreshToken>(b =>
+        {
+            b.HasIndex(x => x.TokenHash).IsUnique();
+            b.HasIndex(x => x.PortalAccountId);
+            b.HasOne(x => x.PortalAccount).WithMany().HasForeignKey(x => x.PortalAccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PortalDeviceToken>(b =>
+        {
+            b.HasIndex(x => x.Token).IsUnique();
+            b.HasIndex(x => x.PatientId);
+            b.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<StaffRefreshToken>(b =>
+        {
+            b.HasIndex(x => x.TokenHash).IsUnique();
+            b.HasIndex(x => x.UserId);
         });
 
         builder.Entity<PortalSymptomIntake>(b =>

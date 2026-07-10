@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ThriveHealth.Web.Data;
 using ThriveHealth.Web.Models.Integrations;
 using ThriveHealth.Web.Models.Telemedicine;
+using ThriveHealth.Web.Services.Api;
 using ThriveHealth.Web.Services.Integrations;
 
 namespace ThriveHealth.Web.Services;
@@ -26,11 +27,12 @@ public class TeleNotifier : ITeleNotifier
     private readonly ApplicationDbContext _db;
     private readonly IEmailGateway _email;
     private readonly ISmsGateway _sms;
+    private readonly IDevicePushService _push;
     private readonly ILogger<TeleNotifier> _log;
 
-    public TeleNotifier(ApplicationDbContext db, IEmailGateway email, ISmsGateway sms, ILogger<TeleNotifier> log)
+    public TeleNotifier(ApplicationDbContext db, IEmailGateway email, ISmsGateway sms, IDevicePushService push, ILogger<TeleNotifier> log)
     {
-        _db = db; _email = email; _sms = sms; _log = log;
+        _db = db; _email = email; _sms = sms; _push = push; _log = log;
     }
 
     private async Task<(TeleSession? s, string? email, string? phone, string? patientName, string? clinicianName)> LoadAsync(int sessionId, CancellationToken ct)
@@ -70,6 +72,9 @@ public class TeleNotifier : ITeleNotifier
         await SafeSendAsync(s, email, phone, subject, body,
             $"ThriveHealth: payment confirmed. Your tele-consult {s.SessionNumber} is scheduled for {when}.",
             MessagePurpose.PaymentReceipt, ct);
+        await _push.SendToPatientAsync(s.PatientId, "Tele-consult scheduled",
+            $"Your consult {s.SessionNumber} is set for {when}.",
+            new Dictionary<string, string> { ["type"] = "tele_scheduled", ["teleSessionId"] = s.Id.ToString() }, ct);
     }
 
     public async Task NotifyClinicianReadyAsync(int sessionId, CancellationToken ct = default)
@@ -82,6 +87,9 @@ public class TeleNotifier : ITeleNotifier
         await SafeSendAsync(s, email, phone, subject, body,
             $"ThriveHealth: Dr {doc ?? "the clinician"} is ready for your tele-consult. Open the portal to join.",
             MessagePurpose.TeleSessionReady, ct);
+        await _push.SendToPatientAsync(s.PatientId, "Your doctor is ready",
+            $"Dr {doc ?? "the clinician"} is waiting in your tele-consult room. Tap to join.",
+            new Dictionary<string, string> { ["type"] = "tele_ready", ["teleSessionId"] = s.Id.ToString(), ["roomToken"] = s.RoomToken }, ct);
     }
 
     public async Task NotifySessionCompletedAsync(int sessionId, CancellationToken ct = default)

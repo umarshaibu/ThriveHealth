@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
 using ThriveHealth.Web.Auth;
 using ThriveHealth.Web.Data;
@@ -12,6 +14,7 @@ using ThriveHealth.Web.Models.Identity;
 using ThriveHealth.Web.Models.Portal;
 using ThriveHealth.Web.Services;
 using ThriveHealth.Web.Services.Ai;
+using ThriveHealth.Web.Services.Api;
 using ThriveHealth.Web.Services.Integrations;
 using ThriveHealth.Web.Services.Tenancy;
 
@@ -55,6 +58,12 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
+// JWT options for the native/mobile patient API (bearer auth, separate from the cookie portal).
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+builder.Services.AddScoped<IPortalTokenService, PortalTokenService>();
+builder.Services.AddScoped<IStaffTokenService, StaffTokenService>();
+
 builder.Services.AddAuthentication()
     .AddCookie(PortalAuth.Scheme, options =>
     {
@@ -64,6 +73,20 @@ builder.Services.AddAuthentication()
         options.AccessDeniedPath = "/Portal/Login";
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
         options.SlidingExpiration = true;
+    })
+    .AddJwtBearer(PortalJwt.Scheme, options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = PortalTokenService.SigningKeyBytes(jwtOptions.SigningKey),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
     });
 
 builder.Services.AddScoped<IPasswordHasher<PortalAccount>, PasswordHasher<PortalAccount>>();
@@ -118,7 +141,21 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISmsGateway, LoggingSmsGateway>();
 builder.Services.AddScoped<IEmailGateway, LoggingEmailGateway>();
-builder.Services.AddScoped<IPaymentGateway, LoggingPaymentGateway>();
+
+// Native push for the mobile app via Firebase Cloud Messaging.
+builder.Services.AddScoped<IDevicePushService, FcmPushService>();
+
+// Payment gateway: Paystack when configured (Payments:Provider=paystack + a secret key), else the no-op stub.
+builder.Services.Configure<PaystackOptions>(builder.Configuration.GetSection(PaystackOptions.SectionName));
+builder.Services.AddHttpClient("paystack");
+{
+    var payProvider = builder.Configuration["Payments:Provider"]?.ToLowerInvariant();
+    var paystackKey = builder.Configuration[$"{PaystackOptions.SectionName}:SecretKey"];
+    if (payProvider == "paystack" && !string.IsNullOrWhiteSpace(paystackKey))
+        builder.Services.AddScoped<IPaymentGateway, PaystackPaymentGateway>();
+    else
+        builder.Services.AddScoped<IPaymentGateway, LoggingPaymentGateway>();
+}
 
 // ---- AI ----
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));

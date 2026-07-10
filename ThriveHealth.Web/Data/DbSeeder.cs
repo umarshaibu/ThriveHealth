@@ -173,6 +173,29 @@ public static class DbSeeder
             if (r.Succeeded) await userManager.AddToRoleAsync(demoDoc, Roles.Doctor);
         }
 
+        var demoConsultant = await userManager.FindByEmailAsync("consultant@thrivehealth.ng");
+        if (demoConsultant is null)
+        {
+            demoConsultant = new ApplicationUser
+            {
+                UserName = "consultant@thrivehealth.ng",
+                Email = "consultant@thrivehealth.ng",
+                EmailConfirmed = true,
+                FirstName = "Folake",
+                LastName = "Ogunsanya",
+                StaffNumber = "TH-CON-0001",
+                Designation = "Consultant Physician",
+                Department = "Cardiology",
+                LicenseBody = "MDCN",
+                LicenseNumber = "MDCN/2009/11223",
+                FacilityId = facility.Id,
+                TenantId = facility.TenantId,
+                IsActive = true
+            };
+            var r = await userManager.CreateAsync(demoConsultant, DemoPassword);
+            if (r.Succeeded) await userManager.AddToRoleAsync(demoConsultant, Roles.Consultant);
+        }
+
         var demoNurse = await userManager.FindByEmailAsync("nurse@thrivehealth.ng");
         if (demoNurse is null)
         {
