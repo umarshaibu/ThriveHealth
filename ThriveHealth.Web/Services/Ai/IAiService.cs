@@ -4,7 +4,8 @@ public sealed record AiCompletionRequest(
     string SystemPrompt,
     string UserPrompt,
     int MaxOutputTokens = 1024,
-    double Temperature = 0.2);
+    double Temperature = 0.2,
+    string? ReasoningEffort = null);
 
 public sealed record AiCompletionResult(
     bool Success,

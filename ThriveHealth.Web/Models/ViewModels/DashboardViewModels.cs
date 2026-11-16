@@ -7,6 +7,9 @@ public class DashboardStat
     public string? Icon { get; set; }
     public string? Trend { get; set; }
     public string Tone { get; set; } = "primary";
+    /// <summary>One line under the number saying what it covers.</summary>
+    public string? Note { get; set; }
+    public CanvasLink? Link { get; set; }
 }
 
 public class DashboardAction
@@ -39,6 +42,8 @@ public class DashboardViewModel
     public List<DashboardAction> NextActions { get; set; } = new();
     public List<DashboardActivityItem> RecentActivity { get; set; } = new();
     public int PatientCount { get; set; }
+    /// <summary>Role-specific content for the dashboard grid. Null when the user has no facility.</summary>
+    public DashboardCanvasVm? Canvas { get; set; }
 }
 
 public class DashboardActivityItem
@@ -51,6 +56,7 @@ public class DashboardActivityItem
     public string? LinkController { get; set; }
     public string? LinkAction { get; set; }
     public int? LinkId { get; set; }
+    public bool HasLink => !string.IsNullOrEmpty(LinkController) && !string.IsNullOrEmpty(LinkAction);
 }
 
 // ============================================================================================

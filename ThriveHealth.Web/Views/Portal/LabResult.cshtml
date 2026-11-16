@@ -3,39 +3,75 @@
 @{
     ViewData["Title"] = $"Lab result · {Model.LabTest?.Name ?? Model.TestName}";
     var result = Model.Result;
+    // The lab service returns Normal for free-text results and analytes with no reference range,
+    // for example an HIV "Reactive". Only numeric results with a range can be called normal.
+    bool CanCallNormal(string? value, string? range) =>
+        !string.IsNullOrWhiteSpace(range)
+        && decimal.TryParse(value?.Trim(), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out _);
     string FlagPill(AnalyteFlag f) => f switch
     {
         AnalyteFlag.Normal => "th-pill-muted",
         AnalyteFlag.Low or AnalyteFlag.High => "th-pill-warning",
-        AnalyteFlag.CriticalLow or AnalyteFlag.CriticalHigh => "th-pill-danger",
+        AnalyteFlag.CriticalLow or AnalyteFlag.CriticalHigh or AnalyteFlag.Critical => "th-pill-danger",
         AnalyteFlag.Abnormal => "th-pill-warning",
         _ => "th-pill-muted"
     };
+    string FlagText(AnalyteFlag f) => f switch
+    {
+        AnalyteFlag.Normal => "Normal",
+        AnalyteFlag.Low => "Low",
+        AnalyteFlag.High => "High",
+        AnalyteFlag.CriticalLow => "Critical low",
+        AnalyteFlag.CriticalHigh => "Critical high",
+        AnalyteFlag.Abnormal => "Abnormal",
+        AnalyteFlag.Critical => "Critical",
+        AnalyteFlag.NotAssessed => "Ask your clinician",
+        _ => f.ToString()
+    };
+    string FlagIcon(AnalyteFlag f) => f switch
+    {
+        AnalyteFlag.Normal or AnalyteFlag.NotAssessed => "",
+        AnalyteFlag.Low or AnalyteFlag.CriticalLow => "bi-arrow-down",
+        AnalyteFlag.High or AnalyteFlag.CriticalHigh => "bi-arrow-up",
+        _ => "bi-exclamation-triangle-fill"
+    };
 }
+
+<style>
+    .th-analyte { padding: 14px 0; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; }
+    .th-analyte + .th-analyte { border-top: 1px solid var(--th-border); }
+    .th-analyte-name { font-weight: 500; }
+    .th-analyte-value { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+    .th-analyte-unit { font-size: 13px; font-weight: 400; color: var(--th-text-muted); }
+    .th-analyte-ref { font-size: 12.5px; color: var(--th-text-muted); }
+    .th-analyte-flag { text-align: right; }
+    .th-analyte.is-abnormal .th-analyte-value { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    @@media print { .no-print { display: none !important; } }
+</style>
 
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h1 class="th-section-title mb-1">@(Model.LabTest?.Name ?? Model.TestName)</h1>
         <p class="text-muted small mb-0">Order placed @Model.OrderedAt.ToLocalTime().ToString("dd MMM yyyy") · @Model.Urgency</p>
     </div>
-    <a asp-action="Results" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to results</a>
+    <a asp-action="Results" class="btn btn-outline-secondary btn-sm no-print"><i class="bi bi-arrow-left me-1"></i> Back to results</a>
 </div>
 
 <div class="row g-3 mb-3">
     <div class="col-md-6">
         <div class="th-card h-100"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Clinical indication</h6>
+            <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-info-circle me-1"></i> Clinical indication</h6>
             <p class="mb-0">@(Model.ClinicalIndication ?? "—")</p>
             <div class="small text-muted mt-1">Ordered by Dr @(Model.OrderedBy?.LastName ?? "—")</div>
         </div></div>
     </div>
     <div class="col-md-6">
         <div class="th-card h-100"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-flask me-1"></i> Sample</h6>
+            <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-flask me-1"></i> Sample</h6>
             <div>@(Model.Specimen ?? Model.LabTest?.Specimen ?? "—")</div>
             @if (Model.CollectedAt.HasValue)
             {
-                <div class="small text-muted">Collected @Model.CollectedAt.Value.ToLocalTime():dd MMM yyyy HH:mm</div>
+                <div class="small text-muted">Collected @Model.CollectedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
             }
             @if (!string.IsNullOrEmpty(Model.AccessionNumber))
             {
@@ -57,9 +93,19 @@
 }
 else
 {
+    if (result.HasCriticalValue)
+    {
+        <div class="alert alert-danger d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-octagon-fill mt-1"></i>
+            <div>
+                <strong>Critical value flagged.</strong>
+                <div class="small mb-0">Please contact your clinician or hospital as soon as possible.</div>
+            </div>
+        </div>
+    }
     <div class="th-card mb-3"><div class="th-card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-clipboard2-data me-1"></i> Analyte values</h6>
+            <h6 class="text-muted small fw-semibold mb-0"><i class="bi bi-clipboard2-data me-1"></i> Analyte values</h6>
             <span class="th-pill @(result.Status == LabResultStatus.Authorized ? "th-pill-success" : "th-pill-info")">@result.Status</span>
         </div>
         @if (!result.Values.Any())
@@ -68,28 +114,29 @@ else
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                    <thead class="text-muted small text-uppercase"><tr><th>Analyte</th><th class="text-end">Value</th><th>Unit</th><th>Ref. range</th><th>Flag</th></tr></thead>
-                    <tbody>
-                        @foreach (var v in result.Values)
+            foreach (var v in result.Values)
+            {
+                <div class="th-analyte @(v.Flag is AnalyteFlag.Normal or AnalyteFlag.NotAssessed ? "" : "is-abnormal")">
+                    <div class="th-analyte-name">@v.AnalyteName</div>
+                    <div class="th-analyte-value">@v.Value <span class="th-analyte-unit">@v.Unit</span></div>
+                    <div class="th-analyte-ref">Reference range: @(string.IsNullOrEmpty(v.RefRangeDisplay) ? "not provided" : v.RefRangeDisplay)</div>
+                    <div class="th-analyte-flag">
+                        @if (v.Flag == AnalyteFlag.Normal && !CanCallNormal(v.Value, v.RefRangeDisplay))
                         {
-                            <tr>
-                                <td>@v.AnalyteName</td>
-                                <td class="text-end fw-semibold">@v.Value</td>
-                                <td class="text-muted small">@v.Unit</td>
-                                <td class="text-muted small">@v.RefRangeDisplay</td>
-                                <td><span class="th-pill @FlagPill(v.Flag)">@v.Flag</span></td>
-                            </tr>
+                            <span class="th-pill th-pill-muted">Ask your clinician</span>
                         }
-                    </tbody>
-                </table>
-            </div>
+                        else
+                        {
+                            <span class="th-pill @FlagPill(v.Flag)">@if (FlagIcon(v.Flag) != "") { <i class="bi @FlagIcon(v.Flag) me-1"></i> }@FlagText(v.Flag)</span>
+                        }
+                    </div>
+                </div>
+            }
         }
         @if (!string.IsNullOrEmpty(result.GeneralComment))
         {
             <div class="border-top pt-3 mt-3">
-                <h6 class="text-uppercase text-muted small mb-1">Comment</h6>
+                <h6 class="text-muted small fw-semibold mb-1">Comment</h6>
                 <p class="mb-0" style="white-space: pre-wrap;">@result.GeneralComment</p>
             </div>
         }
@@ -100,21 +147,10 @@ else
         @if (result.AuthorizedAt.HasValue)
         {
             <div class="border-top pt-3 mt-3 small text-muted">
-                Authorised by Dr @(result.AuthorizedBy?.FullName ?? "—") on @result.AuthorizedAt.Value.ToLocalTime():dd MMM yyyy HH:mm
+                Authorised by Dr @(result.AuthorizedBy?.FullName ?? "—") on @result.AuthorizedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")
             </div>
         }
     </div></div>
-
-    @if (result.HasCriticalValue)
-    {
-        <div class="alert alert-danger d-flex align-items-start gap-2">
-            <i class="bi bi-exclamation-octagon-fill mt-1"></i>
-            <div>
-                <strong>Critical value flagged.</strong>
-                <div class="small mb-0">Your clinician has been alerted. Please follow their instructions.</div>
-            </div>
-        </div>
-    }
 }
 
 <p class="small text-muted"><i class="bi bi-info-circle me-1"></i> These values must be interpreted by a clinician in the context of your symptoms and history. Don't change your medications based on a result alone.</p>

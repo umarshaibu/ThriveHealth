@@ -8,7 +8,7 @@
         BloodUnitStatus.Available => "th-pill-success",
         BloodUnitStatus.Reserved => "th-pill-warning",
         BloodUnitStatus.CrossMatched => "th-pill-info",
-        BloodUnitStatus.Issued => "th-pill-primary",
+        BloodUnitStatus.Issued => "th-pill-info",
         BloodUnitStatus.Quarantined => "th-pill-warning",
         BloodUnitStatus.Expired => "th-pill-danger",
         BloodUnitStatus.Discarded => "th-pill-muted",
@@ -17,12 +17,12 @@
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Blood units</h1>
-        <p class="th-section-sub mb-0">@Model.Count unit@(Model.Count == 1 ? "" : "s") visible</p>
+        <p class="th-section-sub">@Model.Count unit@(Model.Count == 1 ? "" : "s") visible</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bank</a>
         <a asp-action="NewUnit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Register unit</a>
     </div>
@@ -30,7 +30,7 @@
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
-<div class="d-flex gap-2 mb-3 flex-wrap">
+<div class="th-toolbar">
     <a asp-action="Units" class="btn btn-sm @(current is null ? "btn-primary" : "btn-outline-secondary")">All</a>
     @foreach (var s in new[] { BloodUnitStatus.Available, BloodUnitStatus.Quarantined, BloodUnitStatus.CrossMatched, BloodUnitStatus.Issued, BloodUnitStatus.Expired })
     {
@@ -45,7 +45,7 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
+    <div class="table-responsive"><table class="table align-middle mb-0">
         <thead><tr><th>Unit #</th><th>Donor</th><th>Group</th><th>Component</th><th>Volume</th><th>Collected</th><th>Expiry</th><th>Status</th><th>Screening</th></tr></thead>
         <tbody>
         @foreach (var u in Model)
@@ -61,10 +61,10 @@ else
                 <td>@u.CollectionDate.ToString("dd MMM")</td>
                 <td>@u.ExpiryDate.ToString("dd MMM yyyy") @if (expired) { <span class="th-pill th-pill-danger ms-1">Expired</span> } else if (soon) { <span class="th-pill th-pill-warning ms-1">Soon</span> }</td>
                 <td><span class="th-pill @Tone(u.Status)">@u.Status</span></td>
-                <td><small>@if (u.ScreeningComplete) { <i class="bi bi-check-circle-fill text-success"></i> } else { <i class="bi bi-exclamation-triangle text-warning"></i> }</small></td>
+                <td><small>@if (u.ScreeningComplete) { <span class="th-pill th-pill-success"><i class="bi bi-check-circle-fill"></i> Complete</span> } else { <span class="th-pill th-pill-warning"><i class="bi bi-exclamation-triangle-fill"></i> Incomplete</span> }</small></td>
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>

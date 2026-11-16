@@ -5,8 +5,12 @@
 
 <div class="row">
     <div class="col-lg-8">
-        <h1 class="th-section-title">Record a medication</h1>
-        <p class="th-section-sub">For drugs the patient is currently taking — including OTC, herbal, and externally prescribed.</p>
+        <div class="th-page-head">
+            <div>
+                <h1 class="th-section-title">Record a medication</h1>
+                <p class="th-section-sub">For drugs the patient is currently taking — including OTC, herbal, and externally prescribed.</p>
+            </div>
+        </div>
 
         <form asp-action="AddMedication" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
             <div class="th-card-body">
@@ -69,7 +73,7 @@
                     </div>
                 </div>
 
-                <div class="mt-4 d-flex justify-content-end gap-2">
+                <div class="th-sticky-actions">
                     <a asp-controller="Patients" asp-action="Profile" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">Cancel</a>
                     <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Save medication</button>
                 </div>

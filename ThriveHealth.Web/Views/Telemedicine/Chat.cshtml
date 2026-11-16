@@ -13,12 +13,12 @@
 }
 <link rel="stylesheet" href="~/css/tele-chat.css" asp-append-version="true" />
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title mb-1">@patient?.FullName</h1>
         <div class="small text-muted">@patient?.HospitalNumber · @patient?.Sex · @(patient?.DateOfBirth.HasValue == true ? (DateTime.UtcNow.Year - patient.DateOfBirth.Value.Year).ToString() + "y" : "—")</div>
     </div>
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
         <a asp-action="Chats" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Inbox</a>
         @if (session != null)
         {
@@ -109,7 +109,7 @@
                         var tickClass = m.SenderRole == ChatSenderRole.Clinician ? (m.ReadByPatientAt.HasValue ? "read-tick read" : "read-tick") : "";
                         var tickGlyph = m.SenderRole == ChatSenderRole.Clinician ? (m.ReadByPatientAt.HasValue ? "✓✓" : "✓") : "";
                     }
-                    <div class="time">@m.SentAt.ToLocalTime():HH:mm @if (m.SenderRole == ChatSenderRole.Clinician) { <span class="@tickClass">@tickGlyph</span> }</div>
+                    <div class="time">@(m.SentAt.ToLocalTime().ToString("HH:mm")) @if (m.SenderRole == ChatSenderRole.Clinician) { <span class="@tickClass">@tickGlyph</span> }</div>
                     @if (m.SenderRole != ChatSenderRole.System)
                     {
                         <button type="button" class="th-chat-reply-btn" data-reply-id="@m.Id" data-reply-who="@senderLabel" data-reply-snippet="@m.Body" title="Reply"><i class="bi bi-reply"></i></button>

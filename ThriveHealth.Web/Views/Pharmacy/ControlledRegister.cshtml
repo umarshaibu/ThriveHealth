@@ -1,12 +1,12 @@
 @model ThriveHealth.Web.Models.ViewModels.ControlledRegisterViewModel
 @{ ViewData["Title"] = "Controlled drug register"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title"><i class="bi bi-shield-lock text-danger me-1"></i> Controlled drug register</h1>
+        <h1 class="th-section-title">Controlled drug register</h1>
         <p class="th-section-sub mb-0">PCN / NAFDAC reportable register of all Schedule 1–4 dispenses.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions d-print-none">
         <form method="get" class="d-flex gap-2 align-items-center">
             <label class="small text-muted">From</label>
             <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" class="form-control" />
@@ -28,8 +28,8 @@ else
     <div class="table-responsive">
         <table class="table align-middle mb-0">
             <thead><tr>
-                <th>Date / Time</th><th>Drug</th><th>Schedule</th>
-                <th>Patient</th><th>Qty</th>
+                <th>Date and time</th><th>Drug</th><th>Schedule</th>
+                <th>Patient</th><th class="text-end">Qty</th>
                 <th>Prescriber (MDCN)</th><th>Pharmacist (PCN)</th>
                 <th>Rx #</th><th>Disp #</th>
             </tr></thead>
@@ -41,7 +41,7 @@ else
                     <td><strong>@i.DrugName</strong> <small class="text-muted">@i.Strength</small></td>
                     <td><span class="th-pill th-pill-danger">@i.Drug?.Schedule</span></td>
                     <td>@i.Dispense.Patient?.FullName<br /><small class="font-monospace text-muted">@i.Dispense.Patient?.HospitalNumber</small></td>
-                    <td><strong>@i.QuantityDispensed</strong> @i.Drug?.UnitOfIssue</td>
+                    <td class="text-end"><strong>@i.QuantityDispensed</strong> @i.Drug?.UnitOfIssue</td>
                     <td>@i.Dispense.Prescription?.PrescribedBy?.FullName<br /><small class="text-muted">@i.Dispense.Prescription?.PrescribedBy?.LicenseBody @i.Dispense.Prescription?.PrescribedBy?.LicenseNumber</small></td>
                     <td>@i.Dispense.DispensedBy?.FullName<br /><small class="text-muted">@i.Dispense.DispensedBy?.LicenseBody @i.Dispense.DispensedBy?.LicenseNumber</small></td>
                     <td><a asp-controller="Pharmacy" asp-action="Dispense" asp-route-prescriptionId="@i.Dispense.PrescriptionId" class="font-monospace">#@i.Dispense.PrescriptionId</a></td>

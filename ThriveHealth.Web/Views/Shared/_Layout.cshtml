@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="th-app">
+<body class="th-app @ViewData["BodyClass"]">
     @if (isAuthed)
     {
         <aside class="th-sidebar" id="thSidebar">
@@ -343,16 +343,91 @@
             <div class="th-sidebar-footer">
                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-grid">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-light btn-sm w-100">
+                    <button type="submit" class="btn btn-light btn-sm w-100">
                         <i class="bi bi-box-arrow-right me-1"></i> Sign out
                     </button>
                 </form>
             </div>
         </aside>
+        <button type="button" class="th-scrim" aria-label="Close menu" onclick="thToggleSidebar()"></button>
+
+        @* Runs inline, before first paint, so the sidebar never flashes ungrouped. Without
+           JavaScript the permission-filtered links simply stay visible as a flat list. *@
+        <script>
+        (function () {
+            var nav = document.querySelector('.th-nav');
+            if (!nav) return;
+
+            // Highlight the link whose href best matches the URL. Longest path prefix on a
+            // segment boundary wins, so /Pharmacy/Stock matches "Stock", not a parent link.
+            function norm(p) { p = (p || '/').replace(/\/+$/, ''); return (p === '' ? '/' : p).toLowerCase(); }
+            var path = norm(window.location.pathname);
+            var best = null, bestLen = -1;
+            nav.querySelectorAll('.th-nav-link').forEach(function (a) {
+                var lp = norm(new URL(a.href, window.location.origin).pathname);
+                var hit = lp === path || path.indexOf(lp + '/') === 0 || (path === '/' && lp.indexOf('/dashboard') === 0);
+                if (hit && lp.length > bestLen) { best = a; bestLen = lp.length; }
+            });
+            if (best) { best.classList.add('active'); best.setAttribute('aria-current', 'page'); }
+
+            var KEY = 'th.nav.openGroup', saved = '', groups = [];
+            try { saved = localStorage.getItem(KEY) || ''; } catch (e) { saved = ''; }
+            function save(name) { try { localStorage.setItem(KEY, name); } catch (e) { /* storage blocked */ } }
+            function setExpanded(g, expanded) {
+                g.btn.setAttribute('aria-expanded', String(expanded));
+                g.group.hidden = !expanded;
+            }
+
+            // Turn each section label and the links after it into a collapsible group.
+            Array.from(nav.querySelectorAll('.th-nav-section')).forEach(function (label, i) {
+                var name = label.textContent.trim();
+                if (name === 'Overview') return; // Dashboard stays pinned at the top.
+
+                var links = [], el = label.nextElementSibling;
+                while (el && !el.classList.contains('th-nav-section')) { links.push(el); el = el.nextElementSibling; }
+
+                var group = document.createElement('div');
+                group.className = 'th-nav-group';
+                group.id = 'thNavGroup' + i;
+                links.forEach(function (l) { group.appendChild(l); });
+
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'th-nav-group-toggle';
+                btn.setAttribute('aria-controls', group.id);
+                var text = document.createElement('span');
+                text.textContent = name;
+                var chev = document.createElement('i');
+                chev.className = 'bi bi-chevron-right';
+                chev.setAttribute('aria-hidden', 'true');
+                btn.appendChild(text);
+                btn.appendChild(chev);
+
+                groups.push({ name: name, btn: btn, group: group, links: links });
+
+                // Accordion: opening a group closes every other group.
+                btn.addEventListener('click', function () {
+                    var opening = btn.getAttribute('aria-expanded') !== 'true';
+                    groups.forEach(function (g) { setExpanded(g, opening && g.btn === btn); });
+                    save(opening ? name : '');
+                });
+
+                label.replaceWith(btn);
+                btn.after(group);
+            });
+
+            // The group holding the current page wins; otherwise restore the last one opened.
+            var initial = groups.filter(function (g) { return g.links.indexOf(best) !== -1; })[0]
+                || groups.filter(function (g) { return g.name === saved; })[0];
+            groups.forEach(function (g) { setExpanded(g, g === initial); });
+
+            if (best && best.scrollIntoView) best.scrollIntoView({ block: 'nearest' });
+        })();
+        </script>
 
         <main class="th-main">
             <header class="th-topbar">
-                <button class="btn btn-light th-sidebar-toggle d-lg-none" type="button" onclick="thToggleSidebar()">
+                <button class="btn btn-light th-sidebar-toggle d-lg-none" type="button" aria-label="Open menu" onclick="thToggleSidebar()">
                     <i class="bi bi-list"></i>
                 </button>
 
@@ -361,8 +436,10 @@
                     <input type="search" name="q" class="form-control" placeholder="Search patients by name, hospital #, phone, NIN..." />
                 </form>
 
+                @await RenderSectionAsync("TopbarActions", required: false)
+
                 <div class="ms-auto d-flex align-items-center gap-2">
-                    <span class="badge th-badge-soft"><i class="bi bi-shield-check"></i> NDPA</span>
+                    <span class="badge th-badge-soft d-none d-sm-inline"><i class="bi bi-shield-check"></i> NDPA</span>
                     <span class="badge th-badge-soft d-none d-md-inline"><i class="bi bi-broadcast"></i> Live</span>
                     <div class="dropdown">
                         <button class="btn th-user-btn dropdown-toggle" data-bs-toggle="dropdown">
@@ -409,39 +486,8 @@
         function thToggleSidebar() {
             document.getElementById('thSidebar')?.classList.toggle('open');
         }
-
-        // Highlight the sidebar item whose href best matches the current URL.
-        // Uses the longest path prefix that aligns on a path-segment boundary, so e.g.
-        // /Pharmacy/Stock matches the "Stock" link rather than the parent "Pharmacy" link.
-        (function () {
-            var raw = (window.location.pathname || '/').replace(/\/+$/, '');
-            var path = (raw === '' ? '/' : raw).toLowerCase();
-
-            function pathOf(a) {
-                if (!a.href) return null;
-                try {
-                    var u = new URL(a.href, window.location.origin);
-                    var p = (u.pathname || '/').replace(/\/+$/, '');
-                    return (p === '' ? '/' : p).toLowerCase();
-                } catch (e) { return null; }
-            }
-
-            var links = Array.from(document.querySelectorAll('.th-nav-link'));
-            var best = null, bestLen = -1;
-            for (var i = 0; i < links.length; i++) {
-                var lp = pathOf(links[i]);
-                if (!lp) continue;
-                var matches = (lp === path) || (path === lp + '/') || path.indexOf(lp + '/') === 0;
-                // Treat the root "/" specially — match dashboard / first link with controller "Dashboard"
-                if (path === '/' && lp.indexOf('/dashboard') === 0) matches = true;
-                if (matches && lp.length > bestLen) {
-                    best = links[i];
-                    bestLen = lp.length;
-                }
-            }
-            if (best) best.classList.add('active');
-        })();
     </script>
+<script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

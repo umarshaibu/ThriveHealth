@@ -1,9 +1,9 @@
 @model ThriveHealth.Web.Models.ViewModels.BloodUnitInputViewModel
 @{ ViewData["Title"] = "Register blood unit"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <h1 class="th-section-title">Register blood unit</h1>
-    <a asp-action="Units" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Units</a>
+    <div class="th-page-actions"><a asp-action="Units" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Units</a></div>
 </div>
 
 <form asp-action="NewUnit" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankManage">
@@ -12,7 +12,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-droplet me-1"></i> Unit details</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-droplet me-1"></i> Unit details</h2>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="BloodGroup" class="form-label">Group</label>
@@ -40,7 +40,7 @@
         </div>
         <div class="col-lg-6">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-check me-1"></i> Pre-issue screening</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-shield-check me-1"></i> Pre-issue screening</h2>
                 <p class="small text-muted">All five must be negative for the unit to be available for issue.</p>
                 <div class="row g-2">
                     <div class="col-md-6 form-check ms-3"><input asp-for="HivNegative" type="checkbox" class="form-check-input" /><label asp-for="HivNegative" class="form-check-label">HIV negative</label></div>
@@ -53,7 +53,7 @@
             </div></div>
         </div>
     </div>
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Units" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Register unit</button>
     </div>

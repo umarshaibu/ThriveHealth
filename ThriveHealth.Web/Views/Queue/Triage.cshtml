@@ -5,21 +5,20 @@
 }
 
 <div class="row"><div class="col-lg-8">
-    <h1 class="th-section-title">Triage</h1>
-    <p class="th-section-sub">Set priority based on patient condition. Emergency cases jump the queue.</p>
-
-    <div class="th-card mb-3"><div class="th-card-body">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <span class="font-monospace fs-4">@entry.TicketNumber</span>
-                <h4 class="mb-1 mt-1">@entry.Patient!.FullName</h4>
-                <small class="text-muted font-monospace">@entry.Patient.HospitalNumber</small>
-                @if (!string.IsNullOrEmpty(entry.Complaint))
-                { <div class="mt-2 small"><strong>Complaint:</strong> @entry.Complaint</div> }
-            </div>
-            <a asp-controller="Patients" asp-action="Profile" asp-route-id="@entry.PatientId" class="btn btn-sm btn-outline-primary">Open chart</a>
+    <div class="th-page-head">
+        <div>
+            <h1 class="th-section-title">Triage</h1>
+            <p class="th-section-sub">Set priority based on patient condition. Emergency cases jump the queue.</p>
         </div>
-    </div></div>
+    </div>
+
+    <div class="th-patient-banner justify-content-between">
+        <div>
+            <div class="name">@entry.Patient!.FullName</div>
+            <div class="meta"><span class="font-monospace">@entry.TicketNumber</span> · <span class="font-monospace">@entry.Patient.HospitalNumber</span>@if (!string.IsNullOrEmpty(entry.Complaint)) { <text> · @entry.Complaint</text> }</div>
+        </div>
+        <a asp-controller="Patients" asp-action="Profile" asp-route-id="@entry.PatientId" class="btn btn-sm btn-light">Open chart</a>
+    </div>
 
     <form asp-action="Triage" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TriageCreate">
         <div class="th-card-body">

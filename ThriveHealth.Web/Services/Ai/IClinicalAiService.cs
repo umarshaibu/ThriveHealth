@@ -171,7 +171,8 @@ public sealed record SymptomCheckerInput(
     int? PortalAccountId,
     string? PatientAgeSex,
     string Question,
-    IEnumerable<string> History);
+    IEnumerable<string> History,
+    bool Conversational = false);
 
 public sealed record AdherenceParseInput(
     int FacilityId,

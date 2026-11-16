@@ -15,12 +15,12 @@
     var components = new[] { BloodComponent.WholeBlood, BloodComponent.PackedRedCells, BloodComponent.FreshFrozenPlasma, BloodComponent.Platelets, BloodComponent.Cryoprecipitate };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Blood bank</h1>
-        <p class="th-section-sub mb-0">@Model.TotalAvailable available · @Model.Reserved reserved · @Model.OpenCrossMatches open cross-matches</p>
+        <p class="th-section-sub">@Model.TotalAvailable available · @Model.Reserved reserved · @Model.OpenCrossMatches open cross-matches</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-action="Donors" class="btn btn-outline-secondary"><i class="bi bi-person-plus me-1"></i> Donors</a>
         <a asp-action="Units" class="btn btn-outline-secondary"><i class="bi bi-droplet me-1"></i> Units</a>
         <a asp-action="CrossMatches" class="btn btn-outline-secondary"><i class="bi bi-shuffle me-1"></i> Cross-matches</a>
@@ -36,7 +36,7 @@
 </div>
 
 <div class="th-card mb-3"><div class="th-card-body">
-    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-grid-3x3 me-1"></i> Inventory by group × component</h6>
+    <h2 class="th-form-section-title"><i class="bi bi-grid-3x3 me-1"></i> Inventory by group × component</h2>
     <div class="table-responsive">
     <table class="table align-middle mb-0 text-center">
         <thead>
@@ -64,14 +64,14 @@
 <div class="row g-3">
     <div class="col-lg-6">
         <div class="th-card"><div class="th-card-body p-0">
-            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Recent units</h6></div>
+            <div class="th-card-header"><h2 class="th-card-title"><i class="bi bi-clock-history me-1"></i> Recent units</h2></div>
             @if (!Model.RecentUnits.Any())
             {
                 <div class="th-empty m-4"><i class="bi bi-droplet"></i><h5 class="mt-2">No units</h5></div>
             }
             else
             {
-                <table class="table table-sm align-middle mb-0">
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                     <thead><tr><th>Unit #</th><th>Group</th><th>Component</th><th>Expiry</th><th>Status</th></tr></thead>
                     <tbody>
                     @foreach (var u in Model.RecentUnits)
@@ -85,20 +85,20 @@
                         </tr>
                     }
                     </tbody>
-                </table>
+                </table></div>
             }
         </div></div>
     </div>
     <div class="col-lg-6">
         <div class="th-card"><div class="th-card-body p-0">
-            <div class="p-3 border-bottom"><h6 class="mb-0"><i class="bi bi-shuffle me-1"></i> Open cross-match requests</h6></div>
+            <div class="th-card-header"><h2 class="th-card-title"><i class="bi bi-shuffle me-1"></i> Open cross-match requests</h2></div>
             @if (!Model.OpenRequests.Any())
             {
                 <div class="th-empty m-4"><i class="bi bi-shuffle"></i><h5 class="mt-2">No open requests</h5></div>
             }
             else
             {
-                <table class="table table-sm align-middle mb-0">
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                     <thead><tr><th>XM #</th><th>Patient</th><th>Group</th><th>Comp</th><th>Units</th><th></th></tr></thead>
                     <tbody>
                     @foreach (var c in Model.OpenRequests)
@@ -113,7 +113,7 @@
                         </tr>
                     }
                     </tbody>
-                </table>
+                </table></div>
             }
         </div></div>
     </div>

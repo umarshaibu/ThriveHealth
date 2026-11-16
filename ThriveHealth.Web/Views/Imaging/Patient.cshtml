@@ -1,7 +1,7 @@
 @model ThriveHealth.Web.Models.ViewModels.PatientImagingHistory
 @{ ViewData["Title"] = $"Imaging history · {Model.Patient.FullName}"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Imaging history</h1>
         <p class="th-section-sub mb-0">@Model.Patient.FullName · @Model.Patient.HospitalNumber</p>
@@ -16,7 +16,7 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
+    <div class="table-responsive"><table class="table align-middle mb-0">
         <thead><tr><th>Ordered</th><th>Modality</th><th>Study</th><th>Status</th><th>Impression</th><th class="text-end"></th></tr></thead>
         <tbody>
         @foreach (var o in Model.Orders)
@@ -32,6 +32,6 @@ else
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>

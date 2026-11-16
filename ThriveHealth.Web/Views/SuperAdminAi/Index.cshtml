@@ -1,0 +1,86 @@
+@model ThriveHealth.Web.Services.Ai.ClaudeSettingsStatus
+@using ThriveHealth.Web.Services.Ai
+@{
+    ViewData["Title"] = "AI providers";
+    var modelLabels = new Dictionary<string, string>
+    {
+        ["claude-opus-5-5"] = "Claude Opus 5.5 (most capable, $4 / $20 per million tokens)",
+        ["claude-sonnet-5-5"] = "Claude Sonnet 5.5 (balanced, $2 / $10 per million tokens)",
+        ["claude-haiku-5-5"] = "Claude Haiku 5.5 (fastest and cheapest, $0.10 / $0.50 per million tokens)",
+    };
+}
+
+<div class="th-page-head">
+    <div>
+        <h1 class="th-section-title">AI providers</h1>
+        <p class="th-section-sub">The AI assistant uses the free OpenRouter models first, then Claude if they fail or run out.</p>
+    </div>
+</div>
+
+<div class="th-card p-4" style="max-width: 720px;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 mb-0">Claude failover</h2>
+        @if (Model.Enabled && Model.KeyReadable)
+        {
+            <span class="th-pill th-pill-success">On</span>
+        }
+        else
+        {
+            <span class="th-pill th-pill-muted">Off</span>
+        }
+    </div>
+
+    @if (Model.HasKey && !Model.KeyReadable)
+    {
+        <div class="alert alert-warning">The saved key can't be read on this server. Please enter it again.</div>
+    }
+
+    <form asp-action="Save" method="post" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label for="apiKey" class="form-label">Claude API key</label>
+            <input id="apiKey" name="apiKey" type="password" class="form-control" autocomplete="new-password" spellcheck="false"
+                   placeholder="@(Model.HasKey ? $"Saved key ending in {Model.KeyHint}. Leave blank to keep it." : "sk-ant-...")" />
+            <div class="form-text">Encrypted before it's saved and never shown again. Create one in the <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer">Claude Console</a>.</div>
+        </div>
+
+        <div class="mb-3">
+            <label for="model" class="form-label">Model</label>
+            <select id="model" name="model" class="form-select">
+                @foreach (var id in AiCredentialStore.ClaudeModels)
+                {
+                    <option value="@id" selected="@(id == Model.Model)">@modelLabels[id]</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="enabled" name="enabled" value="true" checked="@(Model.Enabled || !Model.HasKey)" />
+            <label class="form-check-label" for="enabled">Use Claude when the free models fail</label>
+        </div>
+
+        <p class="small text-muted">Claude is billed to your Anthropic account. When it's used, patients' de-identified symptom messages are sent to Anthropic.</p>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+
+    @if (Model.HasKey)
+    {
+        <hr />
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <form asp-action="Test" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary">Test connection</button>
+            </form>
+            <form asp-action="RemoveKey" method="post" onsubmit="return confirm('Remove the Claude API key and turn failover off?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">Remove key</button>
+            </form>
+            @if (Model.UpdatedAtUtc is { } updated)
+            {
+                <span class="small text-muted ms-auto">Updated @updated.ToString("d MMM yyyy, HH:mm") UTC@(Model.UpdatedBy is null ? "" : $" by {Model.UpdatedBy}")</span>
+            }
+        </div>
+    }
+</div>

@@ -3,12 +3,12 @@
     ViewData["Title"] = "Profile";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">My profile</h1>
-        <p class="th-section-sub mb-0">Update your personal details and review your roles.</p>
+        <p class="th-section-sub">Update your personal details and review your roles.</p>
     </div>
-    <a asp-action="ChangePassword" class="btn btn-outline-primary"><i class="bi bi-shield-lock me-1"></i> Change password</a>
+    <div class="th-page-actions"><a asp-action="ChangePassword" class="btn btn-outline-primary"><i class="bi bi-shield-lock me-1"></i> Change password</a></div>
 </div>
 
 <div class="row g-4">
@@ -44,7 +44,7 @@
         {
             <div class="th-card mt-3">
                 <div class="th-card-body">
-                    <h6 class="mb-3"><i class="bi bi-patch-check me-1 text-primary"></i>Practitioner licence</h6>
+                    <h6 class="mb-3"><i class="bi bi-patch-check me-1 text-muted"></i>Practitioner licence</h6>
                     <div class="row small">
                         <div class="col-6 text-muted">Body</div><div class="col-6 fw-semibold">@Model.LicenseBody</div>
                         <div class="col-6 text-muted">Number</div><div class="col-6 fw-semibold">@Model.LicenseNumber</div>

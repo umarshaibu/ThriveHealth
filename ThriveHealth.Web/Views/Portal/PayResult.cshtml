@@ -10,7 +10,7 @@
 {
     <div class="th-card mb-3"><div class="th-card-body">
         <div class="d-flex align-items-start gap-3">
-            <div class="flex-shrink-0"><i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i></div>
+            <div class="flex-shrink-0"><span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:56px;height:56px;background:var(--th-success-soft);color:var(--th-success);font-size:1.8rem"><i class="bi bi-check-lg"></i></span></div>
             <div class="flex-grow-1">
                 <h5 class="mb-1">You're all set</h5>
                 <p class="mb-0 text-muted">
@@ -27,7 +27,7 @@
     </div></div>
 
     <div class="d-flex gap-2 flex-wrap">
-        <a asp-action="Telemed" class="btn btn-primary"><i class="bi bi-camera-video me-1"></i> Back to tele-consults</a>
+        <a asp-action="Telemed" class="btn btn-primary btn-lg"><i class="bi bi-camera-video me-1"></i> Back to tele-consults</a>
         @{ var receiptId = (int?)ViewBag.LatestPaymentId; }
         @if (receiptId.HasValue)
         {
@@ -45,8 +45,8 @@ else
             <div class="small mb-0">Your consult is still pending payment. Try again, or contact billing if you were charged.</div>
         </div>
     </div>
-    <div class="d-flex gap-2">
-        <a asp-action="Pay" asp-route-teleSessionId="@Model.Id" class="btn btn-primary"><i class="bi bi-arrow-clockwise me-1"></i> Retry payment</a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="Pay" asp-route-teleSessionId="@Model.Id" class="btn btn-primary btn-lg"><i class="bi bi-arrow-clockwise me-1"></i> Retry payment</a>
         <a asp-action="Telemed" class="btn btn-outline-secondary">Back to tele-consults</a>
     </div>
 }

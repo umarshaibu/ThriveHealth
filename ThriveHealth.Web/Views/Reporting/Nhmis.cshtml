@@ -15,12 +15,12 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">NHMIS · monthly summary</h1>
         <p class="th-section-sub mb-0">FMOH National Health Management Information System aggregates · year @Model.Year</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-action="Idsr" class="btn btn-outline-secondary"><i class="bi bi-shield-shaded me-1"></i> IDSR</a>
         <form method="get" class="d-flex">
             <select name="year" class="form-select" onchange="this.form.submit()">
@@ -36,7 +36,7 @@
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
 <div class="th-card"><div class="th-card-body p-0">
-    <table class="table align-middle mb-0">
+    <div class="table-responsive"><table class="table align-middle mb-0">
         <thead><tr><th>Month</th><th>Status</th><th>Generated</th><th>Submitted</th><th class="text-end"></th></tr></thead>
         <tbody>
         @foreach (var m in months)
@@ -70,5 +70,5 @@
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 </div></div>

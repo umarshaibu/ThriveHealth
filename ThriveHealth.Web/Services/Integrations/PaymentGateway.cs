@@ -6,7 +6,7 @@ using ThriveHealth.Web.Models.Integrations;
 namespace ThriveHealth.Web.Services.Integrations;
 
 public record PaymentInitiateRequest(int FacilityId, int BillId, int PatientId, decimal Amount,
-    string? CustomerEmail, string? CustomerPhone, string? InitiatedById);
+    string? CustomerEmail, string? CustomerPhone, string? InitiatedById, string? CallbackUrl = null);
 
 public record PaymentInitiateResult(long TransactionId, string Reference, string AuthorizationUrl);
 

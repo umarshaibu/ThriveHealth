@@ -1,26 +1,27 @@
 @model ThriveHealth.Web.Models.ViewModels.LabWorklistViewModel
 @{ ViewData["Title"] = "Lab worklist"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title"><i class="bi bi-droplet-half text-primary me-1"></i> Laboratory worklist</h1>
+        <h1 class="th-section-title">Laboratory worklist</h1>
         <p class="th-section-sub mb-0">@Model.OpenCount open · @Model.AwaitingAuthCount awaiting authorisation · @Model.CriticalCount critical</p>
     </div>
-    <form method="get" class="d-flex gap-2">
-        <select name="section" class="form-select" onchange="this.form.submit()">
-            <option value="">All sections</option>
-            @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Diagnostics.LabSection>())
-            { <option value="@((int)s)" selected="@(Model.FilterSection == s)">@s</option> }
-        </select>
-        <select name="status" class="form-select" onchange="this.form.submit()">
-            <option value="open" selected="@(Model.FilterStatus == "open")">Open</option>
-            <option value="collected" selected="@(Model.FilterStatus == "collected")">Collected · awaiting result</option>
-            <option value="auth" selected="@(Model.FilterStatus == "auth")">Awaiting authorisation</option>
-            <option value="critical" selected="@(Model.FilterStatus == "critical")">Critical values</option>
-            <option value="completed" selected="@(Model.FilterStatus == "completed")">Completed</option>
-        </select>
-    </form>
 </div>
+
+<form method="get" class="th-toolbar">
+    <select name="section" class="form-select" onchange="this.form.submit()">
+        <option value="">All sections</option>
+        @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Diagnostics.LabSection>())
+        { <option value="@((int)s)" selected="@(Model.FilterSection == s)">@s</option> }
+    </select>
+    <select name="status" class="form-select" onchange="this.form.submit()">
+        <option value="open" selected="@(Model.FilterStatus == "open")">Open</option>
+        <option value="collected" selected="@(Model.FilterStatus == "collected")">Collected · awaiting result</option>
+        <option value="auth" selected="@(Model.FilterStatus == "auth")">Awaiting authorisation</option>
+        <option value="critical" selected="@(Model.FilterStatus == "critical")">Critical values</option>
+        <option value="completed" selected="@(Model.FilterStatus == "completed")">Completed</option>
+    </select>
+</form>
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-inbox"></i></div><div class="th-stat-label">Open orders</div><div class="th-stat-value">@Model.OpenCount</div></div></div>
@@ -57,7 +58,7 @@ else
                     <td><span class="th-pill @(r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Stat ? "th-pill-danger" : r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Urgent ? "th-pill-warning" : "th-pill-muted")">@r.Order.Urgency</span></td>
                     <td><span class="th-pill @statusTone">@r.Order.Status</span></td>
                     <td>
-                        @if (r.HasCriticalValue) { <span class="th-pill th-pill-danger"><i class="bi bi-exclamation-octagon-fill"></i> CRITICAL</span> }
+                        @if (r.HasCriticalValue) { <span class="th-pill th-pill-danger"><i class="bi bi-exclamation-octagon-fill"></i> Critical value</span> }
                         else if (r.ResultStatus.HasValue) { <span class="th-pill @(r.ResultStatus == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Authorized ? "th-pill-success" : r.ResultStatus == ThriveHealth.Web.Models.Diagnostics.LabResultStatus.Final ? "th-pill-warning" : "th-pill-info")">@r.ResultStatus</span> }
                     </td>
                     <td class="text-end">

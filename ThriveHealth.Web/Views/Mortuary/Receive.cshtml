@@ -1,9 +1,9 @@
 @model ThriveHealth.Web.Models.ViewModels.MortuaryInputViewModel
 @{ ViewData["Title"] = "Receive body"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <h1 class="th-section-title">Receive body into mortuary</h1>
-    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Register</a>
+    <div class="th-page-actions"><a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Register</a></div>
 </div>
 
 <form asp-action="Receive" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.MortuaryManage">
@@ -12,7 +12,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Deceased</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-person me-1"></i> Deceased</h2>
                 <div class="row g-3">
                     <div class="col-md-12">
                         <label class="form-label">Linked patient (optional)</label>
@@ -37,7 +37,7 @@
             </div></div>
 
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-people me-1"></i> Next of kin</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-people me-1"></i> Next of kin</h2>
                 <div class="row g-3">
                     <div class="col-md-6"><label asp-for="NextOfKinName" class="form-label">Name</label><input asp-for="NextOfKinName" class="form-control" /><span asp-validation-for="NextOfKinName" class="text-danger small"></span></div>
                     <div class="col-md-6"><label asp-for="NextOfKinRelationship" class="form-label">Relationship</label><input asp-for="NextOfKinRelationship" class="form-control" /></div>
@@ -49,7 +49,7 @@
 
         <div class="col-lg-6">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2 me-1"></i> Death details</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-clipboard2 me-1"></i> Death details</h2>
                 <div class="row g-3">
                     <div class="col-md-6"><label asp-for="DateOfDeathUtc" class="form-label">Date / time of death</label><input asp-for="DateOfDeathUtc" type="datetime-local" class="form-control" /></div>
                     <div class="col-md-6">
@@ -68,7 +68,7 @@
             </div></div>
         </div>
     </div>
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Receive body</button>
     </div>

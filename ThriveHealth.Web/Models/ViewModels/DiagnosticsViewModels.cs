@@ -42,6 +42,7 @@ public class AnalyteEntry
     public string? RefRange { get; set; }
     public string? CriticalRange { get; set; }
     public string? Value { get; set; }
+    public ThriveHealth.Web.Models.Diagnostics.AnalyteFlag? ManualFlag { get; set; }
 }
 
 public class LabResultEntrySubmit
@@ -56,6 +57,7 @@ public class AnalyteValueDto
 {
     public int LabAnalyteId { get; set; }
     public string? Value { get; set; }
+    public ThriveHealth.Web.Models.Diagnostics.AnalyteFlag? ManualFlag { get; set; }
 }
 
 public class ImagingWorklistRow

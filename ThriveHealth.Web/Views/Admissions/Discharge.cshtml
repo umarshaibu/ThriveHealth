@@ -6,15 +6,17 @@
 }
 
 <div class="row"><div class="col-lg-8">
+    <div class="th-page-head"><div>
     <h1 class="th-section-title">Discharge patient</h1>
     @if (a != null)
     {
         <p class="th-section-sub">@a.Patient!.FullName · @a.Patient.HospitalNumber · @a.Ward?.Name @a.Bed?.BedNumber</p>
     }
+    </div></div>
 
     <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDischargeDraft">
         <div class="th-card-header d-flex justify-content-between align-items-center">
-            <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI-drafted discharge summary <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h5>
+            <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1"></i> AI-drafted discharge summary <span class="th-pill th-pill-info ms-2">Draft: clinician must verify</span></h5>
             <form asp-action="DraftDischarge" asp-route-id="@Model.AdmissionId" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDischargeDraft">
                 @Html.AntiForgeryToken()
                 <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i> @(ai == null ? "Draft" : "Re-draft")</button>
@@ -78,7 +80,7 @@
                     <input asp-for="FollowUp" class="form-control" placeholder="GOPD review in 2 weeks. Repeat FBC in 1 month." />
                 </div>
             </div>
-            <div class="mt-3 d-flex justify-content-end gap-2">
+            <div class="th-sticky-actions">
                 <a asp-action="Details" asp-route-id="@Model.AdmissionId" class="btn btn-outline-secondary">Cancel</a>
                 <button class="btn btn-success"><i class="bi bi-box-arrow-right me-1"></i> Confirm discharge</button>
             </div>

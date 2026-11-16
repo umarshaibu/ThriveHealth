@@ -3,46 +3,135 @@
     var p = (ThriveHealth.Web.Models.Patients.Patient)ViewBag.Patient;
 }
 
-<div class="row"><div class="col-lg-9">
-    <h1 class="th-section-title"><i class="bi bi-chat-dots text-primary me-1"></i> Symptom checker</h1>
-    <p class="th-section-sub">Describe what you're feeling. The assistant will tell you whether to book an appointment, come in today, or seek emergency care. <strong>This is not medical advice — talk to a clinician for diagnosis.</strong></p>
+<style>
+    .th-ai { max-width: 720px; margin: 0 auto; }
+    .th-ai-emergency { position: sticky; top: 0; z-index: 60; display: flex; align-items: flex-start; gap: 10px; background: var(--th-danger-soft); color: var(--th-danger); border-radius: var(--th-radius-md); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.4; }
+    .th-ai-emergency i { font-size: 1.1rem; margin-top: 1px; }
+    .th-ai-intro { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+    .th-ai-avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--th-emerald); color: var(--th-surface); display: inline-flex; align-items: center; justify-content: center; }
+    .th-ai-thread { display: flex; flex-direction: column; gap: 12px; padding-bottom: 12px; }
+    .th-bubble { max-width: 88%; padding: 12px 14px; border-radius: var(--th-radius-md); line-height: 1.45; overflow-wrap: anywhere; scroll-margin-bottom: 170px; }
+    .th-bubble.bot { align-self: flex-start; background: var(--th-surface); border-bottom-left-radius: 4px; }
+    .th-bubble.me { align-self: flex-end; background: var(--th-emerald); color: var(--th-surface); border-bottom-right-radius: 4px; }
+    .th-bubble.wait { color: var(--th-text-muted); font-size: 13px; }
+    .th-bubble.err { background: var(--th-warning-soft); color: var(--th-warning); }
+    .th-bubble.bot.wide { width: 100%; max-width: 100%; }
+    .th-bubble pre { white-space: pre-wrap; font-family: inherit; margin: 0; }
+    .th-status { border-radius: var(--th-radius-sm); padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; }
+    .th-status i { font-size: 1.3rem; line-height: 1.2; }
+    .th-status-label { font-size: 12px; font-weight: 600; opacity: .9; }
+    .th-status-text { font-weight: 600; font-size: 1.05rem; line-height: 1.3; }
+    .th-status.danger { background: var(--th-danger-soft); color: var(--th-danger); }
+    .th-status.warning { background: var(--th-warning-soft); color: var(--th-warning); }
+    .th-status.info { background: var(--th-info-soft); color: var(--th-info); }
+    .th-status.success { background: var(--th-success-soft); color: var(--th-success); }
+    .th-status.neutral { background: var(--th-surface-sunken); color: var(--th-text); }
+    .th-bubble h3 { font-size: 12.5px; font-weight: 600; color: var(--th-text-muted); margin: 10px 0 4px; }
+    .th-bubble ul { margin: 0; padding-left: 1.1rem; }
+    .th-ai-composer { position: sticky; bottom: 76px; z-index: 55; display: flex; gap: 8px; background: var(--th-surface); border-radius: 999px; padding: 8px; box-shadow: var(--th-shadow-pop); }
+    @@media (min-width: 768px) { .th-ai-composer { bottom: 12px; } }
+    .th-ai-composer .form-control { border: 0; border-radius: 999px; background: transparent; box-shadow: none; }
+    .th-ai-composer .btn { flex: none; width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .th-ai-disclaimer { font-size: 12.5px; color: var(--th-text-muted); text-align: center; margin: 10px 0 0; }
+</style>
 
-    <div class="th-card">
-        <div class="th-card-body" id="aiChat" style="min-height: 200px;">
-            <div class="text-muted small">Hi @p.FirstName. Tell me what's wrong, e.g. "I have a headache and fever for 3 days".</div>
-        </div>
-        <div class="th-card-footer">
-            <div class="d-flex gap-2">
-                <input id="aiQ" class="form-control" placeholder="Type your symptoms…" />
-                <button class="btn btn-primary" onclick="aiAskSymptom()"><i class="bi bi-send"></i></button>
-            </div>
+<div class="th-ai">
+    <div class="th-ai-emergency" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><strong>Emergency?</strong> If you have severe chest pain, difficulty breathing, heavy bleeding, sudden weakness on one side of the body, or any life-threatening symptom, go to A&amp;E now or call your nearest hospital. Don't wait for the assistant.</div>
+    </div>
+
+    <h1 class="th-section-title mb-1">Symptom checker</h1>
+    <p class="th-section-sub">General guidance on whether to book, come in today or seek emergency care. This is not medical advice. Talk to a clinician for a diagnosis.</p>
+
+    <div class="th-ai-thread" id="aiChat" aria-live="polite">
+        <div class="th-ai-intro">
+            <span class="th-ai-avatar"><i class="bi bi-stars"></i></span>
+            <div class="th-bubble bot">Hi @p.FirstName. Tell me what's wrong, for example "I have a headache and fever for 3 days". I'll suggest what to do next.</div>
         </div>
     </div>
 
-    <div class="alert alert-warning small mt-3 mb-0">
-        <strong>Emergency?</strong> If you have severe chest pain, difficulty breathing, heavy bleeding, sudden weakness on one side of the body, or any life-threatening symptom — go to A&amp;E now or call your nearest hospital. Don't wait for the chatbot.
+    <div class="th-ai-composer">
+        <input id="aiQ" class="form-control" placeholder="Type your symptoms…" aria-label="Describe your symptoms" autocomplete="off" />
+        <button class="btn btn-primary" onclick="aiAskSymptom()" aria-label="Send"><i class="bi bi-send"></i></button>
     </div>
-</div></div>
+    <p class="th-ai-disclaimer">Not a diagnosis. In an emergency, go to A&amp;E.</p>
+</div>
 
 @section Scripts {
 <script>
 var convoHistory = [];
 var inFlight = false;
+var requestUrl = '@Url.Action("RequestTelemed")';
 function escHtml(s) {
     return (s || "").toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+// Parse the structured reply: ADVICE:, WHY:, WHAT TO WATCH FOR:. Returns null if there is no ADVICE line.
+function parseReply(text) {
+    // Anything that doesn't fit the expected shape is shown as raw text, never partially.
+    var out = { advice: '', why: '', watch: '' }, cur = null, found = false, malformed = false;
+    String(text || '').split(/\r?\n/).forEach(function (line) {
+        var m = line.match(/^\s*(?:[*#_\s]*)(ADVICE|WHY|WHAT TO WATCH FOR)\s*[*_]*\s*:\s*[*_]*\s*(.*)$/i);
+        if (m) {
+            var key = m[1].toUpperCase();
+            cur = key === 'ADVICE' ? 'advice' : key === 'WHY' ? 'why' : 'watch';
+            if (cur === 'advice') { if (found) malformed = true; found = true; }
+            out[cur] = m[2];
+        } else if (cur) {
+            out[cur] += '\n' + line;
+        } else if (line.trim()) {
+            malformed = true;
+        }
+    });
+    if (malformed || !found || !out.advice.trim()) return null;
+    out.advice = out.advice.trim(); out.why = out.why.trim(); out.watch = out.watch.trim();
+    return out;
+}
+function adviceTone(a) {
+    // Most urgent match wins, so an emergency can never be downgraded by wording around it.
+    var cats = [
+        { re: /a\s*(?:&|and)\s*e\b|a&amp;e|emergency|ambulance|casualty/i, cls: 'danger', icon: 'bi-exclamation-octagon-fill', label: 'Urgent' },
+        { re: /today|same[- ]day|urgent|as soon as/i, cls: 'warning', icon: 'bi-exclamation-triangle-fill', label: 'Same day' },
+        { re: /book|appointment|schedule|consult/i, cls: 'info', icon: 'bi-calendar2-check', label: 'Book a visit' },
+        { re: /self[- ]?care|at home|\brest\b|monitor/i, cls: 'success', icon: 'bi-house-heart', label: 'Self-care' }
+    ];
+    var best = cats.find(function (c) { return c.re.test(a); });
+    return best || { cls: 'neutral', icon: 'bi-info-circle', label: 'Advice' };
+}
+function listOrText(s) {
+    var lines = s.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    var bullets = lines.length > 0 && lines.every(function (l) { return /^[-*•]\s+/.test(l); });
+    if (bullets) return '<ul>' + lines.map(function (l) { return '<li>' + escHtml(l.replace(/^[-*•]\s+/, '')) + '</li>'; }).join('') + '</ul>';
+    return '<div style="white-space:pre-wrap">' + escHtml(s) + '</div>';
+}
+function renderReply(text) {
+    var r = parseReply(text);
+    if (!r) return `<div class="th-bubble bot wide"><pre>${escHtml(text)}</pre></div>`;
+    var t = adviceTone(r.advice);
+    var html = `<div class="th-bubble bot wide"><div class="th-status ${t.cls}"><i class="bi ${t.icon}"></i><div><div class="th-status-label">${t.label}</div><div class="th-status-text">${escHtml(r.advice)}</div></div></div>`;
+    if (r.why) html += '<h3>Why</h3>' + listOrText(r.why);
+    if (r.watch) html += '<h3>What to watch for</h3>' + listOrText(r.watch);
+    if (t.cls === 'info' || t.cls === 'warning') html += `<a class="btn btn-outline-primary btn-sm mt-3" href="${escHtml(requestUrl)}">Request a consultation</a>`;
+    return html + '</div>';
+}
+function addHtml(chat, html) {
+    chat.insertAdjacentHTML('beforeend', html);
+    var el = chat.lastElementChild;
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return el;
 }
 async function aiAskSymptom() {
     if (inFlight) return;
     var q = document.getElementById('aiQ').value.trim();
     if (!q) return;
     var chat = document.getElementById('aiChat');
-    chat.insertAdjacentHTML('beforeend', `<div class="mb-2"><strong>You:</strong> ${escHtml(q)}</div>`);
+    addHtml(chat, `<div class="th-bubble me">${escHtml(q)}</div>`);
     document.getElementById('aiQ').value = '';
     var thinkingEl = document.createElement('div');
-    thinkingEl.className = 'text-muted small mb-2';
+    thinkingEl.className = 'th-bubble bot wait';
     thinkingEl.textContent = 'Thinking…';
     chat.appendChild(thinkingEl);
-    chat.scrollTop = chat.scrollHeight;
+    thinkingEl.scrollIntoView({ block: 'nearest' });
     convoHistory.push('Patient: ' + q);
 
     inFlight = true;
@@ -59,24 +148,23 @@ async function aiAskSymptom() {
         clearTimeout(timeout);
         thinkingEl.remove();
         if (!r.ok) {
-            chat.insertAdjacentHTML('beforeend', `<div class="alert alert-warning">AI failed: HTTP ${r.status} ${r.statusText}</div>`);
+            addHtml(chat, `<div class="th-bubble bot err">AI failed: HTTP ${r.status} ${escHtml(r.statusText)}</div>`);
         } else {
             var j = await r.json();
             if (j.ok) {
-                chat.insertAdjacentHTML('beforeend', `<pre class="mb-3 p-2 border rounded-3 bg-light" style="white-space:pre-wrap;font-family:inherit">${escHtml(j.text)}</pre>`);
+                addHtml(chat, renderReply(j.text));
                 convoHistory.push('Assistant: ' + j.text);
             } else {
-                chat.insertAdjacentHTML('beforeend', `<div class="alert alert-warning">AI failed: ${escHtml(j.error || 'unknown')}</div>`);
+                addHtml(chat, `<div class="th-bubble bot err">AI failed: ${escHtml(j.error || 'unknown')}</div>`);
             }
         }
-        chat.scrollTop = chat.scrollHeight;
     } catch (e) {
         clearTimeout(timeout);
         thinkingEl.remove();
         var msg = e.name === 'AbortError'
             ? 'Server didn\'t respond after 30 seconds. Restart the app or check the AI provider settings.'
             : (e.message || String(e));
-        chat.insertAdjacentHTML('beforeend', `<div class="alert alert-warning">AI failed: ${escHtml(msg)}</div>`);
+        addHtml(chat, `<div class="th-bubble bot err">AI failed: ${escHtml(msg)}</div>`);
     } finally {
         inFlight = false;
     }

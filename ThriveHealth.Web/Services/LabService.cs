@@ -5,7 +5,7 @@ using ThriveHealth.Web.Models.Diagnostics;
 
 namespace ThriveHealth.Web.Services;
 
-public record LabValueInput(int LabAnalyteId, string Value);
+public record LabValueInput(int LabAnalyteId, string Value, AnalyteFlag? ManualFlag = null);
 
 public interface ILabService
 {
@@ -97,7 +97,10 @@ public class LabService : ILabService
                 System.Globalization.CultureInfo.InvariantCulture, out var parsed)) num = parsed;
 
             var flag = ComputeFlag(num, analyte);
-            if (flag == AnalyteFlag.CriticalLow || flag == AnalyteFlag.CriticalHigh) anyCritical = true;
+            // A lab scientist's judgement is the only source of a flag for results the system can't assess.
+            if (flag == AnalyteFlag.NotAssessed && v.ManualFlag is AnalyteFlag.Abnormal or AnalyteFlag.Critical)
+                flag = v.ManualFlag.Value;
+            if (flag is AnalyteFlag.CriticalLow or AnalyteFlag.CriticalHigh or AnalyteFlag.Critical) anyCritical = true;
 
             string? rangeDisplay = (analyte.RefLow.HasValue || analyte.RefHigh.HasValue)
                 ? $"{analyte.RefLow?.ToString() ?? ""} – {analyte.RefHigh?.ToString() ?? ""}"
@@ -148,7 +151,9 @@ public class LabService : ILabService
 
     private static AnalyteFlag ComputeFlag(decimal? value, LabAnalyte analyte)
     {
-        if (!value.HasValue) return AnalyteFlag.Normal;
+        if (!value.HasValue) return AnalyteFlag.NotAssessed;
+        if (analyte.RefLow is null && analyte.RefHigh is null && analyte.CriticalLow is null && analyte.CriticalHigh is null)
+            return AnalyteFlag.NotAssessed;
         var v = value.Value;
         if (analyte.CriticalLow.HasValue && v < analyte.CriticalLow.Value) return AnalyteFlag.CriticalLow;
         if (analyte.CriticalHigh.HasValue && v > analyte.CriticalHigh.Value) return AnalyteFlag.CriticalHigh;

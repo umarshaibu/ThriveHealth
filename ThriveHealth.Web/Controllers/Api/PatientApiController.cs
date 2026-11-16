@@ -4,6 +4,7 @@ using ThriveHealth.Web.Data;
 using ThriveHealth.Web.Models.Api;
 using ThriveHealth.Web.Models.Billing;
 using ThriveHealth.Web.Models.Clinical;
+using ThriveHealth.Web.Models.Diagnostics;
 using ThriveHealth.Web.Models.Telemedicine;
 
 namespace ThriveHealth.Web.Controllers.Api;
@@ -114,17 +115,32 @@ public class PatientApiController : ApiControllerBase
             .Where(o => o.PatientId == pid)
             .OrderByDescending(o => o.OrderedAt).Take(50)
             .Select(o => new ApiLabResult(o.Id, o.LabTest != null ? o.LabTest.Name : "Lab test",
-                o.Status.ToString(), o.OrderedAt, o.Result != null))
+                o.Status.ToString(), o.OrderedAt, o.Result != null && (o.Result.Status == LabResultStatus.Authorized || o.Result.Status == LabResultStatus.Amended)))
             .ToListAsync(ct);
 
         var imaging = await _db.ImagingOrders.AsNoTracking()
             .Include(o => o.Report)
             .Where(o => o.PatientId == pid)
             .OrderByDescending(o => o.OrderedAt).Take(50)
-            .Select(o => new ApiImagingResult(o.Id, o.Modality.ToString(), o.Status.ToString(), o.OrderedAt, o.Report != null))
+            .Select(o => new ApiImagingResult(o.Id, o.Modality.ToString(), o.Status.ToString(), o.OrderedAt, o.Report != null && o.Report.AuthorizedAt != null))
             .ToListAsync(ct);
 
         return Ok(new ApiResults(labs, imaging));
+    }
+
+    [HttpGet("vitals")]
+    [ProducesResponseType(typeof(IReadOnlyList<ApiVitalsReading>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Vitals(CancellationToken ct)
+    {
+        var pid = PatientId;
+        var rows = await _db.Vitals.AsNoTracking()
+            .Where(v => v.PatientId == pid)
+            .OrderByDescending(v => v.RecordedAt).Take(30)
+            .ToListAsync(ct);
+
+        // Bmi is computed on the entity, so map after the query has run.
+        return Ok(rows.Select(v => new ApiVitalsReading(v.Id, v.RecordedAt, v.SystolicBp, v.DiastolicBp,
+            v.HeartRate, v.RespiratoryRate, v.TemperatureCelsius, v.SpO2, v.WeightKg, v.Bmi)).ToList());
     }
 
     [HttpGet("appointments")]

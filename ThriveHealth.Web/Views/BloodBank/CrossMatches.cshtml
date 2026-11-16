@@ -13,12 +13,12 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Cross-match requests</h1>
-        <p class="th-section-sub mb-0">@Model.Count request@(Model.Count == 1 ? "" : "s")</p>
+        <p class="th-section-sub">@Model.Count request@(Model.Count == 1 ? "" : "s")</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bank</a>
         <a asp-action="NewCrossMatch" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.BloodBankCrossMatch" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> New request</a>
     </div>
@@ -31,7 +31,7 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
+    <div class="table-responsive"><table class="table align-middle mb-0">
         <thead><tr><th>XM #</th><th>Patient</th><th>Group</th><th>Component</th><th>Units</th><th>Required by</th><th>Status</th><th class="text-end"></th></tr></thead>
         <tbody>
         @foreach (var c in Model)
@@ -48,6 +48,6 @@ else
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>

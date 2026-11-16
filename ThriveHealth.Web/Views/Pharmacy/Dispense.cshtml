@@ -7,9 +7,9 @@
     var hasSevereWarning = Model.Warnings.Any(w => w.Severity >= ThriveHealth.Web.Models.Pharmacy.InteractionSeverity.Severe);
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title">Dispense Rx #@rx.Id</h1>
+        <h1 class="th-section-title">Dispense prescription #@rx.Id</h1>
         <p class="th-section-sub mb-0">
             <strong>@p.FullName</strong> · <span class="font-monospace">@p.HospitalNumber</span>
             · @p.Sex @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> }
@@ -24,7 +24,7 @@
     <div class="alert @(hasSevereAllergy ? "alert-danger" : "alert-warning") d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-exclamation-octagon-fill"></i>
         <div>
-            <strong>Allergies:</strong>
+            <strong>Allergy warning:</strong>
             @foreach (var a in p.Allergies.Where(x => x.IsActive))
             { <span class="me-2"><strong>@a.Substance</strong> <small>(@a.Severity)</small></span> }
         </div>
@@ -81,7 +81,7 @@
 
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
-                    <h5 class="mb-1">@item.DrugName
+                    <h3 class="fs-6 fw-semibold mb-1">@item.DrugName
                         @if (item.Drug?.IsControlled == true) { <span class="th-pill th-pill-danger ms-1"><i class="bi bi-shield-lock"></i> Controlled · @item.Drug.Schedule</span> }
                         @if (item.Drug?.NafdacNumber is not null) { <small class="font-monospace text-muted ms-2">NAFDAC @item.Drug.NafdacNumber</small> }
                         @{
@@ -98,7 +98,7 @@
                             else
                             { <span class="th-pill th-pill-success ms-1"><i class="bi bi-shield-check"></i> Covered</span> }
                         }
-                    </h5>
+                    </h3>
                     <div class="small text-muted">@item.Dose · @item.Route · @item.Frequency · @item.Duration</div>
                     @if (!string.IsNullOrEmpty(item.Instructions)) { <div class="small">@item.Instructions</div> }
                     @if (fcheck != null && !fcheck.IsCovered && !string.IsNullOrEmpty(fcheck.Note))
@@ -148,9 +148,9 @@
         </div></div>
     }
 
-    <div class="d-flex justify-content-between align-items-center">
-        <small class="text-muted"><i class="bi bi-info-circle"></i> Dispensing decrements stock and writes to the audit log. Controlled drugs additionally appear on the controlled register.</small>
-        <button class="btn btn-primary btn-lg"><i class="bi bi-bag-check me-1"></i> Confirm dispense</button>
+    <div class="th-sticky-actions align-items-center">
+        <small class="text-muted me-auto ps-3"><i class="bi bi-info-circle"></i> Dispensing decrements stock and writes to the audit log. Controlled drugs additionally appear on the controlled register.</small>
+        <button class="btn btn-primary"><i class="bi bi-bag-check me-1"></i> Confirm dispense</button>
     </div>
 </form>
 

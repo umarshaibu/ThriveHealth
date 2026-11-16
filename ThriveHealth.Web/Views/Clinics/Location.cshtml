@@ -1,0 +1,38 @@
+@model ThriveHealth.Web.Controllers.ClinicsController.FacilityLocationModel
+@{ ViewData["Title"] = "Hospital location"; }
+
+<div class="th-page-head">
+    <div>
+        <h1 class="th-section-title">Hospital location</h1>
+        <p class="th-section-sub">Patients use this to find your hospital on the map and get directions.</p>
+    </div>
+</div>
+
+<div class="th-card" style="max-width: 760px;"><div class="th-card-body">
+    <form asp-action="Location" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+        <div class="th-form-section">
+            <h2 class="th-form-section-title">Address</h2>
+            <div class="row g-3">
+                <div class="col-12"><label asp-for="Address" class="form-label"></label><input asp-for="Address" class="form-control" /></div>
+                <div class="col-md-6"><label asp-for="Lga" class="form-label">LGA</label><input asp-for="Lga" class="form-control" /></div>
+                <div class="col-md-6"><label asp-for="State" class="form-label"></label><input asp-for="State" class="form-control" /></div>
+                <div class="col-md-6"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /></div>
+            </div>
+        </div>
+        <div class="th-form-section">
+            <h2 class="th-form-section-title">Map position</h2>
+            <p class="form-text">In Google Maps, right-click your hospital and click the two numbers at the top of the menu to copy them. The first is latitude, the second longitude.</p>
+            <div class="row g-3">
+                <div class="col-md-6"><label asp-for="Latitude" class="form-label"></label><input asp-for="Latitude" class="form-control" step="any" placeholder="6.6018" /><span asp-validation-for="Latitude" class="text-danger small"></span></div>
+                <div class="col-md-6"><label asp-for="Longitude" class="form-label"></label><input asp-for="Longitude" class="form-control" step="any" placeholder="3.3515" /><span asp-validation-for="Longitude" class="text-danger small"></span></div>
+            </div>
+        </div>
+        <div class="th-sticky-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-geo-alt me-1"></i> Save location</button>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

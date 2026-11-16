@@ -8,7 +8,7 @@
     .th-wizard { max-width: 760px; margin: 0 auto; }
     .th-wizard-steps { display: flex; gap: .4rem; margin-bottom: 1.25rem; }
     .th-wizard-steps .step {
-        flex: 1; padding: .55rem .7rem; border-radius: 8px; background: var(--th-surface);
+        flex: 1; padding: .55rem .7rem; border-radius: var(--th-radius-sm); background: var(--th-surface);
         border: 1px solid var(--th-border); display: flex; gap: .55rem; align-items: center;
         font-size: .8rem; transition: background .15s, color .15s, border-color .15s;
         cursor: default; min-width: 0;
@@ -34,7 +34,7 @@
 </style>
 
 <div class="th-wizard">
-<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Register a new patient</h1>
         <p class="th-section-sub mb-0">Step <span id="stepNow">1</span> of 6 · hospital number is generated automatically.</p>
@@ -230,7 +230,7 @@
                 <p class="small text-muted mb-3">Confirm the details below. Click <strong>Register patient</strong> to save. You can use <strong>Back</strong> to make changes.</p>
                 <div class="row g-3 th-review">
                     <div class="col-sm-6">
-                        <h6 class="text-uppercase small text-muted">Identity</h6>
+                        <h6 class="small fw-semibold text-muted">Identity</h6>
                         <dl class="row mb-0 small">
                             <dt class="col-5">Name</dt><dd class="col-7" id="rName">—</dd>
                             <dt class="col-5">Sex</dt><dd class="col-7" id="rSex">—</dd>
@@ -239,7 +239,7 @@
                         </dl>
                     </div>
                     <div class="col-sm-6">
-                        <h6 class="text-uppercase small text-muted">Contact</h6>
+                        <h6 class="small fw-semibold text-muted">Contact</h6>
                         <dl class="row mb-0 small">
                             <dt class="col-5">Phone</dt><dd class="col-7" id="rPhone">—</dd>
                             <dt class="col-5">Email</dt><dd class="col-7" id="rEmail">—</dd>
@@ -247,7 +247,7 @@
                         </dl>
                     </div>
                     <div class="col-sm-6">
-                        <h6 class="text-uppercase small text-muted">Next of kin</h6>
+                        <h6 class="small fw-semibold text-muted">Next of kin</h6>
                         <dl class="row mb-0 small">
                             <dt class="col-5">Name</dt><dd class="col-7" id="rNok">—</dd>
                             <dt class="col-5">Relationship</dt><dd class="col-7" id="rNokRel">—</dd>
@@ -255,7 +255,7 @@
                         </dl>
                     </div>
                     <div class="col-sm-6">
-                        <h6 class="text-uppercase small text-muted">Payer</h6>
+                        <h6 class="small fw-semibold text-muted">Payer</h6>
                         <dl class="row mb-0 small">
                             <dt class="col-5">Type</dt><dd class="col-7" id="rPayType">—</dd>
                             <dt class="col-5">Name</dt><dd class="col-7" id="rPayName">—</dd>
@@ -267,14 +267,14 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between gap-2 mb-4">
+    <div class="th-sticky-actions justify-content-between mb-4">
         <div>
-            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg me-1"></i> Cancel</a>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-x-lg me-1"></i> Cancel</a>
         </div>
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary" id="thBack" disabled><i class="bi bi-arrow-left me-1"></i> Back</button>
-            <button type="button" class="btn btn-primary" id="thNext">Next <i class="bi bi-arrow-right ms-1"></i></button>
-            <button type="submit" class="btn btn-success d-none" id="thSubmit"><i class="bi bi-check2-circle me-1"></i> Register patient</button>
+            <button type="button" class="btn btn-outline-secondary rounded-pill" id="thBack" disabled><i class="bi bi-arrow-left me-1"></i> Back</button>
+            <button type="button" class="btn btn-primary rounded-pill" id="thNext">Next <i class="bi bi-arrow-right ms-1"></i></button>
+            <button type="submit" class="btn btn-success rounded-pill d-none" id="thSubmit"><i class="bi bi-check2-circle me-1"></i> Register patient</button>
         </div>
     </div>
 </form>

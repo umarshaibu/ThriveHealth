@@ -4,15 +4,16 @@
     var subCounts = (Dictionary<int, int>)ViewBag.SubCounts;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3">
+<div class="th-page-head">
     <div>
-        <h1 class="sa-h1">Subscription plans</h1>
-        <p class="sa-sub mb-0">Pricing, caps and feature toggles. Edits apply to new signups; existing subscriptions keep the price they were created with.</p>
+        <h1 class="th-section-title">Subscription plans</h1>
+        <p class="th-section-sub">Pricing, caps and feature toggles. Edits apply to new signups; existing subscriptions keep the price they were created with.</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New plan</a>
+    <div class="th-page-actions"><a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New plan</a></div>
 </div>
 
-<div class="sa-card p-0">
+<div class="th-card th-table-flush">
+    <div class="table-responsive">
     <table class="table mb-0">
         <thead><tr>
             <th>Plan</th><th>Code</th><th>Monthly</th><th>Annual</th>
@@ -25,7 +26,7 @@
                 <tr>
                     <td>
                         <strong>@p.Name</strong>
-                        @if (p.IsCustomQuote) { <span class="badge bg-info ms-1">Custom quote</span> }
+                        @if (p.IsCustomQuote) { <span class="th-pill th-pill-info ms-1">Custom quote</span> }
                         <div class="small text-muted">@p.Tagline</div>
                     </td>
                     <td><code class="small">@p.Code</code></td>
@@ -37,8 +38,8 @@
                     </td>
                     <td>@subs</td>
                     <td>
-                        @if (p.IsActive) { <span class="badge-pill badge-active">Active</span> }
-                        else { <span class="badge-pill badge-cancelled">Hidden</span> }
+                        @if (p.IsActive) { <span class="th-pill th-pill-success">Active</span> }
+                        else { <span class="th-pill th-pill-muted">Hidden</span> }
                     </td>
                     <td>
                         <div class="d-flex gap-1">
@@ -61,4 +62,5 @@
             }
         </tbody>
     </table>
+    </div>
 </div>

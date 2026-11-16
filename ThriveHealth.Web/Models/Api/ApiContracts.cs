@@ -114,6 +114,51 @@ public record ApiResults(
     IReadOnlyList<ApiLabResult> Labs,
     IReadOnlyList<ApiImagingResult> Imaging);
 
+// ---- Vitals ----
+
+public record ApiVitalsReading(
+    int Id,
+    DateTime RecordedAt,
+    int? SystolicBp,
+    int? DiastolicBp,
+    int? HeartRate,
+    int? RespiratoryRate,
+    decimal? TemperatureCelsius,
+    int? SpO2,
+    decimal? WeightKg,
+    decimal? Bmi);
+
+// ---- Doctor directory ----
+
+public record ApiDoctor(
+    string Id,
+    string Name,
+    string? Title,
+    bool IsConsultant,
+    double? Rating,
+    int RatingCount,
+    int? YearsExperience);
+
+// ---- Hospital finder ----
+
+public record ApiHospital(
+    string Key,
+    string Name,
+    string? Address,
+    string? Phone,
+    double Latitude,
+    double Longitude,
+    bool IsYours,
+    bool InNetwork);
+
+// ---- AI assistant ----
+
+public record ApiAssistantRequest(
+    [Required, StringLength(1000, MinimumLength = 2)] string Question,
+    IReadOnlyList<string>? History);
+
+public record ApiAssistantReply(string Text);
+
 // ---- Appointments ----
 
 public record ApiAppointment(

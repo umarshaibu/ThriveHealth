@@ -4,12 +4,12 @@
     string Json(object o) => System.Text.Json.JsonSerializer.Serialize(o);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Analytics dashboard</h1>
         <p class="th-section-sub mb-0">Live operational KPIs · last @Model.Days days</p>
     </div>
-    <form method="get" class="d-flex gap-2">
+    <form method="get" class="th-page-actions">
         @foreach (var d in new[] { 7, 30, 90, 180, 365 })
         {
             <a asp-action="Index" asp-route-days="@d" class="btn btn-sm @(Model.Days == d ? "btn-primary" : "btn-outline-secondary")">@d d</a>
@@ -36,24 +36,24 @@
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-graph-up me-1"></i> Daily consultations & admissions</h6>
+            <h2 class="th-card-title mb-2">Daily consultations &amp; admissions</h2>
             <canvas id="trendChart" height="120"></canvas>
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-cash-coin me-1"></i> Daily revenue collected (₦)</h6>
+            <h2 class="th-card-title mb-2">Daily revenue collected (₦)</h2>
             <canvas id="revChart" height="100"></canvas>
         </div></div>
     </div>
 
     <div class="col-lg-4">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-pie-chart me-1"></i> Payments by method</h6>
+            <h2 class="th-card-title mb-2">Payments by method</h2>
             <canvas id="methodChart" height="200"></canvas>
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-buildings me-1"></i> Top clinics by visits</h6>
+            <h2 class="th-card-title mb-2">Top clinics by visits</h2>
             <canvas id="clinicChart" height="220"></canvas>
         </div></div>
     </div>
@@ -62,7 +62,7 @@
 <div class="row g-3">
     <div class="col-lg-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-bandaid me-1"></i> Immunization by vaccine</h6>
+            <h2 class="th-card-title mb-2">Immunization by vaccine</h2>
             @if (Model.ImmunizationByVaccine.Any())
             {
                 <canvas id="vaxChart" height="150"></canvas>
@@ -72,7 +72,7 @@
     </div>
     <div class="col-lg-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-virus me-1"></i> IDSR cases by disease</h6>
+            <h2 class="th-card-title mb-2">IDSR cases by disease</h2>
             @if (Model.IdsrByDisease.Any())
             {
                 <canvas id="idsrChart" height="150"></canvas>
@@ -101,6 +101,26 @@
     }
     function valueAt(arr, d) { const r = arr.find(x => x.d === d); return r ? r.v : 0; }
 
+    // Chart colours come from the design tokens only
+    const css = getComputedStyle(document.documentElement);
+    const token = n => css.getPropertyValue(n).trim();
+    const C = [1, 2, 3, 4, 5].map(n => token('--th-chart-' + n));
+    const gridColor = token('--th-border');
+    const textColor = token('--th-text-muted');
+    const surface = token('--th-surface');
+    function alpha(hex, a) {
+        const h = hex.replace('#', '');
+        const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+        return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    Chart.defaults.color = textColor;
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    const legend = (position) => ({ display: true, position: position || 'bottom', labels: { color: textColor, usePointStyle: true, boxWidth: 8 } });
+    const axes = (extra) => Object.assign({
+        x: { grid: { color: gridColor }, ticks: { color: textColor }, border: { color: gridColor } },
+        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor }, border: { color: gridColor } }
+    }, extra || {});
+
     const labels = unionDates(encDaily, admDaily);
     const encVals = labels.map(d => valueAt(encDaily, d));
     const admVals = labels.map(d => valueAt(admDaily, d));
@@ -108,43 +128,45 @@
     new Chart(document.getElementById('trendChart'), {
         type: 'line',
         data: { labels, datasets: [
-            { label: 'Consultations', data: encVals, borderColor: '#1f6feb', backgroundColor: 'rgba(31,111,235,0.15)', tension: 0.3, fill: true },
-            { label: 'Admissions', data: admVals, borderColor: '#9d3cff', backgroundColor: 'rgba(157,60,255,0.15)', tension: 0.3, fill: true }
+            { label: 'Consultations', data: encVals, borderColor: C[0], backgroundColor: alpha(C[0], 0.15), tension: 0.3, fill: true },
+            { label: 'Admissions', data: admVals, borderColor: C[3], backgroundColor: alpha(C[3], 0.1), borderDash: [6, 4], pointStyle: 'rect', tension: 0.3, fill: true }
         ]},
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        options: { responsive: true, plugins: { legend: legend('bottom') }, scales: axes() }
     });
 
     const revLabels = revDaily.map(p => p.d);
     new Chart(document.getElementById('revChart'), {
         type: 'bar',
-        data: { labels: revLabels, datasets: [{ label: 'Revenue (₦)', data: revDaily.map(p => p.v), backgroundColor: '#1f9d55' }]},
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        data: { labels: revLabels, datasets: [{ label: 'Revenue (\u20A6)', data: revDaily.map(p => p.v), backgroundColor: C[1] }]},
+        options: { responsive: true, plugins: { legend: legend('bottom') }, scales: axes() }
     });
 
+    // Slices are separated by a surface-coloured border and listed in the legend with their values
+    const methodKeys = Object.keys(byMethod);
     new Chart(document.getElementById('methodChart'), {
         type: 'doughnut',
-        data: { labels: Object.keys(byMethod), datasets: [{ data: Object.values(byMethod), backgroundColor: ['#1f9d55','#1f6feb','#9d3cff','#f59f00','#dc2626','#94a3b8'] }]},
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        data: { labels: methodKeys.map(k => k + ' (' + Number(byMethod[k]).toLocaleString() + ')'), datasets: [{ data: Object.values(byMethod), backgroundColor: methodKeys.map((k, i) => C[i % C.length]), borderColor: surface, borderWidth: 3 }]},
+        options: { responsive: true, plugins: { legend: legend('bottom') } }
     });
 
     new Chart(document.getElementById('clinicChart'), {
         type: 'bar',
-        data: { labels: Object.keys(byClinic), datasets: [{ label: 'Visits', data: Object.values(byClinic), backgroundColor: '#1f6feb' }]},
-        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+        data: { labels: Object.keys(byClinic), datasets: [{ label: 'Visits', data: Object.values(byClinic), backgroundColor: C[0] }]},
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: legend('bottom') }, scales: axes() }
     });
 
     if (Object.keys(byVax).length) {
         new Chart(document.getElementById('vaxChart'), {
             type: 'bar',
-            data: { labels: Object.keys(byVax), datasets: [{ label: 'Doses', data: Object.values(byVax), backgroundColor: '#1f9d55' }]},
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            data: { labels: Object.keys(byVax), datasets: [{ label: 'Doses', data: Object.values(byVax), backgroundColor: C[1] }]},
+            options: { responsive: true, plugins: { legend: legend('bottom') }, scales: axes() }
         });
     }
     if (Object.keys(byDisease).length) {
         new Chart(document.getElementById('idsrChart'), {
             type: 'bar',
-            data: { labels: Object.keys(byDisease), datasets: [{ label: 'Cases', data: Object.values(byDisease), backgroundColor: '#dc2626' }]},
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            data: { labels: Object.keys(byDisease), datasets: [{ label: 'Cases', data: Object.values(byDisease), backgroundColor: C[3] }]},
+            options: { responsive: true, plugins: { legend: legend('bottom') }, scales: axes() }
         });
     }
 </script>

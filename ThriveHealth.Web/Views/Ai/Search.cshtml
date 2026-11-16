@@ -1,8 +1,10 @@
 @{ ViewData["Title"] = "AI search"; }
 
 <div class="row"><div class="col-lg-9">
-    <h1 class="th-section-title"><i class="bi bi-stars text-primary me-1"></i> AI search</h1>
-    <p class="th-section-sub">Ask in plain English. The assistant answers from current facility data — counts of admissions, IDSR cases, expiring stock, queue status, and similar. <span class="th-pill th-pill-info ms-1">Suggestions only — verify before acting.</span></p>
+    <div class="th-page-head"><div>
+        <h1 class="th-section-title">AI search</h1>
+    <p class="th-section-sub mb-0">Ask in plain English. The assistant answers from current facility data — counts of admissions, IDSR cases, expiring stock, queue status, and similar. <span class="th-pill th-pill-info ms-1">Suggestions only — verify before acting.</span></p>
+    </div></div>
 
     <div class="th-card mb-3"><div class="th-card-body">
         <textarea id="aiQ" class="form-control" rows="2" placeholder="e.g. How many IDSR cases this week? Which drugs are expiring soon? Active admissions today?"></textarea>
@@ -12,7 +14,7 @@
     </div></div>
 
     <div class="th-card" id="aiAnswerCard" style="display:none">
-        <div class="th-card-header"><h5 class="th-card-title mb-0">Answer</h5></div>
+        <div class="th-card-header"><h2 class="th-card-title mb-0">Answer</h2></div>
         <div class="th-card-body">
             <pre id="aiA" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre>
         </div>

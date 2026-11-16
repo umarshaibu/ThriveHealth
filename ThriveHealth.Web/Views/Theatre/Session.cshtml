@@ -45,9 +45,9 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title mb-1">@Model.ProcedureName</h1>
+        <h1 class="th-section-title mb-2">@Model.ProcedureName</h1>
         <div class="d-flex gap-2 flex-wrap">
             <span class="th-pill @StatusTone(Model.Status)"><i class="bi bi-activity me-1"></i>@Model.Status</span>
             <span class="th-pill th-pill-muted">@Model.Theatre?.Code · @Model.Theatre?.Name</span>
@@ -55,8 +55,21 @@
             <span class="th-pill th-pill-muted">@Model.Anaesthesia · @Model.Urgency</span>
         </div>
     </div>
-    <a asp-action="Schedule" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Schedule</a>
+    <div class="th-page-actions"><a asp-action="Schedule" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Schedule</a></div>
 </div>
+
+@if (Model.Patient != null)
+{
+    <div class="th-patient-banner">
+        <span class="name">@Model.Patient.FullName</span>
+        <span class="meta font-monospace">@Model.Patient.HospitalNumber</span>
+        <span class="meta">@Model.Patient.Sex@(Model.Patient.AgeYears != null ? $" · {Model.Patient.AgeYears} yo" : "")</span>
+    </div>
+    @if (Model.Patient.Allergies != null && Model.Patient.Allergies.Any())
+    {
+        <div class="th-safety mb-3" role="alert"><i class="bi bi-exclamation-triangle-fill"></i><div><strong>Allergies:</strong> @string.Join(", ", Model.Patient.Allergies.Select(x => x.Substance))</div></div>
+    }
+}
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
@@ -64,29 +77,29 @@
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person me-1"></i> Patient</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-person me-1"></i> Patient</h2>
             <div class="fw-semibold">@Model.Patient?.FullName</div>
             <div class="small text-muted">@Model.Patient?.HospitalNumber · @Model.Patient?.Sex@(Model.Patient?.AgeYears != null ? $" · {Model.Patient.AgeYears} yo" : "")</div>
             @if (Model.Patient?.Allergies != null && Model.Patient.Allergies.Any())
             {
-                <div class="alert alert-warning small mt-2 mb-0">
-                    <strong><i class="bi bi-exclamation-triangle me-1"></i>Allergies</strong>
+                <div class="th-safety small mt-2"><i class="bi bi-exclamation-triangle-fill"></i><div>
+                    <strong>Allergy details</strong>
                     <ul class="mb-0">
                         @foreach (var a in Model.Patient.Allergies) { <li>@a.Substance @if (!string.IsNullOrEmpty(a.Reaction)) { <small class="text-muted">— @a.Reaction</small> }</li> }
                     </ul>
-                </div>
+                </div></div>
             }
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-people me-1"></i> Team</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-people me-1"></i> Team</h2>
             <div><strong>Surgeon:</strong> @Model.LeadSurgeon?.FullName</div>
             @if (Model.Anaesthetist != null) { <div><strong>Anaesthetist:</strong> @Model.Anaesthetist.FullName</div> }
             @if (Model.ScrubNurse != null) { <div><strong>Scrub nurse:</strong> @Model.ScrubNurse.FullName</div> }
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-stopwatch me-1"></i> Timeline</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-stopwatch me-1"></i> Timeline</h2>
             <div class="progress mb-3" style="height:6px"><div class="progress-bar" style="width:@phasePct%"></div></div>
             <ul class="list-unstyled small mb-0">
                 <li><i class="bi bi-circle-fill text-muted me-1"></i>Booked: @Model.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</li>
@@ -99,7 +112,7 @@
         </div></div>
 
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-arrow-right-circle me-1"></i> Advance phase</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-arrow-right-circle me-1"></i> Advance phase</h2>
             <div class="d-grid gap-2">
                 @if (Model.Status == TheatreSessionStatus.Scheduled)
                 {
@@ -126,7 +139,7 @@
     </div>
 
     <div class="col-lg-8">
-        <ul class="nav nav-tabs mb-3" role="tablist">
+        <ul class="nav nav-pills th-tabs-scroll mb-3" role="tablist">
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cl">WHO checklist</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#log">Intra-op log</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#fin">Operative record</button></li>
@@ -196,7 +209,7 @@
 
             <div class="tab-pane fade" id="log">
                 <div class="th-card mb-3"><div class="th-card-body">
-                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-plus-circle me-1"></i> Log event</h6>
+                    <h2 class="th-form-section-title"><i class="bi bi-plus-circle me-1"></i> Log event</h2>
                     <form asp-action="AddEvent" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.TheatreSchedule">
                         <input type="hidden" name="TheatreSessionId" value="@Model.Id" />
                         <div class="row g-2">
@@ -251,7 +264,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="Id" value="@Model.Id" />
                     <div class="th-card"><div class="th-card-body">
-                        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-journal-medical me-1"></i> Operative record</h6>
+                        <h2 class="th-form-section-title"><i class="bi bi-journal-medical me-1"></i> Operative record</h2>
                         <div class="row g-3">
                             <div class="col-12"><label class="form-label">Operative note</label><textarea name="OperativeNote" class="form-control" rows="6">@Model.OperativeNote</textarea></div>
                             <div class="col-md-6"><label class="form-label">Estimated blood loss (mL)</label><input name="EstimatedBloodLossMl" type="number" class="form-control" value="@Model.EstimatedBloodLossMl" /></div>

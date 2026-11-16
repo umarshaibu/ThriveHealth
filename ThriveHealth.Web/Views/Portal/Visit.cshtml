@@ -20,14 +20,14 @@
 <div class="row g-3 mb-3">
     <div class="col-md-6">
         <div class="th-card h-100"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person-badge me-1"></i> Clinician</h6>
+            <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-person-badge me-1"></i> Clinician</h6>
             <div class="fw-semibold">Dr @(Model.Clinician?.FullName ?? "—")</div>
             <div class="small text-muted">@Model.Clinician?.Designation @(string.IsNullOrEmpty(Model.Clinician?.LicenseBody) ? "" : "· " + Model.Clinician?.LicenseBody + " " + Model.Clinician?.LicenseNumber)</div>
         </div></div>
     </div>
     <div class="col-md-6">
         <div class="th-card h-100"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Reason</h6>
+            <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-info-circle me-1"></i> Reason</h6>
             <p class="mb-0">@(Model.ChiefComplaint ?? "—")</p>
             @if (tele != null)
             {
@@ -40,7 +40,7 @@
 @if (soap != null && (!string.IsNullOrEmpty(soap.Subjective) || !string.IsNullOrEmpty(soap.Objective) || !string.IsNullOrEmpty(soap.Assessment) || !string.IsNullOrEmpty(soap.Plan)))
 {
     <div class="th-card mb-3"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-journal-text me-1"></i> Clinician's notes</h6>
+        <h6 class="text-muted small fw-semibold mb-3"><i class="bi bi-journal-text me-1"></i> Clinician's notes</h6>
         <dl class="row mb-0 small">
             @if (!string.IsNullOrEmpty(soap.Subjective)) { <dt class="col-sm-3 text-muted">History</dt><dd class="col-sm-9" style="white-space: pre-wrap;">@soap.Subjective</dd> }
             @if (!string.IsNullOrEmpty(soap.Objective)) { <dt class="col-sm-3 text-muted">Examination</dt><dd class="col-sm-9" style="white-space: pre-wrap;">@soap.Objective</dd> }
@@ -53,7 +53,7 @@
 @if (Model.Diagnoses.Any())
 {
     <div class="th-card mb-3"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard-pulse me-1"></i> Diagnoses</h6>
+        <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-clipboard-pulse me-1"></i> Diagnoses</h6>
         <ul class="list-unstyled mb-0">
             @foreach (var d in Model.Diagnoses.OrderByDescending(x => x.IsPrimary))
             {
@@ -72,7 +72,7 @@
 @if (rxItems.Any())
 {
     <div class="th-card mb-3"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-prescription2 me-1"></i> Prescriptions</h6>
+        <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-prescription2 me-1"></i> Prescriptions</h6>
         <ul class="list-unstyled mb-0">
             @foreach (var item in rxItems)
             {
@@ -99,7 +99,7 @@
         {
             <div class="col-md-6">
                 <div class="th-card h-100"><div class="th-card-body">
-                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-droplet-half me-1"></i> Lab orders</h6>
+                    <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-droplet-half me-1"></i> Lab orders</h6>
                     <ul class="list-unstyled mb-0 small">
                         @foreach (var o in Model.LabOrders)
                         {
@@ -116,7 +116,7 @@
         {
             <div class="col-md-6">
                 <div class="th-card h-100"><div class="th-card-body">
-                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-image me-1"></i> Imaging</h6>
+                    <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-image me-1"></i> Imaging</h6>
                     <ul class="list-unstyled mb-0 small">
                         @foreach (var o in Model.ImagingOrders)
                         {
@@ -139,7 +139,7 @@
         {
             <div class="col-md-6">
                 <div class="th-card h-100"><div class="th-card-body">
-                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-file-earmark-medical me-1"></i> Sick notes</h6>
+                    <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-file-earmark-medical me-1"></i> Sick notes</h6>
                     <ul class="list-unstyled mb-0 small">
                         @foreach (var c in certs)
                         {
@@ -159,7 +159,7 @@
         {
             <div class="col-md-6">
                 <div class="th-card h-100"><div class="th-card-body">
-                    <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-person-arms-up me-1"></i> Referrals</h6>
+                    <h6 class="text-muted small fw-semibold mb-2"><i class="bi bi-person-arms-up me-1"></i> Referrals</h6>
                     <ul class="list-unstyled mb-0 small">
                         @foreach (var r in refs)
                         {

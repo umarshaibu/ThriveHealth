@@ -1,6 +1,18 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+@{
+    ViewData["Title"] = "Privacy policy";
+    var signedIn = User.Identity?.IsAuthenticated == true;
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="@(signedIn ? "" : "th-public-page")">
+    <div class="th-page-head">
+        <div>
+            <h1 class="th-section-title">Privacy policy</h1>
+            <p class="th-section-sub">How your health information is handled.</p>
+        </div>
+    </div>
+    <div class="th-card" style="max-width: 760px;">
+        <div class="th-card-body">
+            <p class="mb-0">Our full privacy policy is being finalised. For any question about your information, please contact your hospital's records office.</p>
+        </div>
+    </div>
+</div>

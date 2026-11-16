@@ -16,19 +16,19 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2 d-print-none">
-    <div>
-        <h1 class="th-section-title mb-1">@Model.Patient.FullName</h1>
-        <div class="d-flex gap-2 flex-wrap">
-            <span class="th-pill th-pill-muted font-monospace">@Model.Patient.HospitalNumber</span>
-            <span class="th-pill th-pill-info">@Model.Patient.Sex · @(ageMo >= 24 ? $"{ageMo / 12} yr" : $"{ageMo} mo")</span>
-            <span class="th-pill th-pill-muted">DOB: @Model.DateOfBirth.ToString("dd MMM yyyy")</span>
-        </div>
-    </div>
-    <div class="d-flex gap-2">
+<div class="th-page-head d-print-none">
+    <h1 class="th-section-title">Immunization card</h1>
+    <div class="th-page-actions">
         <a asp-action="Worklist" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
         <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print card</button>
     </div>
+</div>
+
+<div class="th-patient-banner">
+    <span class="name">@Model.Patient.FullName</span>
+    <span class="meta font-monospace">@Model.Patient.HospitalNumber</span>
+    <span class="meta">@Model.Patient.Sex · @(ageMo >= 24 ? $"{ageMo / 12} yr" : $"{ageMo} mo")</span>
+    <span class="meta">DOB @Model.DateOfBirth.ToString("dd MMM yyyy")</span>
 </div>
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
@@ -45,11 +45,11 @@
 {
     var first = g.First();
     <div class="th-card mb-3"><div class="th-card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0"><i class="bi bi-bandaid me-1"></i>@first.VaccineName <span class="text-muted small">· @first.VaccineCode</span></h6>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 class="th-card-title"><i class="bi bi-bandaid me-1"></i>@first.VaccineName <span class="text-muted small">· @first.VaccineCode</span></h2>
             <span class="th-pill th-pill-success">@g.Count(r => r.Status == DoseStatus.Administered) / @g.Count() given</span>
         </div>
-        <table class="table align-middle mb-0">
+        <div class="table-responsive"><table class="table align-middle mb-0">
             <thead><tr><th>Dose</th><th>Due</th><th>Administered</th><th>Batch</th><th>Status</th><th class="text-end d-print-none"></th></tr></thead>
             <tbody>
             @foreach (var r in g.OrderBy(x => x.RecommendedAgeWeeks))
@@ -74,7 +74,7 @@
                 </tr>
             }
             </tbody>
-        </table>
+        </table></div>
     </div></div>
 }
 

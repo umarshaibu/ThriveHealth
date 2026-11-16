@@ -14,12 +14,12 @@
     var lastPage = (int)Math.Ceiling((double)total / pageSize);
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3">
+<div class="th-page-head">
     <div>
-        <h1 class="sa-h1">Users</h1>
-        <p class="sa-sub mb-0">Every account on the platform — staff, super admins, and patients (via the portal). Tenant boundaries don't apply to this view.</p>
+        <h1 class="th-section-title">Users</h1>
+        <p class="th-section-sub">Every account on the platform — staff, super admins, and patients (via the portal). Tenant boundaries don't apply to this view.</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-person-plus-fill me-1"></i> New user</a>
+    <div class="th-page-actions"><a asp-action="Create" class="btn btn-primary"><i class="bi bi-person-plus-fill me-1"></i> New user</a></div>
 </div>
 
 <form method="get" class="row g-2 mb-3">
@@ -50,11 +50,12 @@
                    @(activeOnly ? "checked" : "") />
             <label for="activeOnly" class="form-check-label small text-muted">Active only</label>
         </div>
-        <button class="btn btn-primary btn-sm ms-auto"><i class="bi bi-search"></i></button>
+        <button class="btn btn-primary btn-sm ms-auto" aria-label="Search"><i class="bi bi-search"></i></button>
     </div>
 </form>
 
-<div class="sa-card p-0">
+<div class="th-card th-table-flush">
+    <div class="table-responsive">
     <table class="table mb-0">
         <thead><tr>
             <th>User</th><th>Tenant</th><th>Roles</th><th>Last login</th><th>Status</th><th></th>
@@ -74,7 +75,7 @@
                         }
                         else if (u.Roles.Contains(ThriveHealth.Web.Models.Identity.Roles.SuperAdmin))
                         {
-                            <span class="badge" style="background:#a855f7;color:#fff;">Platform</span>
+                            <span class="th-pill th-pill-warning">Platform</span>
                         }
                         else
                         {
@@ -84,21 +85,19 @@
                     <td class="small">
                         @foreach (var r in u.Roles)
                         {
-                            var tone = r == ThriveHealth.Web.Models.Identity.Roles.SuperAdmin
-                                ? "background:rgba(168,85,247,.15);color:#a855f7;"
-                                : "background:rgba(96,165,250,.15);color:#60a5fa;";
-                            <span class="badge me-1" style="@tone">@r</span>
+                            var tone = r == ThriveHealth.Web.Models.Identity.Roles.SuperAdmin ? "warning" : "info";
+                            <span class="th-pill th-pill-@tone me-1">@r</span>
                         }
                     </td>
                     <td class="small text-muted">@(u.LastLoginAt?.ToString("dd MMM HH:mm") ?? "—")</td>
                     <td>
                         @if (u.IsActive)
                         {
-                            <span class="badge-pill badge-active">Active</span>
+                            <span class="th-pill th-pill-success">Active</span>
                         }
                         else
                         {
-                            <span class="badge-pill badge-suspended">Inactive</span>
+                            <span class="th-pill th-pill-muted">Inactive</span>
                         }
                     </td>
                     <td><a asp-action="Detail" asp-route-id="@u.Id" class="btn btn-sm btn-outline-primary">Open</a></td>
@@ -107,6 +106,7 @@
             @if (!Model.Any()) { <tr><td colspan="6" class="text-center py-4 text-muted">No users match.</td></tr> }
         </tbody>
     </table>
+    </div>
 </div>
 
 @if (lastPage > 1)

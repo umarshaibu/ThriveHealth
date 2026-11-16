@@ -9,15 +9,18 @@ using ThriveHealth.Web.Models.ViewModels;
 namespace ThriveHealth.Web.Controllers;
 
 [Authorize]
-public class DashboardController : Controller
+public partial class DashboardController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
+    private readonly ThriveHealth.Web.Services.IPermissionService _perms;
 
-    public DashboardController(UserManager<ApplicationUser> userManager, ApplicationDbContext db)
+    public DashboardController(UserManager<ApplicationUser> userManager, ApplicationDbContext db,
+        ThriveHealth.Web.Services.IPermissionService perms)
     {
         _userManager = userManager;
         _db = db;
+        _perms = perms;
     }
 
     /// <summary>Persona = the dashboard a user sees. Multiple roles can share a persona.</summary>
@@ -94,6 +97,10 @@ public class DashboardController : Controller
         // BoardKey selects the partial in Views/Dashboard/Partials/_Board{Key}.cshtml; the
         // strongly-typed payload lives on Board and is cast in the view.
         (vm.BoardKey, vm.Board) = await BuildBoardAsync(persona, fid.Value, user.Id);
+
+        vm.Stats = await CompleteStatsAsync(persona, fid.Value, vm.Stats);
+        vm.Canvas = await BuildCanvasAsync(persona, fid.Value, user.Id, vm);
+        ApplyPermissions(persona, vm, await _perms.GetForUserAsync(User));
 
         return View(vm);
     }
@@ -753,7 +760,7 @@ public class DashboardController : Controller
                 {
                     At = e.StartedAt, Icon = "bi-clipboard2-pulse", Tone = "primary",
                     Title = $"{e.Type} · {e.Patient?.FullName}",
-                    Subtitle = $"{e.Clinician?.FullName ?? "—"} · {e.ChiefComplaint}",
+                    Subtitle = e.Clinician?.FullName ?? "—",
                     LinkController = "Encounters", LinkAction = "Summary", LinkId = e.Id
                 }));
                 break;
@@ -850,17 +857,11 @@ public class DashboardController : Controller
         var alerts = new List<string>();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Universal: critical lab + immediate IDSR
+        // Universal: critical lab
         var criticalLab = await _db.LabResults.AsNoTracking()
             .CountAsync(r => r.LabOrder!.Patient!.FacilityId == fid && r.HasCriticalValue && !r.CriticalNotified);
         if (criticalLab > 0)
             alerts.Add($"{criticalLab} critical lab result(s) not yet notified to ordering clinician.");
-
-        var idsrUrgent = await _db.IdsrCases.AsNoTracking()
-            .CountAsync(c => c.FacilityId == fid && !c.NotifiedNcdc
-                && c.NotifiableDisease!.Window == ThriveHealth.Web.Models.Reporting.NotificationWindow.Immediate);
-        if (idsrUrgent > 0)
-            alerts.Add($"{idsrUrgent} immediate-notification IDSR case(s) not yet reported to NCDC.");
 
         // Persona-specific
         if (p == Persona.Pharmacy || p == Persona.Procurement || p == Persona.Executive)

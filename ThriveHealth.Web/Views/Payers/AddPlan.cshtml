@@ -5,8 +5,10 @@
 }
 
 <div class="row"><div class="col-lg-8">
-    <h1 class="th-section-title">Add plan</h1>
-    @if (payer != null) { <p class="th-section-sub">For payer · @payer.Name</p> }
+    <div class="th-page-head"><div>
+        <h1 class="th-section-title">Add plan</h1>
+    @if (payer != null) { <p class="th-section-sub mb-0">For payer · @payer.Name</p> }
+    </div></div>
 
     <form asp-action="AddPlan" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PayersManage">
         <div class="th-card-body">
@@ -22,7 +24,7 @@
                 <div class="col-md-12 form-check ms-2"><input asp-for="DefaultFormularyCovered" class="form-check-input" /><label asp-for="DefaultFormularyCovered" class="form-check-label"></label></div>
                 <div class="col-md-12 form-check ms-2"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">Active</label></div>
             </div>
-            <div class="mt-3 d-flex justify-content-end gap-2">
+            <div class="th-sticky-actions">
                 <a asp-action="Details" asp-route-id="@Model.PayerId" class="btn btn-outline-secondary">Cancel</a>
                 <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Add plan</button>
             </div>

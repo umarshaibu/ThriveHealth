@@ -21,8 +21,8 @@
         s.Status is TeleSessionStatus.Requested or TeleSessionStatus.Scheduled or TeleSessionStatus.PatientWaiting;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="th-section-title">Tele-consultations</h1>
+<div class="th-page-head">
+    <div><h1 class="th-section-title">Tele-consultations</h1><p class="th-section-sub">Video, audio and chat consultations with a clinician.</p></div>
     <a asp-action="RequestTelemed" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Request</a>
 </div>
 
@@ -50,9 +50,9 @@ else
             @{ var unpaid = s.Bill is not null && s.Bill.Status != ThriveHealth.Web.Models.Billing.BillStatus.Paid; }
             @if (unpaid)
             {
-                <div class="alert alert-warning small mt-2 mb-2 d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-exclamation-triangle me-1"></i> Bill <strong>@s.Bill!.BillNumber</strong> outstanding — @s.Bill.Balance.ToString("N2") due.</span>
-                    <a asp-action="Pay" asp-route-teleSessionId="@s.Id" class="btn btn-warning btn-sm"><i class="bi bi-credit-card me-1"></i> Pay now</a>
+                <div class="alert alert-warning small mt-2 mb-0 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <span><i class="bi bi-exclamation-triangle me-1"></i> Bill <strong>@s.Bill!.BillNumber</strong> outstanding. ₦@s.Bill.Balance.ToString("N2") due.</span>
+                    <a asp-action="Pay" asp-route-teleSessionId="@s.Id" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i> Pay now</a>
                 </div>
             }
             else if (CanJoin(s))
@@ -60,18 +60,18 @@ else
                 <div class="d-flex flex-wrap gap-2 mt-2">
                     @if (s.Mode == TeleSessionMode.Chat)
                     {
-                        <a asp-action="Chat" class="btn btn-success btn-sm"><i class="bi bi-chat-dots me-1"></i> Start chat</a>
+                        <a asp-action="Chat" class="btn btn-primary"><i class="bi bi-chat-dots me-1"></i> Start chat</a>
                     }
                     else
                     {
-                        <a asp-action="Room" asp-route-token="@s.RoomToken" class="btn btn-success btn-sm"><i class="bi bi-@(s.Mode == TeleSessionMode.Audio ? "telephone" : "camera-video") me-1"></i> Join @(s.Mode == TeleSessionMode.Audio ? "call" : "call")</a>
+                        <a asp-action="Room" asp-route-token="@s.RoomToken" class="btn btn-primary"><i class="bi bi-@(s.Mode == TeleSessionMode.Audio ? "telephone" : "camera-video") me-1"></i> Join call</a>
                     }
-                    <a asp-action="Intake" asp-route-teleSessionId="@s.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil-square me-1"></i> Symptom intake</a>
+                    <a asp-action="Intake" asp-route-teleSessionId="@s.Id" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1"></i> Symptom intake</a>
                     @if (CanCancel(s))
                     {
                         var hours = (s.ScheduledStartUtc - DateTime.UtcNow).TotalHours;
                         var refundLabel = hours >= 2 ? "(full refund)" : "(50% refund — late cancel)";
-                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#thCancel-@s.Id"><i class="bi bi-x-circle me-1"></i> Cancel @refundLabel</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#thCancel-@s.Id"><i class="bi bi-x-circle me-1"></i> Cancel @refundLabel</button>
 
                         <div class="modal fade" id="thCancel-@s.Id" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
                             <form asp-action="CancelTele" method="post">

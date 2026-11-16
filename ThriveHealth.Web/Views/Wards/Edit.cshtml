@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Edit ward"; }
 
 <div class="row"><div class="col-lg-7">
-    <h1 class="th-section-title">Edit ward</h1>
+    <div class="th-page-head"><h1 class="th-section-title">Edit ward</h1></div>
     <form asp-action="Edit" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.WardsManage">
         <div class="th-card-body">
             <input type="hidden" asp-for="Id" />
@@ -19,7 +19,7 @@
                 <div class="col-md-3"><label asp-for="ColorHex" class="form-label">Colour</label><input asp-for="ColorHex" type="color" class="form-control form-control-color w-100" /></div>
                 <div class="col-md-3 form-check ms-2 d-flex align-items-end"><div><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">Active</label></div></div>
             </div>
-            <div class="mt-3 d-flex justify-content-end gap-2">
+            <div class="th-sticky-actions">
                 <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
                 <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save</button>
             </div>

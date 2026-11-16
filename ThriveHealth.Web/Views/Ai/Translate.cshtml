@@ -1,8 +1,10 @@
 @{ ViewData["Title"] = "AI translate"; }
 
 <div class="row"><div class="col-lg-9">
-    <h1 class="th-section-title"><i class="bi bi-translate text-primary me-1"></i> AI translate <span class="th-pill th-pill-info ms-2">DRAFT — verify clinical accuracy before sharing</span></h1>
-    <p class="th-section-sub">Translate clinician notes, patient instructions, or consent text. Drug names and dosages are kept as in the source.</p>
+    <div class="th-page-head"><div>
+        <h1 class="th-section-title">AI translate <span class="th-pill th-pill-info ms-2">Draft: verify clinical accuracy before sharing</span></h1>
+    <p class="th-section-sub mb-0">Translate clinician notes, patient instructions, or consent text. Drug names and dosages are kept as in the source.</p>
+    </div></div>
 
     <div class="th-card mb-3"><div class="th-card-body">
         <div class="row g-3">
@@ -24,7 +26,7 @@
     </div></div>
 
     <div class="th-card" id="tCard" style="display:none">
-        <div class="th-card-header"><h5 class="th-card-title mb-0">Translation</h5></div>
+        <div class="th-card-header"><h2 class="th-card-title mb-0">Translation</h2></div>
         <div class="th-card-body"><pre id="tOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
     </div>
 </div></div>

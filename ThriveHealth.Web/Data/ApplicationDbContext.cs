@@ -89,7 +89,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Device push tokens are registered from the app and looked up by PatientId — no tenant column.
         typeof(PortalDeviceToken),
         // Staff refresh tokens are issued at login (no tenant resolved yet) and looked up by hash.
-        typeof(StaffRefreshToken)
+        typeof(StaffRefreshToken),
+        // AI provider keys are platform-wide, set by super admins.
+        typeof(AiProviderCredential)
     };
 
     private static bool IsIdentityType(Type t) =>
@@ -228,6 +230,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PortalRefreshToken> PortalRefreshTokens => Set<PortalRefreshToken>();
     public DbSet<PortalDeviceToken> PortalDeviceTokens => Set<PortalDeviceToken>();
     public DbSet<StaffRefreshToken> StaffRefreshTokens => Set<StaffRefreshToken>();
+    public DbSet<AiProviderCredential> AiProviderCredentials => Set<AiProviderCredential>();
     public DbSet<PortalSymptomIntake> PortalSymptomIntakes => Set<PortalSymptomIntake>();
 
     public DbSet<NotifiableDisease> NotifiableDiseases => Set<NotifiableDisease>();
@@ -1203,6 +1206,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             b.HasIndex(x => x.PatientId);
             b.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Cascade);
         });
+
+        builder.Entity<AiProviderCredential>(b => b.HasIndex(c => c.Provider).IsUnique());
 
         builder.Entity<StaffRefreshToken>(b =>
         {

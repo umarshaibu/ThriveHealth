@@ -6,21 +6,23 @@
 }
 
 <style>
-    .th-welcome { max-width: 720px; margin: 64px auto; padding: 0 24px; text-align: center; }
-    .th-welcome .icon { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 24px; }
-    .th-welcome h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; }
-    .th-welcome .lead { color: #64748b; font-size: 1.05rem; line-height: 1.6; max-width: 520px; margin: 0 auto 32px; }
-    .th-welcome .signin-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 28px; text-align: left; max-width: 540px; margin: 0 auto 24px; }
-    .th-welcome .signin-card .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: .95rem; }
+    .th-welcome { max-width: 720px; margin: 56px auto; padding: 0 16px; text-align: center; }
+    .th-welcome .icon { width: 80px; height: 80px; border-radius: 50%; background: var(--th-emerald-soft); color: var(--th-emerald); display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 24px; }
+    .th-welcome h1 { font-size: 2rem; font-weight: 600; letter-spacing: -.03em; margin-bottom: 12px; }
+    .th-welcome .lead { color: var(--th-text-muted); font-size: 1.05rem; line-height: 1.6; max-width: 520px; margin: 0 auto 28px; }
+    .th-welcome .signin-card { background: var(--th-surface); border-radius: var(--th-radius); padding: 24px; text-align: left; max-width: 540px; margin: 0 auto 24px; }
+    .th-welcome .signin-card .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--th-border); font-size: 14px; margin: 0; }
     .th-welcome .signin-card .row:last-child { border: 0; }
-    .th-welcome .signin-card .row .label { color: #64748b; }
-    .th-welcome .signin-card .row .value { font-weight: 600; font-family: ui-monospace, monospace; }
-    .th-welcome .cta { display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, var(--th-primary), var(--th-primary-dark)); color: #fff; border-radius: 12px; font-weight: 700; text-decoration: none; box-shadow: 0 12px 36px rgba(15,58,138,.25); }
-    .th-welcome .timeline { text-align: left; max-width: 540px; margin: 32px auto 0; }
-    .th-welcome .timeline-item { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px dashed #e2e8f0; }
-    .th-welcome .timeline-item .num { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: var(--th-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
-    .th-welcome .timeline-item h6 { margin: 0 0 4px; font-weight: 700; }
-    .th-welcome .timeline-item p { margin: 0; color: #64748b; font-size: .9rem; line-height: 1.5; }
+    .th-welcome .signin-card .row .label { color: var(--th-text-muted); }
+    .th-welcome .signin-card .row .value { font-weight: 500; overflow-wrap: anywhere; }
+    .th-welcome .cta { display: inline-block; padding: 12px 28px; background: var(--th-primary); color: #fff; border-radius: 999px; font-weight: 500; }
+    .th-welcome .cta:hover { background: var(--th-primary-hover); color: #fff; }
+    .th-welcome .timeline { text-align: left; max-width: 540px; margin: 32px auto 0; background: var(--th-surface); border-radius: var(--th-radius); padding: 8px 24px; }
+    .th-welcome .timeline-item { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--th-border); }
+    .th-welcome .timeline-item:last-child { border: 0; }
+    .th-welcome .timeline-item .num { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: var(--th-navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+    .th-welcome .timeline-item h6 { margin: 0 0 4px; font-weight: 600; }
+    .th-welcome .timeline-item p { margin: 0; color: var(--th-text-muted); font-size: 14px; line-height: 1.5; }
 </style>
 
 <div class="th-welcome">

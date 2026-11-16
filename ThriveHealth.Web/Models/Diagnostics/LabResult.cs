@@ -50,7 +50,11 @@ public enum AnalyteFlag
     High = 2,
     CriticalLow = 3,
     CriticalHigh = 4,
-    Abnormal = 5
+    Abnormal = 5,
+    /// <summary>Free-text result, or an analyte with no reference range: the system can't judge it.</summary>
+    NotAssessed = 6,
+    /// <summary>Critical result flagged by a lab scientist, for results with no numeric range.</summary>
+    Critical = 7
 }
 
 public class LabResultValue

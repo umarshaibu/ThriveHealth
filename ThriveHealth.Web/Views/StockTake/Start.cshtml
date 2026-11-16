@@ -5,8 +5,10 @@
 }
 
 <div class="row"><div class="col-lg-7">
-    <h1 class="th-section-title">Start a stock-take</h1>
-    <p class="th-section-sub">Snapshots the store's current drug + inventory stock as expected quantities. The team then physically counts each batch and records variances.</p>
+    <div class="th-page-head"><div>
+        <h1 class="th-section-title">Start a stock-take</h1>
+    <p class="th-section-sub mb-0">Snapshots the store's current drug + inventory stock as expected quantities. The team then physically counts each batch and records variances.</p>
+    </div></div>
 
     <form asp-action="Start" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StockTakeManage">
         <div class="th-card-body">
@@ -24,7 +26,7 @@
                     <textarea asp-for="Notes" rows="3" class="form-control" placeholder="Quarter-end count, audit, etc."></textarea>
                 </div>
             </div>
-            <div class="mt-3 d-flex justify-content-end gap-2">
+            <div class="th-sticky-actions">
                 <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
                 <button class="btn btn-primary"><i class="bi bi-clipboard-check me-1"></i> Generate count sheet</button>
             </div>

@@ -1,26 +1,27 @@
 @model ThriveHealth.Web.Models.ViewModels.ImagingWorklistViewModel
 @{ ViewData["Title"] = "Imaging worklist"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title"><i class="bi bi-radioactive text-primary me-1"></i> Radiology worklist</h1>
+        <h1 class="th-section-title">Radiology worklist</h1>
         <p class="th-section-sub mb-0">@Model.OpenCount open · @Model.AwaitingAuthCount awaiting authorisation · @Model.CriticalCount critical</p>
     </div>
-    <form method="get" class="d-flex gap-2">
-        <select name="modality" class="form-select" onchange="this.form.submit()">
-            <option value="">All modalities</option>
-            @foreach (var m in Enum.GetValues<ThriveHealth.Web.Models.Clinical.ImagingModality>())
-            { <option value="@((int)m)" selected="@(Model.FilterModality == m)">@m</option> }
-        </select>
-        <select name="status" class="form-select" onchange="this.form.submit()">
-            <option value="open" selected="@(Model.FilterStatus == "open")">Open</option>
-            <option value="performed" selected="@(Model.FilterStatus == "performed")">Performed · awaiting report</option>
-            <option value="reported" selected="@(Model.FilterStatus == "reported")">Reported · awaiting auth</option>
-            <option value="critical" selected="@(Model.FilterStatus == "critical")">Critical findings</option>
-            <option value="completed" selected="@(Model.FilterStatus == "completed")">Completed</option>
-        </select>
-    </form>
 </div>
+
+<form method="get" class="th-toolbar">
+    <select name="modality" class="form-select" onchange="this.form.submit()">
+        <option value="">All modalities</option>
+        @foreach (var m in Enum.GetValues<ThriveHealth.Web.Models.Clinical.ImagingModality>())
+        { <option value="@((int)m)" selected="@(Model.FilterModality == m)">@m</option> }
+    </select>
+    <select name="status" class="form-select" onchange="this.form.submit()">
+        <option value="open" selected="@(Model.FilterStatus == "open")">Open</option>
+        <option value="performed" selected="@(Model.FilterStatus == "performed")">Performed · awaiting report</option>
+        <option value="reported" selected="@(Model.FilterStatus == "reported")">Reported · awaiting auth</option>
+        <option value="critical" selected="@(Model.FilterStatus == "critical")">Critical findings</option>
+        <option value="completed" selected="@(Model.FilterStatus == "completed")">Completed</option>
+    </select>
+</form>
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-inbox"></i></div><div class="th-stat-label">Open studies</div><div class="th-stat-value">@Model.OpenCount</div></div></div>
@@ -36,7 +37,7 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
+    <div class="table-responsive"><table class="table align-middle mb-0">
         <thead><tr><th>Ordered</th><th>Patient</th><th>Modality</th><th>Study</th><th>Urgency</th><th>Status</th><th>Stage</th><th class="text-end"></th></tr></thead>
         <tbody>
         @foreach (var r in Model.Rows)
@@ -58,7 +59,7 @@ else
                 <td><span class="th-pill @(r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Stat ? "th-pill-danger" : r.Order.Urgency == ThriveHealth.Web.Models.Clinical.OrderUrgency.Urgent ? "th-pill-warning" : "th-pill-muted")">@r.Order.Urgency</span></td>
                 <td><span class="th-pill @(r.Order.Status == ThriveHealth.Web.Models.Clinical.OrderStatus.Completed ? "th-pill-success" : "th-pill-warning")">@r.Order.Status</span></td>
                 <td><span class="th-pill @stageTone">@stage</span>
-                    @if (rep?.HasCriticalFinding == true) { <div><span class="th-pill th-pill-danger mt-1"><i class="bi bi-exclamation-octagon-fill"></i> CRITICAL</span></div> }
+                    @if (rep?.HasCriticalFinding == true) { <div><span class="th-pill th-pill-danger mt-1"><i class="bi bi-exclamation-octagon-fill"></i> Critical finding</span></div> }
                 </td>
                 <td class="text-end">
                     @if (rep is null || !rep.PerformedAt.HasValue)
@@ -77,6 +78,6 @@ else
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>

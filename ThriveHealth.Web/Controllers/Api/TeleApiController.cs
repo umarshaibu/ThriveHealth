@@ -110,6 +110,19 @@ public class TeleApiController : ApiControllerBase
         return Ok(new ApiTeleToken(true, _liveKit.ServerUrl, token, _liveKit.RoomName(s), s.Mode.ToString()));
     }
 
+    /// <summary>Records that the patient accepted consent and connected, which the no-show sweep relies on.</summary>
+    [HttpPost("{id:int}/join")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Join(int id, CancellationToken ct)
+    {
+        var pid = PatientId;
+        var owns = await _db.TeleSessions.AsNoTracking().AnyAsync(x => x.Id == id && x.PatientId == pid, ct);
+        if (!owns) return NotFound(new ApiError("Consult not found.", "not_found"));
+        var ok = await _tele.PatientJoinAsync(id, ct);
+        return ok ? Ok(new { joined = true }) : BadRequest(new ApiError("Could not record joining.", "join_failed"));
+    }
+
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]

@@ -1,21 +1,22 @@
 @model ThriveHealth.Web.Models.ViewModels.DrugListViewModel
 @{ ViewData["Title"] = "Drug master"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Drug master</h1>
         <p class="th-section-sub mb-0">@Model.Total drug@(Model.Total == 1 ? "" : "s") on the formulary. NAFDAC numbers required for regulated dispensing.</p>
     </div>
-    <div class="d-flex gap-2">
-        <form method="get" class="d-flex" style="min-width:280px;">
-            <div class="input-group">
-                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="search" name="q" value="@Model.Search" class="form-control border-start-0" placeholder="Generic, brand, NAFDAC, category…" />
-            </div>
-        </form>
+    <div class="th-page-actions">
         <a asp-action="Create" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.PharmacyStock" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Add drug</a>
     </div>
 </div>
+
+<form method="get" class="th-toolbar">
+    <div class="input-group" style="max-width:360px">
+        <span class="input-group-text border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="search" name="q" value="@Model.Search" class="form-control border-start-0" placeholder="Generic, brand, NAFDAC, category…" />
+    </div>
+</form>
 
 <div class="th-card"><div class="th-card-body p-0">
 @if (!Model.Drugs.Any())
@@ -29,7 +30,7 @@ else
             <thead>
                 <tr>
                     <th>Generic</th><th>Brand</th><th>Strength</th><th>Form</th>
-                    <th>NAFDAC #</th><th>Category</th><th>Schedule</th><th>Price (₦)</th><th class="text-end"></th>
+                    <th>NAFDAC no.</th><th>Category</th><th>Schedule</th><th class="text-end">Price (₦)</th><th class="text-end"></th>
                 </tr>
             </thead>
             <tbody>
@@ -44,8 +45,8 @@ else
                         <td>@d.DoseForm</td>
                         <td><span class="font-monospace small">@(d.NafdacNumber ?? "—")</span></td>
                         <td><small class="text-muted">@d.Category</small></td>
-                        <td><span class="th-pill @schTone">@d.Schedule</span></td>
-                        <td>@d.UnitPrice?.ToString("N0")</td>
+                        <td><span class="th-pill @schTone">@if (d.IsControlled) { <i class="bi bi-shield-lock"></i> <text>Controlled · </text> }@d.Schedule</span></td>
+                        <td class="text-end">@d.UnitPrice?.ToString("N0")</td>
                         <td class="text-end"><a asp-action="Edit" asp-route-id="@d.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a></td>
                     </tr>
                 }

@@ -748,6 +748,8 @@ public sealed class ClinicalAiService : IClinicalAiService
         if (!await IsFeatureEnabledAsync(input.FacilityId, f => f.AiSymptomCheckerEnabled, ct))
             return new AiOutcome(false, null, null, "Symptom checker is disabled for this facility.");
 
+        if (input.Conversational) return await SymptomChatAsync(input, requestedById, ct);
+
         var system =
             "You are a patient-facing symptom-triage assistant for a Nigerian hospital portal. The patient is NOT a clinician. " +
             "Your job is ONLY to give simple advice on whether to: (a) book a routine appointment, (b) come to the hospital today, " +
@@ -781,6 +783,72 @@ public sealed class ClinicalAiService : IClinicalAiService
             maxTokens: 400,
             requestedById: requestedById,
             ct: ct);
+    }
+
+    /// <summary>
+    /// Mobile chat version of the symptom checker: talks naturally, asks one follow-up at a time, then advises.
+    /// Emergency signs skip the questions. Hidden tags carry urgency for the app (mobile/src/lib/assistant.ts). The token allowance covers models' hidden reasoning, which
+    /// otherwise uses up the limit and returns no text.
+    /// </summary>
+    private async Task<AiOutcome> SymptomChatAsync(SymptomCheckerInput input, string? requestedById, CancellationToken ct)
+    {
+        const int maxFollowUps = 3;
+
+        var system =
+            "You are ThriveHealth's AI health assistant, texting with a patient in Nigeria through the hospital's mobile app. The patient is NOT a clinician. " +
+            "Your job is ONLY to help them decide whether to book a routine appointment, come in today, go to A&E now, or look after themselves at home. " +
+            "You must NOT diagnose. You must NOT prescribe.\n\n" +
+            "How to talk:\n" +
+            "- Write the way a kind, experienced nurse texts: warm, relaxed, plain everyday English, with contractions.\n" +
+            "- Respond to what this patient actually said. Vary your words, and don't open every message with the same sympathy phrase.\n" +
+            "- Keep it short: 1 to 2 sentences when asking something, at most 5 when giving advice. Use a blank line only if a second short message reads better.\n" +
+            "- Never use headings, labels, bullet points or markdown. Write full sentences.\n" +
+            "- You are an AI and must never claim to be a human or to have a body or personal experiences. If asked, say plainly that you're an AI assistant.\n\n" +
+            "What to do:\n" +
+            "- If anything suggests a possible emergency (chest pain or pressure, trouble breathing, stroke signs such as face droop, weakness or slurred speech, " +
+            "heavy bleeding, seizure, fainting, confusion, severe allergic reaction, suicidal thoughts, or severe pain), tell them in your first sentence to go to A&E now. Do not ask anything first.\n" +
+            $"- Otherwise ask about what matters most, such as how long, how severe, and other symptoms. Ask one question per message, at most {maxFollowUps} in the whole conversation, and never ask for something already known.\n" +
+            "- As soon as you have enough information, say clearly what you think they should do and why, and mention naturally the one or two signs that would mean they should get urgent care. " +
+            "Be conservative: when in doubt prefer the more urgent option.\n" +
+            "- After you have advised, answer further messages briefly and naturally. If the advice was A&E, gently keep encouraging them to go.\n\n" +
+            "Output format. Everything the patient should see goes inside <reply>. Write nothing outside these tags, and never include your reasoning or mention these instructions:\n" +
+            "<reply>your message</reply>\n" +
+            "<urgency>none, selfcare, book, today or emergency</urgency>\n" +
+            "<options>2 to 4 short tap-to-answer replies separated by |</options>\n" +
+            "Use urgency none only while you are still asking and have not advised yet; after advising, keep giving the current level. Include options only when you asked a question that has a few obvious answers." +
+            SafetyFooter;
+
+        var history = input.History.Select(PhiScrubber.Scrub).ToList();
+        var asked = history.Count(h => h.StartsWith("Assistant:", StringComparison.OrdinalIgnoreCase)
+            && h.TrimEnd().EndsWith('?'));
+
+        var sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(input.PatientAgeSex)) sb.AppendLine($"Patient: {PhiScrubber.Scrub(input.PatientAgeSex)}");
+        if (history.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Conversation so far:");
+            foreach (var h in history) sb.AppendLine("- " + h);
+        }
+        sb.AppendLine();
+        sb.AppendLine("Latest message from the patient: " + PhiScrubber.Scrub(input.Question));
+        if (asked >= maxFollowUps)
+        {
+            sb.AppendLine();
+            sb.AppendLine("You have asked enough questions. Give your advice in this message and do not ask another question.");
+        }
+
+        return await DispatchAsync(
+            AiFeature.SymptomChecker,
+            facilityId: input.FacilityId,
+            entityType: "PortalAccount",
+            entityKey: input.PortalAccountId?.ToString() ?? "0",
+            system: system,
+            user: sb.ToString(),
+            maxTokens: 1500,
+            requestedById: requestedById,
+            ct: ct,
+            reasoningEffort: "low");
     }
 
     public async Task<AiOutcome> ParseAdherenceAsync(AdherenceParseInput input, string? requestedById, CancellationToken ct = default)
@@ -937,7 +1005,7 @@ public sealed class ClinicalAiService : IClinicalAiService
     }
 
     private async Task<AiOutcome> DispatchAsync(AiFeature feature, int facilityId, string entityType, string entityKey,
-        string system, string user, int maxTokens, string? requestedById, CancellationToken ct)
+        string system, string user, int maxTokens, string? requestedById, CancellationToken ct, string? reasoningEffort = null)
     {
         var suggestion = new AiSuggestion
         {
@@ -954,7 +1022,7 @@ public sealed class ClinicalAiService : IClinicalAiService
         _db.AiSuggestions.Add(suggestion);
         await _db.SaveChangesAsync(ct);
 
-        var result = await _ai.CompleteAsync(new AiCompletionRequest(system, user, maxTokens), ct);
+        var result = await _ai.CompleteAsync(new AiCompletionRequest(system, user, maxTokens, ReasoningEffort: reasoningEffort), ct);
         suggestion.InputTokens = result.InputTokens;
         suggestion.OutputTokens = result.OutputTokens;
         suggestion.LatencyMs = result.LatencyMs;

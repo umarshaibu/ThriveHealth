@@ -1,10 +1,10 @@
 @model ThriveHealth.Web.Models.ViewModels.AncBookViewModel
 @{ ViewData["Title"] = "Book ANC"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Book antenatal care</h1>
-        <p class="th-section-sub mb-0">Register a new pregnancy and capture booking visit</p>
+        <p class="th-section-sub">Register a new pregnancy and capture booking visit</p>
     </div>
     <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> ANC list</a>
 </div>
@@ -16,7 +16,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Mother</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-person me-1"></i> Mother</h2>
                 <label class="form-label">Patient</label>
                 <div class="input-group">
                     <input type="hidden" asp-for="PatientId" id="PatientId" />
@@ -27,7 +27,7 @@
             </div></div>
 
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-calendar3 me-1"></i> Dates & history</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-calendar3 me-1"></i> Dates & history</h2>
                 <div class="row g-3">
                     <div class="col-md-6"><label asp-for="Lmp" class="form-label">LMP</label><input asp-for="Lmp" type="date" class="form-control" id="Lmp" /></div>
                     <div class="col-md-6"><label asp-for="Edd" class="form-label">EDD</label><input asp-for="Edd" type="date" class="form-control" id="Edd" /><div class="small text-muted">Auto-calc by Naegele's rule (LMP + 280 days)</div></div>
@@ -39,7 +39,7 @@
             </div></div>
 
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Booking observations</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-clipboard2-pulse me-1"></i> Booking observations</h2>
                 <div class="row g-3">
                     <div class="col-md-4"><label asp-for="HeightCm" class="form-label">Height (cm)</label><input asp-for="HeightCm" type="number" step="0.1" class="form-control" /></div>
                     <div class="col-md-4"><label asp-for="BookingWeightKg" class="form-label">Weight (kg)</label><input asp-for="BookingWeightKg" type="number" step="0.1" class="form-control" /></div>
@@ -50,7 +50,7 @@
 
         <div class="col-lg-6">
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-droplet me-1"></i> Blood & screening</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-droplet me-1"></i> Blood & screening</h2>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="BloodGroup" class="form-label">Blood group</label>
@@ -77,7 +77,7 @@
             </div></div>
 
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-exclamation me-1"></i> Risk & history</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-shield-exclamation me-1"></i> Risk & history</h2>
                 <div class="mb-2"><label asp-for="RiskFactors" class="form-label">Risk factors</label><textarea asp-for="RiskFactors" class="form-control" rows="2" placeholder="HTN, diabetes, prev CS, anaemia…"></textarea></div>
                 <div class="mb-2"><label asp-for="PreviousObstetricHistory" class="form-label">Obstetric history</label><textarea asp-for="PreviousObstetricHistory" class="form-control" rows="2"></textarea></div>
                 <div class="mb-0"><label asp-for="MedicalHistory" class="form-label">Medical history</label><textarea asp-for="MedicalHistory" class="form-control" rows="2"></textarea></div>
@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Book ANC</button>
     </div>

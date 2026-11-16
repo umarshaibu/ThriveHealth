@@ -10,7 +10,7 @@
     var unknownOnRole = Model.Selected.Where(p => !rendered.Contains(p)).Distinct().ToList();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Permissions · @Model.RoleName</h1>
         <p class="th-section-sub mb-0">@selected.Count selected · @userCount user@(userCount == 1 ? "" : "s") in this role</p>
@@ -66,7 +66,7 @@
             <div class="col-md-6 col-xl-4">
                 <div class="th-card h-100"><div class="th-card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">@g.Key</h6>
+                        <h2 class="th-card-title fs-6 mb-0">@g.Key</h2>
                         <button type="button" class="btn btn-sm btn-link p-0 th-group-toggle" data-group="@g.Key">Toggle group</button>
                     </div>
                     <div class="th-perm-group" data-group="@g.Key">
@@ -88,7 +88,7 @@
         }
     </div>
 
-    <div class="d-flex justify-content-end mt-3">
+    <div class="th-sticky-actions">
         <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Save permissions</button>
     </div>
 </form>

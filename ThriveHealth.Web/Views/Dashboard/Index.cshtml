@@ -1,21 +1,51 @@
 @model ThriveHealth.Web.Models.ViewModels.DashboardViewModel
+@using ThriveHealth.Web.Models.ViewModels
 @{
     ViewData["Title"] = "Dashboard";
+    ViewData["BodyClass"] = "md-shell";
+    var canvas = Model.Canvas;
+}
+@functions {
+    private static string Ago(DateTime utc)
+    {
+        var elapsed = DateTime.UtcNow - utc;
+        if (elapsed.TotalMinutes < 1) return "Just now";
+        if (elapsed.TotalMinutes < 60) return Plural((int)elapsed.TotalMinutes, "minute");
+        if (elapsed.TotalHours < 24) return Plural((int)elapsed.TotalHours, "hour");
+        return utc.ToLocalTime().ToString("d MMM, HH:mm");
+    }
+
+    private static string Plural(int count, string unit) => $"{count} {unit}{(count == 1 ? "" : "s")} ago";
+
+    private static string N(double value) => value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 }
 
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-    <div>
-        <h1 class="th-section-title">Good @(DateTime.Now.Hour < 12 ? "morning" : DateTime.Now.Hour < 17 ? "afternoon" : "evening"), @Model.GreetingName 👋</h1>
-        <p class="th-section-sub mb-0">@Model.FacilityName · <strong>@Model.Persona</strong> · @DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
-    </div>
-    <div class="d-flex gap-2">
-        <span class="th-pill th-pill-success"><i class="bi bi-circle-fill me-1" style="font-size:8px;"></i> All systems operational</span>
-    </div>
-</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+@if (Model.NextActions.Any())
+{
+    @section TopbarActions {
+        <div class="dropdown">
+            <button class="btn md-add dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-plus-lg"></i> Quick actions
+            </button>
+            <ul class="dropdown-menu shadow">
+                @foreach (var a in Model.NextActions)
+                {
+                    <li asp-permission="@a.Permission"><a class="dropdown-item" asp-controller="@a.Controller" asp-action="@a.Action"><i class="bi @a.Icon me-2"></i>@a.Label</a></li>
+                }
+            </ul>
+        </div>
+    }
+}
+
+<h1 class="visually-hidden">@Model.Persona, @Model.GreetingName</h1>
 
 @if (Model.ActiveAlerts.Any())
 {
-    <div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
+    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3" role="alert">
         <i class="bi bi-exclamation-triangle-fill mt-1"></i>
         <div>
             <strong>Attention required</strong>
@@ -26,88 +56,252 @@
     </div>
 }
 
-@* KPI strip — shown for every persona (high-level summary above the working surface). *@
-@if (Model.BoardKey != "Executive")  @* Executive partial owns its own KPI strip. *@
+@if (canvas is not null)
 {
-    <div class="row g-3 mb-4">
-        @foreach (var s in Model.Stats)
+    var hero = canvas.Hero;
+    var trend = canvas.Trend;
+    var gauge = canvas.Gauge;
+    var spot = canvas.Spotlight;
+    var plotMax = Math.Max(trend.A.DefaultIfEmpty(0).Max(), trend.B.DefaultIfEmpty(0).Max());
+    var lastIndex = trend.A.Length - 1;
+    var ticks = CanvasSvg.TickIndexes(trend.Labels.Length);
+
+    <section class="md-tiles" aria-label="Key figures">
+        @foreach (var (stat, index) in Model.Stats.Take(4).Select((s, i) => (s, i)))
         {
-            <div class="col-sm-6 col-xl-3">
-                <div class="th-stat tone-@s.Tone">
-                    <div class="th-stat-icon"><i class="bi @(s.Icon ?? "bi-graph-up")"></i></div>
-                    <div class="th-stat-label">@s.Label</div>
-                    <div class="th-stat-value">@s.Value</div>
+            var needsAction = stat.Tone == "danger" && stat.Value != "0";
+            <article class="md-tile md-tile--@(index + 1)">
+                <div class="md-tile-top">
+                    <span class="md-chip"><i class="bi @(stat.Icon ?? "bi-graph-up")" aria-hidden="true"></i></span>
+                    @if (stat.Link is not null)
+                    {
+                        <a class="md-round" href="@stat.Link.Href" asp-permission="@stat.Link.Permission" aria-label="Open @stat.Label"><i class="bi bi-three-dots" aria-hidden="true"></i></a>
+                    }
                 </div>
-            </div>
+                <div class="md-tile-head">
+                    <span class="md-tile-value">@stat.Value</span>
+                    <span class="md-tile-label">@stat.Label</span>
+                    @if (needsAction) { <span class="md-status md-status--danger">Needs action</span> }
+                </div>
+                @if (!string.IsNullOrEmpty(stat.Note)) { <p class="md-tile-note">@stat.Note</p> }
+            </article>
         }
-    </div>
-}
+    </section>
 
-@* Role-specific working surface (real lists of items to action). *@
-@if (!string.IsNullOrEmpty(Model.BoardKey) && Model.Board is not null)
-{
-    @await Html.PartialAsync($"Partials/_Board{Model.BoardKey}", Model.Board)
-}
-
-<div class="row g-3 mb-4">
-    <div class="col-lg-8">
-        <div class="th-card">
-            <div class="th-card-header">
-                <h5 class="th-card-title"><i class="bi bi-bell me-1 text-primary"></i> Recent activity</h5>
-            </div>
-            <div class="th-card-body p-0">
-                @if (!Model.RecentActivity.Any())
+    <section class="md-row md-row--main">
+        <article class="md-card md-hero">
+            <header class="md-card-head">
+                <span class="md-chip md-chip--white"><i class="bi @hero.Icon" aria-hidden="true"></i></span>
+                <div class="md-card-titles">
+                    <h2>@hero.Title</h2>
+                    <p>@hero.Subtitle</p>
+                </div>
+                @if (hero.Link is not null)
                 {
-                    <div class="th-empty p-4">
-                        <i class="bi bi-clipboard2-pulse"></i>
-                        <h6 class="mt-2 mb-1">Quiet for now</h6>
-                        <p class="mb-0 small">Activity for your role will show here as it happens.</p>
-                    </div>
+                    <a class="md-round md-round--white" href="@hero.Link.Href" asp-permission="@hero.Link.Permission" aria-label="Open @hero.Title"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                }
+            </header>
+
+            <div class="md-hero-art">
+                @if (hero.ClinicalArt)
+                {
+                    <partial name="Partials/_HeroLungs" />
                 }
                 else
                 {
-                    <ul class="list-unstyled mb-0">
-                        @foreach (var item in Model.RecentActivity)
-                        {
-                            <li class="border-bottom px-3 py-2 d-flex align-items-start gap-3">
-                                <span class="th-pill th-pill-@item.Tone"><i class="bi @item.Icon"></i></span>
-                                <div class="flex-grow-1">
-                                    @if (!string.IsNullOrEmpty(item.LinkController) && !string.IsNullOrEmpty(item.LinkAction))
-                                    {
-                                        <a class="text-decoration-none fw-semibold" asp-controller="@item.LinkController" asp-action="@item.LinkAction" asp-route-id="@item.LinkId">@item.Title</a>
-                                    }
-                                    else { <span class="fw-semibold">@item.Title</span> }
-                                    @if (!string.IsNullOrEmpty(item.Subtitle))
-                                    {
-                                        <div class="small text-muted">@item.Subtitle</div>
-                                    }
-                                </div>
-                                <div class="small text-muted text-nowrap">@item.At.ToLocalTime().ToString("dd MMM HH:mm")</div>
-                            </li>
-                        }
-                    </ul>
+                    <div class="md-orb" aria-hidden="true"><span><i class="bi @hero.Icon"></i></span></div>
                 }
             </div>
-        </div>
-    </div>
 
-    <div class="col-lg-4">
-        <div class="th-card">
-            <div class="th-card-header">
-                <h5 class="th-card-title"><i class="bi bi-lightning me-1 text-warning"></i> Quick actions</h5>
+            <div class="md-float md-float--next">
+                <div class="md-float-label">@hero.NextLabel</div>
+                @if (hero.Next is not null)
+                {
+                    <div class="md-float-name">@hero.Next.Name</div>
+                    <div class="md-float-detail">@hero.Next.Detail</div>
+                    <div class="md-float-headline">@hero.Next.Headline</div>
+                    <div class="md-float-detail">@hero.Next.Foot</div>
+                }
+                else
+                {
+                    <div class="md-float-name">@hero.NextEmpty</div>
+                }
             </div>
-            <div class="th-card-body">
-                <div class="d-flex flex-column gap-2">
-                    @foreach (var a in Model.NextActions)
+
+            <div class="md-float md-float--metrics">
+                <div class="md-float-name">@hero.MetricsTitle</div>
+                <dl>
+                    @foreach (var metric in hero.Metrics)
                     {
-                        <a class="btn btn-outline-primary text-start" asp-controller="@a.Controller" asp-action="@a.Action" asp-permission="@a.Permission"><i class="bi @a.Icon me-1"></i>@a.Label</a>
+                        <dt>@metric.Label</dt>
+                        <dd>@metric.Value</dd>
                     }
-                    @if (!Model.NextActions.Any())
+                </dl>
+            </div>
+        </article>
+
+        <article class="md-card md-trend">
+            <header class="md-card-head">
+                <span class="md-chip md-chip--tint"><i class="bi bi-bar-chart-line" aria-hidden="true"></i></span>
+                <div class="md-card-titles">
+                    <h2>@trend.Title</h2>
+                    <p>@trend.Subtitle</p>
+                </div>
+            </header>
+            <div class="md-legend">
+                <span class="md-legend-b">@trend.SeriesB</span>
+                <span class="md-legend-a">@trend.SeriesA</span>
+            </div>
+            @if (trend.HasData)
+            {
+                var point = CanvasSvg.Point(trend.A, lastIndex, plotMax);
+                <svg class="md-plot" viewBox="0 0 @CanvasSvg.Width @CanvasSvg.Height" role="img"
+                     aria-label="@trend.Title, @trend.Subtitle. @trend.SeriesA total @trend.TotalA, @trend.SeriesB total @trend.TotalB.">
+                    <line x1="@N(point.X)" x2="@N(point.X)" y1="0" y2="@CanvasSvg.Height" class="md-plot-guide" />
+                    <path d="@CanvasSvg.Path(trend.B, plotMax)" class="md-plot-b" />
+                    <path d="@CanvasSvg.Path(trend.A, plotMax)" class="md-plot-a" />
+                    <circle cx="@N(point.X)" cy="@N(point.Y)" r="7" class="md-plot-dot" />
+                </svg>
+            }
+            else
+            {
+                <div class="md-plot-empty">No activity in this period yet</div>
+            }
+            <div class="md-axis" aria-hidden="true">
+                @foreach (var i in ticks)
+                {
+                    <span class="@(i == trend.Labels.Length - 1 ? "is-now" : "")">@trend.Labels[i]</span>
+                }
+            </div>
+            <footer class="md-totals">
+                <div><span>Total @trend.SeriesA.ToLowerInvariant()</span><strong>@trend.TotalA</strong></div>
+                <div><span>Total @trend.SeriesB.ToLowerInvariant()</span><strong>@trend.TotalB</strong></div>
+            </footer>
+        </article>
+    </section>
+
+    <section class="md-row md-row--lower">
+        <article class="md-card">
+            <header class="md-card-head">
+                <span class="md-chip md-chip--tint"><i class="bi bi-speedometer" aria-hidden="true"></i></span>
+                <div class="md-card-titles">
+                    <h2>@gauge.Title</h2>
+                    <p>@gauge.Subtitle</p>
+                </div>
+            </header>
+            <div class="md-gauge" role="img" aria-label="@gauge.Title: @gauge.Value. @gauge.LabelA @gauge.A, @gauge.LabelB @gauge.B.">
+                <svg viewBox="0 0 320 176" aria-hidden="true">
+                    <text x="26" y="172" class="md-gauge-tick">0%</text>
+                    <text x="52" y="52" class="md-gauge-tick">25%</text>
+                    <text x="160" y="18" class="md-gauge-tick">50%</text>
+                    <text x="268" y="52" class="md-gauge-tick">75%</text>
+                    <text x="294" y="172" class="md-gauge-tick">100%</text>
+                    <path d="M55 150A105 105 0 0 1 265 150" class="md-arc md-arc--track" pathLength="100" />
+                    @if (gauge.B > 0)
                     {
-                        <div class="text-muted small">No suggestions for your role.</div>
+                        <path d="M55 150A105 105 0 0 1 265 150" class="md-arc md-arc--b" pathLength="100"
+                              stroke-dasharray="@N(gauge.ShareB) 100" stroke-dashoffset="@N(-gauge.ShareA)" />
                     }
+                    @if (gauge.A > 0)
+                    {
+                        <path d="M55 150A105 105 0 0 1 265 150" class="md-arc md-arc--a" pathLength="100"
+                              stroke-dasharray="@N(gauge.ShareA) 100" />
+                    }
+                </svg>
+                <div class="md-gauge-center">
+                    <strong>@gauge.Value</strong>
+                    <span>@gauge.Caption</span>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+            <ul class="md-gauge-key">
+                <li class="md-key-a">@gauge.LabelA (@gauge.A.ToString("N0"))</li>
+                <li class="md-key-b">@gauge.LabelB (@gauge.B.ToString("N0"))</li>
+            </ul>
+        </article>
+
+        <article class="md-card">
+            <header class="md-card-head">
+                <span class="md-chip md-chip--tint"><i class="bi @spot.Icon" aria-hidden="true"></i></span>
+                <div class="md-card-titles"><h2>@spot.Title</h2></div>
+                @if (spot.Link is not null)
+                {
+                    <a class="md-round" href="@spot.Link.Href" asp-permission="@spot.Link.Permission" aria-label="Open @spot.Title"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                }
+            </header>
+            @if (spot.Name is not null)
+            {
+                <div class="md-spot-visual">
+                    @if (!string.IsNullOrEmpty(spot.Badge)) { <span class="md-status md-status--@spot.BadgeTone">@spot.Badge</span> }
+                    <span class="md-spot-avatar">@spot.Initials</span>
+                </div>
+                <div class="md-spot-name">@spot.Name</div>
+                @if (!string.IsNullOrEmpty(spot.Detail)) { <div class="md-spot-detail">@spot.Detail</div> }
+                <div class="md-spot-chips">
+                    @foreach (var (chip, i) in spot.Chips.Select((c, i) => (c, i)))
+                    {
+                        <span class="@(i == spot.Chips.Count - 1 ? "is-accent" : "")">@chip</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="md-spot-visual md-spot-visual--empty">
+                    <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                    <p>@spot.Empty</p>
+                </div>
+            }
+        </article>
+
+        <article class="md-card md-card--teal">
+            @{ var showActivity = Model.RecentActivity.Any(); }
+            <header class="md-card-head">
+                <span class="md-chip md-chip--white"><i class="bi @(showActivity ? "bi-flag" : "bi-lightning-charge")" aria-hidden="true"></i></span>
+                <div class="md-card-titles"><h2>@(showActivity ? "Recent activity" : "Quick actions")</h2></div>
+            </header>
+            <ul class="md-list">
+                @if (showActivity)
+                {
+                    @foreach (var item in Model.RecentActivity.Take(4))
+                    {
+                        <li>
+                            @if (item.HasLink)
+                            {
+                                <a asp-controller="@item.LinkController" asp-action="@item.LinkAction" asp-route-id="@item.LinkId" class="md-list-item">
+                                    <i class="bi @item.Icon" aria-hidden="true"></i>
+                                    <span><strong>@item.Title</strong><small>@Ago(item.At)</small></span>
+                                    <i class="bi bi-chevron-right md-list-go" aria-hidden="true"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                <div class="md-list-item">
+                                    <i class="bi @item.Icon" aria-hidden="true"></i>
+                                    <span><strong>@item.Title</strong><small>@Ago(item.At)</small></span>
+                                </div>
+                            }
+                        </li>
+                    }
+                }
+                else
+                {
+                    @foreach (var action in Model.NextActions.Take(4))
+                    {
+                        <li asp-permission="@action.Permission">
+                            <a asp-controller="@action.Controller" asp-action="@action.Action" class="md-list-item">
+                                <i class="bi @action.Icon" aria-hidden="true"></i>
+                                <span><strong>@action.Label</strong></span>
+                                <i class="bi bi-chevron-right md-list-go" aria-hidden="true"></i>
+                            </a>
+                        </li>
+                    }
+                }
+            </ul>
+        </article>
+    </section>
+
+    @if (!string.IsNullOrEmpty(Model.BoardKey) && Model.Board is not null)
+    {
+        <h2 class="md-section">Today's work</h2>
+        @await Html.PartialAsync($"Partials/_Board{Model.BoardKey}", Model.Board)
+    }
+}

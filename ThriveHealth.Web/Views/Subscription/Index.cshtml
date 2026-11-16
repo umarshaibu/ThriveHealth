@@ -1,5 +1,10 @@
 @using ThriveHealth.Web.Models.Tenancy
+@inject IConfiguration Config
 @{
+    var bankName = Config["Payments:BankTransfer:BankName"];
+    var bankAccount = Config["Payments:BankTransfer:AccountNumber"];
+    var bankAccountName = Config["Payments:BankTransfer:AccountName"];
+    var bankConfigured = !string.IsNullOrWhiteSpace(bankName) && !string.IsNullOrWhiteSpace(bankAccount) && !string.IsNullOrWhiteSpace(bankAccountName);
     ViewData["Title"] = "Subscription & billing";
     var tenant = (Tenant)ViewBag.Tenant;
     var sub = ViewBag.Subscription as TenantSubscription;
@@ -15,16 +20,22 @@
     };
 }
 
-<h1 class="th-section-title mb-1">Subscription &amp; billing</h1>
-<p class="th-section-sub mb-3">Manage your plan, view invoices, and submit bank-transfer receipts.</p>
+<style>
+    .th-plan-tile.current { outline: 2px solid var(--th-primary); outline-offset: -2px; }
+</style>
+
+<div class="th-page-head"><div>
+<h1 class="th-section-title">Subscription &amp; billing</h1>
+<p class="th-section-sub">Manage your plan, view invoices, and submit bank-transfer receipts.</p>
+</div></div>
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 @if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
 
 <div class="row g-3 mb-4">
     <div class="col-md-4"><div class="th-card h-100"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-2">Status</h6>
-        <span class="badge bg-@statusTone" style="font-size: .9rem; padding: 6px 12px;">@tenant.Status</span>
+        <h6 class="text-muted mb-2" style="font-size:13px;font-weight:500;">Status</h6>
+        <span class="th-pill th-pill-@(statusTone == "secondary" ? "muted" : statusTone)">@tenant.Status</span>
         @if (tenant.IsTeachingHospital) { <div class="small text-info mt-2"><i class="bi bi-mortarboard"></i> Verified teaching hospital — free of charge</div> }
         @if (tenant.TrialEndsAt.HasValue && tenant.Status == TenantStatus.Trialing)
         {
@@ -33,20 +44,20 @@
         }
     </div></div></div>
     <div class="col-md-4"><div class="th-card h-100"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-2">Current plan</h6>
+        <h6 class="text-muted mb-2" style="font-size:13px;font-weight:500;">Current plan</h6>
         @if (sub is null)
         {
             <p class="text-muted mb-0">No subscription.</p>
         }
         else
         {
-            <div class="fw-semibold" style="font-size: 1.2rem;">@sub.Plan?.Name</div>
+            <div class="fw-semibold" style="font-size: 1.5rem; letter-spacing:-.02em;">@sub.Plan?.Name</div>
             <div class="small text-muted">@sub.Cycle · @sub.PriceCurrency @sub.PriceAmount.ToString("N0")</div>
             <div class="small text-muted">Renews @sub.CurrentPeriodEnd.ToString("dd MMM yyyy")</div>
         }
     </div></div></div>
     <div class="col-md-4"><div class="th-card h-100"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-2">Workspace</h6>
+        <h6 class="text-muted mb-2" style="font-size:13px;font-weight:500;">Workspace</h6>
         @if (!string.IsNullOrEmpty(tenant.CustomDomain) && tenant.CustomDomainVerifiedAt.HasValue)
         {
             <div class="fw-semibold">@tenant.CustomDomain</div>
@@ -67,8 +78,8 @@
         @foreach (var p in plans.Where(x => x.Code != "trial"))
         {
             var isCurrent = sub?.PlanId == p.Id;
-            <div class="col-md-3">
-                <div class="border rounded-3 p-3 h-100 d-flex flex-column @(isCurrent ? "border-primary bg-light" : "")">
+            <div class="col-sm-6 col-lg-3">
+                <div class="th-tile th-plan-tile h-100 d-flex flex-column @(isCurrent ? "current" : "")">
                     <h6 class="mb-1">@p.Name</h6>
                     <div class="small text-muted mb-2">@p.Tagline</div>
                     @if (p.IsCustomQuote)
@@ -105,7 +116,14 @@
     <h5 class="mb-1">Pay by bank transfer</h5>
     <p class="text-muted small mb-3">Pay to our account, then upload the receipt below. Our team will verify within one working day and your account will activate immediately on approval.</p>
     <div class="alert alert-info small mb-3">
-        <strong>Bank details:</strong> Guaranty Trust Bank · 0123456789 · ThriveHealth Limited<br/>
+        @if (bankConfigured)
+        {
+            <strong>Bank details:</strong> @bankName<text> · </text>@bankAccount<text> · </text>@bankAccountName<br/>
+        }
+        else
+        {
+            <strong>Bank details aren't available yet.</strong> <text>Please contact support before making a transfer.</text><br/>
+        }
         <strong>Reference:</strong> Use your subdomain <code>@tenant.Slug</code> as the transfer reference.
     </div>
     <form asp-action="SubmitBankTransfer" method="post" enctype="multipart/form-data">
@@ -113,7 +131,7 @@
         <div class="row g-2">
             <div class="col-md-3"><label class="form-label small">Amount paid</label><input type="number" step="0.01" min="0" name="Amount" class="form-control" required /></div>
             <div class="col-md-3"><label class="form-label small">Bank reference</label><input name="Reference" class="form-control" placeholder="e.g. FT22343XYZ" required /></div>
-            <div class="col-md-3"><label class="form-label small">Bank used</label><input name="BankAccountUsed" class="form-control" placeholder="GTB · 0123456789" /></div>
+            <div class="col-md-3"><label class="form-label small">Bank used</label><input name="BankAccountUsed" class="form-control" placeholder="Bank and account you paid from" /></div>
             <div class="col-md-3"><label class="form-label small">Date paid</label><input type="date" name="PaidAt" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" /></div>
             <div class="col-md-9"><label class="form-label small">Notes (optional)</label><input name="Notes" class="form-control" /></div>
             <div class="col-md-3"><label class="form-label small">Receipt (JPG, PNG, PDF)</label><input type="file" name="receipt" accept="image/*,application/pdf" class="form-control" /></div>
@@ -130,8 +148,8 @@
     }
     else
     {
-        <table class="table table-sm">
-            <thead class="text-uppercase text-muted small"><tr><th>Method</th><th>Amount</th><th>Status</th><th>Reference</th><th>Submitted</th><th>Receipt</th></tr></thead>
+        <div class="table-responsive"><table class="table table-sm">
+            <thead><tr><th>Method</th><th>Amount</th><th>Status</th><th>Reference</th><th>Submitted</th><th>Receipt</th></tr></thead>
             <tbody>
                 @foreach (var p in payments)
                 {
@@ -145,6 +163,6 @@
                     </tr>
                 }
             </tbody>
-        </table>
+        </table></div>
     }
 </div></div>

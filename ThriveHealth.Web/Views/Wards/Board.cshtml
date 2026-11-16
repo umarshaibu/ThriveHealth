@@ -4,12 +4,12 @@
     var fid = (int)(ViewBag.FacilityId ?? 0);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Bed board</h1>
-        <p class="th-section-sub mb-0">@Model.TotalBeds beds · live updates <span id="bedConn" class="th-pill th-pill-muted ms-2">connecting…</span></p>
+        <p class="th-section-sub">@Model.TotalBeds beds · live updates <span id="bedConn" class="th-pill th-pill-muted ms-2">connecting…</span></p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-controller="Admissions" asp-action="Index" class="btn btn-outline-primary"><i class="bi bi-people me-1"></i> Admissions</a>
         <a asp-controller="Admissions" asp-action="Admit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Admit patient</a>
     </div>
@@ -39,19 +39,18 @@
                     var b = bv.Bed;
                     var cls = b.Status switch
                     {
-                        ThriveHealth.Web.Models.Inpatient.BedStatus.Free => "border-success bg-light",
-                        ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied => "border-primary text-white",
-                        ThriveHealth.Web.Models.Inpatient.BedStatus.Cleaning => "border-warning bg-warning-subtle",
-                        ThriveHealth.Web.Models.Inpatient.BedStatus.Maintenance => "border-secondary bg-secondary-subtle",
-                        ThriveHealth.Web.Models.Inpatient.BedStatus.Reserved => "border-info bg-info-subtle",
-                        ThriveHealth.Web.Models.Inpatient.BedStatus.Blocked => "border-danger bg-danger-subtle",
-                        _ => "border-secondary"
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Free => "bed-free",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied => "bed-occupied",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Cleaning => "bed-cleaning",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Maintenance => "bed-maintenance",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Reserved => "bed-reserved",
+                        ThriveHealth.Web.Models.Inpatient.BedStatus.Blocked => "bed-blocked",
+                        _ => "bed-maintenance"
                     };
-                    var bg = b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Occupied ? $"background:{w.Ward.ColorHex};" : "";
-                    <div class="border rounded-3 p-2 @cls" style="min-width:160px; @bg">
-                        <div class="d-flex justify-content-between">
+                    <div class="th-tile bed-tile @cls">
+                        <div class="d-flex justify-content-between gap-2">
                             <strong class="font-monospace">@b.BedNumber</strong>
-                            <small>@b.Status</small>
+                            <small class="fw-semibold">@b.Status</small>
                         </div>
                         @if (bv.CurrentPatient != null)
                         {
@@ -61,7 +60,7 @@
                         }
                         else if (b.Status == ThriveHealth.Web.Models.Inpatient.BedStatus.Free)
                         {
-                            <a asp-controller="Admissions" asp-action="Admit" class="btn btn-sm btn-success w-100 mt-1" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage"><i class="bi bi-plus"></i> Admit</a>
+                            <a asp-controller="Admissions" asp-action="Admit" class="btn btn-sm btn-outline-success w-100 mt-2" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage"><i class="bi bi-plus"></i> Admit</a>
                         }
                         else
                         {
@@ -78,6 +77,20 @@
 {
     <div class="th-empty"><i class="bi bi-hospital"></i><h5 class="mt-2">No wards configured</h5><p>Create wards and beds to start admitting patients.</p>
         <a asp-action="Index" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Configure wards</a></div>
+}
+
+@section Styles {
+<style>
+    .bed-tile { flex: 1 1 160px; max-width: 220px; border: 2px solid transparent; }
+    .bed-free { background: var(--th-success-soft); }
+    .bed-occupied { color: #fff; border-color: transparent; background: var(--th-navy); }
+    .bed-occupied .text-muted { color: #c9d1dc !important; }
+    .bed-cleaning { border-color: var(--th-warning); background: var(--th-warning-soft); }
+    .bed-maintenance { border-color: var(--th-border-strong); border-style: dashed; background: var(--th-surface-sunken); }
+    .bed-reserved { border-color: var(--th-info); background: var(--th-info-soft); }
+    .bed-blocked { border-color: var(--th-danger); background: var(--th-danger-soft); }
+    @@media (max-width: 575.98px) { .bed-tile { max-width: none; flex-basis: 100%; } }
+</style>
 }
 
 @section Scripts {

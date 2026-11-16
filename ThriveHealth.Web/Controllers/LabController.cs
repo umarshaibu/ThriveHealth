@@ -141,7 +141,8 @@ public class LabController : Controller
             Unit = a.Unit,
             RefRange = (a.RefLow.HasValue || a.RefHigh.HasValue) ? $"{a.RefLow} – {a.RefHigh}" : null,
             CriticalRange = (a.CriticalLow.HasValue || a.CriticalHigh.HasValue) ? $"crit {a.CriticalLow} – {a.CriticalHigh}" : null,
-            Value = existing.GetValueOrDefault(a.Id)
+            Value = existing.GetValueOrDefault(a.Id),
+            ManualFlag = o.Result?.Values.FirstOrDefault(v => v.LabAnalyteId == a.Id)?.Flag
         }).ToList();
 
         return View(new LabResultEntryViewModel
@@ -165,7 +166,7 @@ public class LabController : Controller
 
         var n = await _lab.EnterResultsAsync(
             dto.LabOrderId,
-            dto.Values.Select(v => new LabValueInput(v.LabAnalyteId, v.Value ?? string.Empty)),
+            dto.Values.Select(v => new LabValueInput(v.LabAnalyteId, v.Value ?? string.Empty, v.ManualFlag)),
             dto.GeneralComment, ctx.Value.userId, dto.Finalize);
 
         TempData["Success"] = dto.Finalize

@@ -5,20 +5,21 @@
     var soon = today.AddDays(90);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title"><i class="bi bi-box-seam text-primary me-1"></i> Inventory stock</h1>
+        <h1 class="th-section-title">Inventory stock</h1>
         <p class="th-section-sub mb-0">@Model.Rows.Count batch line@(Model.Rows.Count == 1 ? "" : "s") · consumables, reagents, equipment.</p>
     </div>
-    <form method="get" class="d-flex gap-2">
-        <select name="storeId" class="form-select" onchange="this.form.submit()">
-            <option value="">All stores</option>
-            @foreach (var s in Model.Stores) { <option value="@s.Id" selected="@(Model.FilterStoreId == s.Id)">@s.Code · @s.Name</option> }
-        </select>
-        <input type="search" name="q" value="@Model.Search" class="form-control" placeholder="Item, code, batch…" />
-        <button class="btn btn-primary"><i class="bi bi-search"></i></button>
-    </form>
 </div>
+
+<form method="get" class="th-toolbar">
+    <select name="storeId" class="form-select" onchange="this.form.submit()">
+        <option value="">All stores</option>
+        @foreach (var s in Model.Stores) { <option value="@s.Id" selected="@(Model.FilterStoreId == s.Id)">@s.Code · @s.Name</option> }
+    </select>
+    <input type="search" name="q" value="@Model.Search" class="form-control" placeholder="Item, code, batch…" />
+    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
 
 <div class="row g-3 mb-3">
     <div class="col-md-4"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-exclamation-triangle"></i></div><div class="th-stat-label">Low stock</div><div class="th-stat-value">@Model.LowStockCount</div></div></div>
@@ -28,7 +29,7 @@
 
 <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiInventoryForecast">
     <div class="th-card-header d-flex justify-content-between align-items-center">
-        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI demand forecast <span class="th-pill th-pill-info ms-2">SUGGESTION — verify before ordering</span></h5>
+        <h2 class="th-card-title mb-0"><i class="bi bi-stars me-1"></i> AI demand forecast <span class="th-pill th-pill-info ms-2">Suggestion: verify before ordering</span></h2>
         <button type="button" class="btn btn-sm btn-outline-primary" onclick="aiForecast()"><i class="bi bi-arrow-clockwise me-1"></i> Run 30-day forecast</button>
     </div>
     <div class="th-card-body">
@@ -43,8 +44,8 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
-        <thead><tr><th>Item</th><th>Category</th><th>Store</th><th>Batch</th><th>Expiry</th><th>On hand</th><th>Cost ₦</th><th>Reorder</th></tr></thead>
+    <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Item</th><th>Category</th><th>Store</th><th>Batch</th><th>Expiry</th><th class="text-end">On hand</th><th class="text-end">Cost ₦</th><th>Reorder</th></tr></thead>
         <tbody>
         @foreach (var r in Model.Rows)
         {
@@ -54,13 +55,13 @@ else
                 <td><span class="font-monospace small">@r.Stock.Store?.Code</span></td>
                 <td><span class="font-monospace small">@(r.Stock.BatchNumber ?? "—")</span></td>
                 <td>@(r.Stock.ExpiryDate.HasValue ? r.Stock.ExpiryDate.Value.ToString("MMM yyyy") : "—") @if (r.IsExpired) { <span class="th-pill th-pill-danger ms-1">Expired</span> } else if (r.IsExpiringSoon) { <span class="th-pill th-pill-warning ms-1">Soon</span> }</td>
-                <td>@r.Stock.QuantityOnHand</td>
-                <td>@r.Stock.UnitCost?.ToString("N0")</td>
+                <td class="text-end">@r.Stock.QuantityOnHand</td>
+                <td class="text-end">@r.Stock.UnitCost?.ToString("N0")</td>
                 <td>@if (r.IsLow) { <span class="th-pill th-pill-danger">Reorder</span> } else { <small class="text-muted">@r.Stock.InventoryItem?.ReorderLevel</small> }</td>
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>
 

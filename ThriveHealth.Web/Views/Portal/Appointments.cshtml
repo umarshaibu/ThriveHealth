@@ -7,51 +7,58 @@
     var past = Model.Except(upcoming).OrderByDescending(a => a.ScheduledStartUtc).ToList();
 }
 
-<h1 class="th-section-title mb-3">My appointments</h1>
+<style>
+    .th-appt { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+    .th-appt + .th-appt { border-top: 1px solid var(--th-border); }
+    .th-appt-date { flex: none; width: 56px; text-align: center; border-radius: var(--th-radius-sm); background: var(--th-emerald-soft); color: var(--th-emerald); padding: 6px 0; line-height: 1.1; }
+    .th-appt-date.past { background: var(--th-surface-sunken); color: var(--th-text-muted); }
+    .th-appt-day { font-size: 1.3rem; font-weight: 600; }
+    .th-appt-mon { font-size: 12px; font-weight: 500; }
+    .th-appt-main { flex: 1; min-width: 0; }
+</style>
+
+<h1 class="th-section-title mb-1">My appointments</h1>
+<p class="th-section-sub">Your upcoming and past visits.</p>
 
 @if (upcoming.Any())
 {
-    <h6 class="text-uppercase text-muted small mb-2 mt-3">Upcoming</h6>
+    <h2 class="th-form-section-title mt-3">Upcoming</h2>
     <div class="th-card mb-3"><div class="th-card-body p-0">
-        <ul class="list-group list-group-flush">
         @foreach (var a in upcoming)
         {
-            <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>@a.ScheduledStartUtc.ToLocalTime().ToString("ddd, dd MMM · HH:mm")</strong>
-                        <div class="small text-muted">@(a.Clinic?.Name ?? "—") · Dr @(a.Clinician?.LastName ?? "")</div>
-                    </div>
-                    <span class="th-pill th-pill-info">@a.Status</span>
+            var d = a.ScheduledStartUtc.ToLocalTime();
+            <div class="th-appt">
+                <div class="th-appt-date"><div class="th-appt-day">@d.ToString("dd")</div><div class="th-appt-mon">@d.ToString("MMM")</div></div>
+                <div class="th-appt-main">
+                    <strong>@d.ToString("dddd · HH:mm")</strong>
+                    <div class="small text-muted">@(a.Clinic?.Name ?? "—") · Dr @(a.Clinician?.LastName ?? "")</div>
                 </div>
-            </li>
+                <span class="th-pill th-pill-info">@a.Status</span>
+            </div>
         }
-        </ul>
     </div></div>
 }
 
 @if (past.Any())
 {
-    <h6 class="text-uppercase text-muted small mb-2 mt-3">Past</h6>
+    <h2 class="th-form-section-title mt-3">Past</h2>
     <div class="th-card"><div class="th-card-body p-0">
-        <ul class="list-group list-group-flush">
         @foreach (var a in past)
         {
-            <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>@a.ScheduledStartUtc.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</strong>
-                        <div class="small text-muted">@(a.Clinic?.Name ?? "—") · Dr @(a.Clinician?.LastName ?? "")</div>
-                    </div>
-                    <span class="th-pill th-pill-muted">@a.Status</span>
+            var d = a.ScheduledStartUtc.ToLocalTime();
+            <div class="th-appt">
+                <div class="th-appt-date past"><div class="th-appt-day">@d.ToString("dd")</div><div class="th-appt-mon">@d.ToString("MMM")</div></div>
+                <div class="th-appt-main">
+                    <strong>@d.ToString("ddd dd MMM yyyy · HH:mm")</strong>
+                    <div class="small text-muted">@(a.Clinic?.Name ?? "—") · Dr @(a.Clinician?.LastName ?? "")</div>
                 </div>
-            </li>
+                <span class="th-pill th-pill-muted">@a.Status</span>
+            </div>
         }
-        </ul>
     </div></div>
 }
 
 @if (!Model.Any())
 {
-    <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-calendar2-week"></i><h5 class="mt-2">No appointments</h5></div></div>
+    <div class="th-card"><div class="th-card-body th-empty"><i class="bi bi-calendar2-week"></i><h5 class="mt-2">No appointments</h5><p class="small mb-0">Need to see someone? Request a tele-consultation from Home.</p></div></div>
 }

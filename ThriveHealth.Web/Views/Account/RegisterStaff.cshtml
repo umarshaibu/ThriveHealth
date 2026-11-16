@@ -3,12 +3,12 @@
     ViewData["Title"] = "Register staff";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Register new staff</h1>
-        <p class="th-section-sub mb-0">Create a clinical or administrative user. Practitioner licences are validated against MDCN, NMCN, PCN, MLSCN, RRBN where applicable.</p>
+        <p class="th-section-sub">Create a clinical or administrative user. Practitioner licences are validated against MDCN, NMCN, PCN, MLSCN, RRBN where applicable.</p>
     </div>
-    <a asp-action="StaffList" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to staff</a>
+    <div class="th-page-actions"><a asp-action="StaffList" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to staff</a></div>
 </div>
 
 <div class="th-card">
@@ -16,7 +16,7 @@
         <form asp-action="RegisterStaff" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.StaffManage">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
 
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Identity</h6>
+            <h6 class="th-form-section-title"><i class="bi bi-person me-1"></i> Identity</h6>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label asp-for="FirstName" class="form-label"></label>
@@ -43,7 +43,7 @@
                 </div>
             </div>
 
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-briefcase me-1"></i> Role &amp; assignment</h6>
+            <h6 class="th-form-section-title"><i class="bi bi-briefcase me-1"></i> Role &amp; assignment</h6>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label asp-for="Role" class="form-label"></label>
@@ -72,7 +72,7 @@
                 </div>
             </div>
 
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-patch-check me-1"></i> Practitioner licence (optional)</h6>
+            <h6 class="th-form-section-title"><i class="bi bi-patch-check me-1"></i> Practitioner licence (optional)</h6>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label asp-for="LicenseBody" class="form-label"></label>
@@ -98,7 +98,7 @@
                 </div>
             </div>
 
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-shield-lock me-1"></i> Initial password</h6>
+            <h6 class="th-form-section-title"><i class="bi bi-shield-lock me-1"></i> Initial password</h6>
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <label asp-for="Password" class="form-label"></label>

@@ -1,4 +1,4 @@
-const CACHE = 'thrivehealth-portal-v1';
+const CACHE = 'thrivehealth-portal-v2';
 const APP_SHELL = [
   '/Portal',
   '/Portal/Login',

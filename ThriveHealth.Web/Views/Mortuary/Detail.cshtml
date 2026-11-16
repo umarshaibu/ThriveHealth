@@ -14,26 +14,28 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
-    <div>
-        <h1 class="th-section-title mb-1">@Model.DeceasedName</h1>
-        <div class="d-flex gap-2 flex-wrap">
-            <span class="th-pill th-pill-muted font-monospace">@Model.MortuaryNumber</span>
-            <span class="th-pill @Tone(Model.Status)">@Model.Status</span>
-            @if (Model.Embalmed) { <span class="th-pill th-pill-info">Embalmed</span> }
-            @if (Model.IsUnidentified) { <span class="th-pill th-pill-danger">Unidentified</span> }
-            <span class="th-pill th-pill-muted">@days day@(days == 1 ? "" : "s") in mortuary</span>
-            @if (!string.IsNullOrEmpty(Model.CabinetCode)) { <span class="th-pill th-pill-muted">Cabinet @Model.CabinetCode</span> }
-        </div>
-    </div>
-    <div class="d-flex gap-2">
+<div class="th-page-head">
+    <h1 class="th-section-title">Mortuary record</h1>
+    <div class="th-page-actions">
         <button type="button" class="btn btn-outline-primary" onclick="aiMortuaryDraft(@Model.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiMortuaryDraft"><i class="bi bi-stars me-1"></i> AI draft docs</button>
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Register</a>
     </div>
 </div>
 
+<div class="th-patient-banner">
+    <span class="name">@Model.DeceasedName</span>
+    <span class="meta font-monospace">@Model.MortuaryNumber</span>
+    <span class="d-flex gap-2 flex-wrap">
+        <span class="th-pill @Tone(Model.Status)">@Model.Status</span>
+        @if (Model.Embalmed) { <span class="th-pill th-pill-info">Embalmed</span> }
+        @if (Model.IsUnidentified) { <span class="th-pill th-pill-danger">Unidentified</span> }
+        <span class="th-pill th-pill-muted">@days day@(days == 1 ? "" : "s") in mortuary</span>
+        @if (!string.IsNullOrEmpty(Model.CabinetCode)) { <span class="th-pill th-pill-muted">Cabinet @Model.CabinetCode</span> }
+    </span>
+</div>
+
 <div id="aiMortuaryCard" class="th-card mb-3" style="display:none">
-    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI release form &amp; death-certificate draft <span class="th-pill th-pill-info ms-2">DRAFT — clinician + records officer must verify</span></h5></div>
+    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1"></i> AI release form &amp; death-certificate draft <span class="th-pill th-pill-info ms-2">Draft: clinician and records officer must verify</span></h5></div>
     <div class="th-card-body">
         <pre id="aiMortuaryOut" class="mb-2" style="white-space:pre-wrap;font-family:inherit"></pre>
         <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print</button>
@@ -46,7 +48,7 @@
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Deceased details</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-info-circle me-1"></i> Deceased details</h2>
             <dl class="row mb-0">
                 <dt class="col-4">Sex / age</dt><dd class="col-8">@Model.Sex · @(Model.AgeYears?.ToString() ?? "—") yo</dd>
                 <dt class="col-4">DOB</dt><dd class="col-8">@(Model.DateOfBirth?.ToString("dd MMM yyyy") ?? "—")</dd>
@@ -68,7 +70,7 @@
         </div></div>
 
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-people me-1"></i> Next of kin</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-people me-1"></i> Next of kin</h2>
             <dl class="row mb-0">
                 <dt class="col-4">Name</dt><dd class="col-8"><strong>@Model.NextOfKinName</strong></dd>
                 <dt class="col-4">Relationship</dt><dd class="col-8">@Model.NextOfKinRelationship</dd>
@@ -82,7 +84,7 @@
         @if (Model.Status != MortuaryStatus.Released && Model.Status != MortuaryStatus.Buried)
         {
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard-check me-1"></i> Actions</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-clipboard-check me-1"></i> Actions</h2>
                 <div class="d-grid gap-2">
                     @if (!Model.Embalmed)
                     {
@@ -95,7 +97,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="Id" value="@Model.Id" />
                 <div class="th-card"><div class="th-card-body">
-                    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-box-arrow-up me-1"></i> Release to next of kin</h6>
+                    <h2 class="th-form-section-title"><i class="bi bi-box-arrow-up me-1"></i> Release to next of kin</h2>
                     <div class="row g-3">
                         <div class="col-12"><label class="form-label">Released to</label><input name="ReleasedTo" class="form-control" required maxlength="120" placeholder="Name of person collecting" value="@Model.NextOfKinName" /></div>
                         <div class="col-12"><label class="form-label">ID number presented</label><input name="ReleasedToId" class="form-control" maxlength="40" /></div>

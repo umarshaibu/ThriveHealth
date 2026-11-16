@@ -20,7 +20,7 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Integrations</h1>
         <p class="th-section-sub mb-0">SMS · Email · Payment provider gateways</p>
@@ -37,7 +37,7 @@
     <div class="col-md-4">
         <div class="th-card h-100"><div class="th-card-body">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-chat-text me-1"></i> SMS</h6>
+                <h2 class="th-card-title mb-0"><i class="bi bi-chat-text me-1"></i> SMS</h2>
                 <span class="th-pill th-pill-info">@Model.SmsProvider</span>
             </div>
             <dl class="row mb-0 small">
@@ -51,7 +51,7 @@
     <div class="col-md-4">
         <div class="th-card h-100"><div class="th-card-body">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-envelope me-1"></i> Email</h6>
+                <h2 class="th-card-title mb-0"><i class="bi bi-envelope me-1"></i> Email</h2>
                 <span class="th-pill th-pill-info">@Model.EmailProvider</span>
             </div>
             <dl class="row mb-0 small">
@@ -64,7 +64,7 @@
     <div class="col-md-4">
         <div class="th-card h-100"><div class="th-card-body">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-credit-card me-1"></i> Payment</h6>
+                <h2 class="th-card-title mb-0"><i class="bi bi-credit-card me-1"></i> Payment</h2>
                 <span class="th-pill th-pill-info">@Model.PaymentProvider</span>
             </div>
             <dl class="row mb-0 small">
@@ -79,7 +79,7 @@
 <div class="row g-3 mb-3">
     <div class="col-md-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-send me-1"></i> Send test SMS</h6>
+            <h2 class="th-card-title mb-3"><i class="bi bi-send me-1"></i> Send test SMS</h2>
             <form asp-action="SendTestSms" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage">
                 @Html.AntiForgeryToken()
                 <div class="mb-2"><label class="form-label">Phone (Nigerian format)</label><input name="ToPhone" class="form-control" required maxlength="20" placeholder="08031234567" /></div>
@@ -90,7 +90,7 @@
     </div>
     <div class="col-md-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-envelope-check me-1"></i> Send test email</h6>
+            <h2 class="th-card-title mb-3"><i class="bi bi-envelope-check me-1"></i> Send test email</h2>
             <form asp-action="SendTestEmail" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.IntegrationsManage">
                 @Html.AntiForgeryToken()
                 <div class="mb-2"><label class="form-label">To</label><input name="ToEmail" type="email" class="form-control" required maxlength="150" /></div>
@@ -114,7 +114,7 @@
         @if (!Model.RecentSms.Any()) { <div class="th-empty m-4"><i class="bi bi-chat-text"></i><h5 class="mt-2">No SMS yet</h5></div> }
         else
         {
-            <table class="table table-sm align-middle mb-0">
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                 <thead><tr><th>Time</th><th>To</th><th>Purpose</th><th>Body</th><th>Status</th><th>Provider ID</th></tr></thead>
                 <tbody>
                 @foreach (var m in Model.RecentSms)
@@ -122,7 +122,7 @@
                     <tr><td><small>@m.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td><td>@m.ToPhone</td><td><small>@m.Purpose</small></td><td><small>@(m.Body.Length > 90 ? m.Body[..90] + "…" : m.Body)</small></td><td><span class="th-pill @MsgTone(m.Status)">@m.Status</span></td><td><small class="font-monospace text-muted">@m.ProviderMessageId</small></td></tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         }
         </div></div>
     </div>
@@ -131,7 +131,7 @@
         @if (!Model.RecentEmails.Any()) { <div class="th-empty m-4"><i class="bi bi-envelope"></i><h5 class="mt-2">No emails yet</h5></div> }
         else
         {
-            <table class="table table-sm align-middle mb-0">
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                 <thead><tr><th>Time</th><th>To</th><th>Subject</th><th>Purpose</th><th>Status</th></tr></thead>
                 <tbody>
                 @foreach (var m in Model.RecentEmails)
@@ -139,7 +139,7 @@
                     <tr><td><small>@m.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</small></td><td>@m.ToEmail</td><td><small>@m.Subject</small></td><td><small>@m.Purpose</small></td><td><span class="th-pill @MsgTone(m.Status)">@m.Status</span></td></tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         }
         </div></div>
     </div>
@@ -148,7 +148,7 @@
         @if (!Model.RecentPayments.Any()) { <div class="th-empty m-4"><i class="bi bi-credit-card"></i><h5 class="mt-2">No transactions yet</h5></div> }
         else
         {
-            <table class="table table-sm align-middle mb-0">
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                 <thead><tr><th>Time</th><th>Reference</th><th>Bill</th><th class="text-end">Amount (₦)</th><th>Status</th><th class="text-end"></th></tr></thead>
                 <tbody>
                 @foreach (var t in Model.RecentPayments)
@@ -162,14 +162,14 @@
                         <td class="text-end">
                             @if (t.Status is PaymentTransactionStatus.Initiated or PaymentTransactionStatus.Pending)
                             {
-                                <a asp-action="PaymentCallback" asp-route-txId="@t.Id" asp-route-status="success" class="btn btn-sm btn-outline-success" onclick="return confirm('Mark this transaction as successful and apply to bill?')"><i class="bi bi-check2-circle me-1"></i>Confirm</a>
-                                <a asp-action="PaymentCallback" asp-route-txId="@t.Id" asp-route-status="failed" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark this transaction as failed?')"><i class="bi bi-x-circle"></i></a>
+                                <form asp-action="PaymentCallback" method="post" class="d-inline" onsubmit="return confirm('Mark this transaction as successful and apply to bill?')">@Html.AntiForgeryToken()<input type="hidden" name="txId" value="@t.Id" /><input type="hidden" name="status" value="success" /><button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check2-circle me-1"></i>Confirm</button></form>
+                                <form asp-action="PaymentCallback" method="post" class="d-inline" onsubmit="return confirm('Mark this transaction as failed?')">@Html.AntiForgeryToken()<input type="hidden" name="txId" value="@t.Id" /><input type="hidden" name="status" value="failed" /><button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i></button></form>
                             }
                         </td>
                     </tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         }
         </div></div>
     </div>

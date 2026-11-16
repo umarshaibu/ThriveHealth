@@ -4,7 +4,7 @@
     <div class="col-lg-7">
         <div class="th-card h-100">
             <div class="th-card-header d-flex justify-content-between align-items-center">
-                <h5 class="th-card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i> Queue snapshot · today</h5>
+                <h2 class="th-card-title mb-0"><i class="bi bi-list-check me-1"></i> Queue snapshot · today</h2>
                 <a asp-controller="Queue" asp-action="Index" class="small">Open queue →</a>
             </div>
             <div class="th-card-body p-0">
@@ -17,21 +17,21 @@
                 }
                 else
                 {
-                    <table class="table mb-0 align-middle">
-                        <thead><tr><th>Clinic</th><th>Waiting</th><th>In room</th><th>Done</th><th></th></tr></thead>
+                    <div class="table-responsive"><table class="table mb-0 align-middle">
+                        <thead><tr><th>Clinic</th><th class="text-end">Waiting</th><th class="text-end">In room</th><th class="text-end">Done</th><th></th></tr></thead>
                         <tbody>
                         @foreach (var c in Model.QueueByClinic)
                         {
                             <tr>
                                 <td class="fw-semibold">@c.ClinicName</td>
-                                <td><span class="th-pill th-pill-@(c.Waiting > 0 ? "warning" : "muted")">@c.Waiting</span></td>
-                                <td><span class="th-pill th-pill-info">@c.InRoom</span></td>
-                                <td><span class="th-pill th-pill-success">@c.Done</span></td>
+                                <td class="text-end"><span class="th-pill th-pill-@(c.Waiting > 0 ? "warning" : "muted")">@c.Waiting</span></td>
+                                <td class="text-end"><span class="th-pill th-pill-info">@c.InRoom</span></td>
+                                <td class="text-end"><span class="th-pill th-pill-success">@c.Done</span></td>
                                 <td><a asp-controller="Queue" asp-action="CheckIn" asp-route-clinicId="@c.ClinicId" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.QueueCheckIn" class="btn btn-sm btn-outline-primary">Check in</a></td>
                             </tr>
                         }
                         </tbody>
-                    </table>
+                    </table></div>
                 }
             </div>
         </div>
@@ -40,7 +40,7 @@
     <div class="col-lg-5">
         <div class="th-card h-100">
             <div class="th-card-header d-flex justify-content-between align-items-center">
-                <h5 class="th-card-title mb-0"><i class="bi bi-calendar2 me-1 text-info"></i> Today's appointments</h5>
+                <h2 class="th-card-title mb-0"><i class="bi bi-calendar2 me-1 text-info"></i> Today's appointments</h2>
                 <a asp-controller="Appointments" asp-action="Index" class="small">All →</a>
             </div>
             <div class="th-card-body p-0">
@@ -75,8 +75,8 @@
 
 <div class="th-card mb-4">
     <div class="th-card-header d-flex justify-content-between align-items-center">
-        <h5 class="th-card-title mb-0"><i class="bi bi-person-plus me-1 text-success"></i> New registrations today</h5>
-        <a asp-controller="Patients" asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i> Register</a>
+        <h2 class="th-card-title mb-0"><i class="bi bi-person-plus me-1 text-success"></i> New registrations today</h2>
+        <a asp-controller="Patients" asp-action="Register" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i> Register</a>
     </div>
     <div class="th-card-body p-0">
         @if (!Model.NewRegistrations.Any())
@@ -88,8 +88,8 @@
         }
         else
         {
-            <table class="table mb-0 align-middle">
-                <thead><tr><th>Patient</th><th>Registered</th><th>ID verified?</th><th></th></tr></thead>
+            <div class="table-responsive"><table class="table mb-0 align-middle">
+                <thead><tr><th>Patient</th><th>Registered</th><th>ID verified</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var p in Model.NewRegistrations)
                 {
@@ -104,7 +104,7 @@
                     </tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         }
     </div>
 </div>

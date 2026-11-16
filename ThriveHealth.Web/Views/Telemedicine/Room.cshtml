@@ -26,25 +26,26 @@
 }
 
 <style>
-    .th-tele-stage { position: relative; height: 70vh; min-height: 480px; background: #0b1020; border-radius: 12px; overflow: hidden; color: #fff; }
-    .th-tele-remote { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; background: #0b1020; }
+    .th-tele-stage { --th-stage-bg: color-mix(in srgb, var(--th-navy) 70%, #000); position: relative; height: 70vh; min-height: 480px; background: var(--th-stage-bg); border-radius: var(--th-radius-md); overflow: hidden; color: #fff; }
+    .th-tele-remote { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; background: var(--th-stage-bg); }
     .th-tele-remote video { flex: 1 1 0; min-width: 0; height: 100%; object-fit: contain; }
     .th-tele-remote .placeholder { width: 100%; height: 100%; object-fit: contain; }
     .th-tele-remote .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; opacity: .8; }
     .th-tele-remote .placeholder i { font-size: 4rem; opacity: 0.5; }
-    .th-tele-self { position: absolute; bottom: 84px; right: 16px; width: 200px; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.1); }
+    .th-tele-self { position: absolute; bottom: 84px; right: 16px; width: 200px; aspect-ratio: 4/3; background: #000; border-radius: var(--th-radius-sm); overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.1); }
     .th-tele-self video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
     .th-tele-bar { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: .5rem; padding: .5rem; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); border-radius: 999px; }
-    .th-tele-bar .btn { width: 44px; height: 44px; padding: 0; border-radius: 999px; }
+    .th-tele-bar .btn { width: 48px; height: 48px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; }
+    .th-tele-bar .btn.th-tele-end { width: auto; padding: 0 18px; border-radius: 999px; gap: 8px; font-size: .95rem; font-weight: 600; }
     .th-tele-banner { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.55); padding: .25rem .75rem; border-radius: 999px; font-size: .8rem; }
     .th-tele-status { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.55); padding: .25rem .75rem; border-radius: 999px; font-size: .8rem; }
     .th-tele-quality { position: absolute; top: 12px; right: 130px; background: rgba(0,0,0,.55); padding: .25rem .5rem; border-radius: 999px; font-size: .75rem; display: flex; align-items: center; gap: 4px; }
-    .th-tele-quality .dot { width: 8px; height: 8px; border-radius: 50%; background: #6c757d; display: inline-block; }
-    .th-tele-quality.q-excellent .dot { background: #198754; }
-    .th-tele-quality.q-good .dot { background: #ffc107; }
-    .th-tele-quality.q-poor .dot { background: #dc3545; }
+    .th-tele-quality .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--th-text-faint); display: inline-block; }
+    .th-tele-quality.q-excellent .dot { background: var(--th-success); }
+    .th-tele-quality.q-good .dot { background: var(--th-warning); }
+    .th-tele-quality.q-poor .dot { background: var(--th-danger); }
     .th-consent-overlay { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(11,16,32,.92); padding: 24px; }
-    .th-consent-overlay .card { max-width: 540px; width: 100%; padding: 24px; border-radius: 12px; background: #fff; }
+    .th-consent-overlay .card { max-width: 540px; width: 100%; padding: 24px; border-radius: var(--th-radius-md); background: var(--th-surface); }
     .th-tele-stage.mode-chat .th-tele-remote { display: none; }
     .th-tele-stage.mode-chat .th-tele-self { display: none !important; }
     .th-tele-stage.mode-audio .th-tele-self { display: none !important; }
@@ -54,24 +55,24 @@
     .th-tele-chat { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16px; gap: 8px; color: #fff; }
     .th-tele-chat-list { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
     .th-tele-chat-list .msg { background: rgba(255,255,255,.08); padding: 8px 12px; border-radius: 12px; max-width: 78%; word-break: break-word; }
-    .th-tele-chat-list .msg.me { align-self: flex-end; background: #0d6efd; }
+    .th-tele-chat-list .msg.me { align-self: flex-end; background: var(--th-emerald); }
     .th-tele-chat-list .msg .who { font-size: .7rem; opacity: .7; margin-bottom: 2px; }
     .th-tele-chat-list .system { align-self: center; font-size: .75rem; opacity: .65; }
     .th-tele-chat-form { display: flex; gap: 8px; }
     .th-tele-chat-form input { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.15); }
     .th-tele-chat-form input::placeholder { color: rgba(255,255,255,.5); }
     @@media (max-width: 768px) {
-        .th-tele-stage { height: 60vh; min-height: 360px; }
+        .th-tele-stage { --th-stage-bg: color-mix(in srgb, var(--th-navy) 70%, #000); height: 60vh; min-height: 360px; }
         .th-tele-self { width: 120px; bottom: 80px; right: 12px; }
     }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title mb-1">Tele-consultation</h1>
         <small class="text-muted">@Model.SessionNumber · @Model.Mode · @role · with @displayName</small>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         @if (role == "Clinician")
         {
             <a asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Session</a>
@@ -177,7 +178,7 @@
                     <button id="th-tele-mic" class="btn btn-light" type="button" title="Mute / unmute"><i class="bi bi-mic-fill"></i></button>
                     <button id="th-tele-cam" class="btn btn-light" type="button" title="Camera on / off"><i class="bi bi-camera-video-fill"></i></button>
                     <button id="th-tele-screen" class="btn btn-light" type="button" title="Share screen"><i class="bi bi-display"></i></button>
-                    <button id="th-tele-hangup" class="btn btn-danger" type="button" title="Leave"><i class="bi bi-telephone-x"></i></button>
+                    <button id="th-tele-hangup" class="btn btn-danger th-tele-end" type="button" title="End call" aria-label="End call"><i class="bi bi-telephone-x"></i><span>End call</span></button>
                 </div>
             </div>
         </div></div>
@@ -189,7 +190,7 @@
         <div class="col-lg-4">
             <div class="th-card h-100"><div class="th-card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-journal-text me-1"></i> Consult notes</h6>
+                    <h6 class="fw-semibold text-muted small mb-0"><i class="bi bi-journal-text me-1"></i> Consult notes</h6>
                     <span id="th-notes-status" class="small text-muted">—</span>
                 </div>
                 <form id="th-notes-form" data-session-id="@Model.Id" data-csrf="@csrfToken">
@@ -227,7 +228,7 @@
 
     <div class="th-card mb-3"><div class="th-card-body">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="text-uppercase text-muted small mb-0"><i class="bi bi-clipboard2-pulse me-1"></i> Consult actions</h6>
+            <h6 class="fw-semibold text-muted small mb-0"><i class="bi bi-clipboard2-pulse me-1"></i> Consult actions</h6>
             <span id="th-actions-status" class="small text-muted">—</span>
         </div>
         <div class="d-flex flex-wrap gap-2 mb-3">
@@ -241,7 +242,7 @@
 
         <div class="row g-3 small">
             <div class="col-md-6">
-                <div class="text-uppercase text-muted small mb-1">Prescriptions</div>
+                <div class="fw-semibold text-muted small mb-1">Prescriptions</div>
                 <ul class="list-unstyled mb-0" id="th-rx-list">
                     @foreach (var item in prescriptions)
                     {
@@ -251,7 +252,7 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <div class="text-uppercase text-muted small mb-1">Lab orders</div>
+                <div class="fw-semibold text-muted small mb-1">Lab orders</div>
                 <ul class="list-unstyled mb-0" id="th-lab-list">
                     @foreach (var lo in labs)
                     {
@@ -261,7 +262,7 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <div class="text-uppercase text-muted small mb-1">Imaging orders</div>
+                <div class="fw-semibold text-muted small mb-1">Imaging orders</div>
                 <ul class="list-unstyled mb-0" id="th-img-list">
                     @foreach (var io in imagings)
                     {
@@ -271,7 +272,7 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <div class="text-uppercase text-muted small mb-1">Sick notes</div>
+                <div class="fw-semibold text-muted small mb-1">Sick notes</div>
                 <ul class="list-unstyled mb-0" id="th-sick-list">
                     @foreach (var c in certs)
                     {
@@ -284,7 +285,7 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <div class="text-uppercase text-muted small mb-1">Referrals</div>
+                <div class="fw-semibold text-muted small mb-1">Referrals</div>
                 <ul class="list-unstyled mb-0" id="th-ref-list">
                     @foreach (var r in refs)
                     {
@@ -294,7 +295,7 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <div class="text-uppercase text-muted small mb-1">Follow-up appointments</div>
+                <div class="fw-semibold text-muted small mb-1">Follow-up appointments</div>
                 <ul class="list-unstyled mb-0" id="th-follow-list">
                     @foreach (var f in followUps)
                     {
@@ -408,13 +409,13 @@
 <div class="row g-3">
     <div class="col-md-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Reason for consultation</h6>
+            <h6 class="fw-semibold text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Reason for consultation</h6>
             <p class="mb-0">@(string.IsNullOrEmpty(Model.ConsultationReason) ? "—" : Model.ConsultationReason)</p>
         </div></div>
     </div>
     <div class="col-md-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-shield-check me-1"></i> Privacy</h6>
+            <h6 class="fw-semibold text-muted small mb-2"><i class="bi bi-shield-check me-1"></i> Privacy</h6>
             <p class="mb-0 small text-muted">
                 Powered by LiveKit over end-to-end encrypted WebRTC. Allow camera and microphone
                 when prompted. Your access is scoped to this session only and tokens expire automatically.

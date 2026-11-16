@@ -50,6 +50,10 @@ public class Facility
     [MaxLength(50)]
     public string? Phone { get; set; }
 
+    /// <summary>Map position shown to patients in the hospital finder. Null until an admin sets it.</summary>
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     [MaxLength(150)]
     public string? Email { get; set; }
 

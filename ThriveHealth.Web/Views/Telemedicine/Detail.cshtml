@@ -14,7 +14,7 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title mb-1">Tele-session <span class="font-monospace">@Model.SessionNumber</span></h1>
         <div class="d-flex gap-2 flex-wrap">
@@ -33,7 +33,7 @@
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Session</h6>
+            <h6 class="fw-semibold text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Session</h6>
             <dl class="row mb-0">
                 <dt class="col-4">Scheduled</dt><dd class="col-8">@Model.ScheduledStartUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
                 <dt class="col-4">Patient joined</dt><dd class="col-8">@(Model.PatientJoinedAt?.ToLocalTime().ToString("HH:mm") ?? "—")</dd>
@@ -48,7 +48,7 @@
         @if (intakes.Any())
         {
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clipboard2-pulse me-1"></i> Recent symptom intake</h6>
+                <h6 class="fw-semibold text-muted small mb-2"><i class="bi bi-clipboard2-pulse me-1"></i> Recent symptom intake</h6>
                 @foreach (var i in intakes)
                 {
                     <div class="border-bottom pb-2 mb-2">
@@ -64,7 +64,7 @@
 
     <div class="col-lg-5">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-arrow-right-circle me-1"></i> Actions</h6>
+            <h6 class="fw-semibold text-muted small mb-2"><i class="bi bi-arrow-right-circle me-1"></i> Actions</h6>
             <div class="d-grid gap-2">
                 @if (Model.Status == TeleSessionStatus.Requested && Model.ClinicianId is null)
                 {
@@ -93,7 +93,7 @@
         @if (!string.IsNullOrEmpty(Model.ClinicianNotes))
         {
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-journal-text me-1"></i> Clinician notes</h6>
+                <h6 class="fw-semibold text-muted small mb-2"><i class="bi bi-journal-text me-1"></i> Clinician notes</h6>
                 <div style="white-space:pre-wrap">@Model.ClinicianNotes</div>
             </div></div>
         }

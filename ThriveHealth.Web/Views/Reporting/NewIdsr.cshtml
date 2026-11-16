@@ -5,7 +5,7 @@
     var diseases = ViewBag.Diseases as List<NotifiableDisease> ?? new();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <h1 class="th-section-title">Report a notifiable disease case</h1>
     <a asp-action="Idsr" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> IDSR list</a>
 </div>
@@ -17,7 +17,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-virus me-1"></i> Disease & classification</h6>
+                <h2 class="th-card-title mb-3"><i class="bi bi-virus me-1"></i> Disease & classification</h2>
                 <div class="row g-3">
                     <div class="col-12">
                         <label asp-for="NotifiableDiseaseId" class="form-label">Notifiable disease</label>
@@ -41,7 +41,7 @@
             </div></div>
 
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Symptoms & exposure</h6>
+                <h2 class="th-card-title mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Symptoms & exposure</h2>
                 <div class="mb-2"><label asp-for="Symptoms" class="form-label">Symptoms</label><textarea asp-for="Symptoms" class="form-control" rows="3"></textarea></div>
                 <div class="mb-2"><label asp-for="Exposure" class="form-label">Exposure / risk factors</label><textarea asp-for="Exposure" class="form-control" rows="2"></textarea></div>
                 <div class="mb-0"><label asp-for="Vaccinated" class="form-label">Vaccination history</label><textarea asp-for="Vaccinated" class="form-control" rows="2"></textarea></div>
@@ -50,7 +50,7 @@
 
         <div class="col-lg-6">
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient</h6>
+                <h2 class="th-card-title mb-3"><i class="bi bi-person me-1"></i> Patient</h2>
                 <div class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Linked patient (optional)</label>
@@ -74,7 +74,7 @@
             </div></div>
 
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-droplet-half me-1"></i> Lab & comments</h6>
+                <h2 class="th-card-title mb-3"><i class="bi bi-droplet-half me-1"></i> Lab & comments</h2>
                 <div class="row g-3">
                     <div class="col-md-4 form-check ms-3 mt-2"><input asp-for="LabSampleCollected" type="checkbox" class="form-check-input" /><label asp-for="LabSampleCollected" class="form-check-label">Sample collected</label></div>
                     <div class="col-md-4"><label asp-for="LabSampleDate" class="form-label">Sample date</label><input asp-for="LabSampleDate" type="date" class="form-control" /></div>
@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Idsr" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-save me-1"></i> Report case</button>
     </div>

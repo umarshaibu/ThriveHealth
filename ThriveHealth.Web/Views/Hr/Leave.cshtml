@@ -14,7 +14,7 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Leave requests</h1>
         <p class="th-section-sub mb-0">@Model.Count request@(Model.Count == 1 ? "" : "s") · most recent first</p>
@@ -24,7 +24,7 @@
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
-<div class="d-flex gap-2 mb-3 flex-wrap">
+<div class="th-toolbar">
     <a asp-action="Leave" class="btn btn-sm @(current is null ? "btn-primary" : "btn-outline-secondary")">All</a>
     <a asp-action="Leave" asp-route-status="@LeaveStatus.Submitted" class="btn btn-sm @(current == LeaveStatus.Submitted ? "btn-primary" : "btn-outline-secondary")">Submitted</a>
     <a asp-action="Leave" asp-route-status="@LeaveStatus.Approved" class="btn btn-sm @(current == LeaveStatus.Approved ? "btn-primary" : "btn-outline-secondary")">Approved</a>
@@ -38,8 +38,8 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
-        <thead><tr><th>Staff</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Decided by</th><th class="text-end"></th></tr></thead>
+    <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Staff</th><th>Type</th><th>Dates</th><th class="text-end">Days</th><th>Status</th><th>Decided by</th><th class="text-end"></th></tr></thead>
         <tbody>
         @foreach (var l in Model)
         {
@@ -47,7 +47,7 @@ else
                 <td><strong>@l.Staff?.FullName</strong><div class="small text-muted">@l.Staff?.Designation</div></td>
                 <td><span class="th-pill th-pill-muted">@l.Type</span></td>
                 <td>@l.StartDate.ToString("dd MMM") – @l.EndDate.ToString("dd MMM yyyy")</td>
-                <td>@l.Days</td>
+                <td class="text-end">@l.Days</td>
                 <td><span class="th-pill @Tone(l.Status)">@l.Status</span></td>
                 <td>@if (l.DecidedAt.HasValue) { <span>@l.DecidedBy?.FullName</span><div class="small text-muted">@l.DecidedAt.Value.ToString("dd MMM HH:mm")</div> } else { <span class="text-muted">—</span> }</td>
                 <td class="text-end">
@@ -70,10 +70,10 @@ else
             </tr>
             @if (!string.IsNullOrEmpty(l.Reason))
             {
-                <tr><td colspan="7" class="bg-light"><small class="text-muted"><i class="bi bi-chat-left-text me-1"></i>@l.Reason</small></td></tr>
+                <tr><td colspan="7" class="bg-body-tertiary"><small class="text-muted"><i class="bi bi-chat-left-text me-1"></i>@l.Reason</small></td></tr>
             }
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>

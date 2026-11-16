@@ -1,12 +1,12 @@
 @model ThriveHealth.Web.Models.ViewModels.HealthCheckViewModel
 @{ ViewData["Title"] = "Security & hardening"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Security &amp; hardening</h1>
         <p class="th-section-sub mb-0">Operational status of security controls, integrations, and database</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-action="Audit" class="btn btn-outline-secondary"><i class="bi bi-journal-text me-1"></i> Audit log</a>
         <a asp-action="Integrations" class="btn btn-outline-secondary"><i class="bi bi-plug me-1"></i> Integrations</a>
         <a href="/health" target="_blank" class="btn btn-outline-success"><i class="bi bi-heart-pulse me-1"></i> /health</a>
@@ -16,7 +16,7 @@
 <div class="row g-3">
     <div class="col-lg-6">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-database-check me-1"></i> Application & database</h6>
+            <h2 class="th-card-title mb-2"><i class="bi bi-database-check me-1"></i> Application & database</h2>
             <dl class="row mb-0">
                 <dt class="col-5">App version</dt><dd class="col-7"><span class="font-monospace">@Model.AppVersion</span></dd>
                 <dt class="col-5">Server time (UTC)</dt><dd class="col-7">@Model.ServerTimeUtc.ToString("dd MMM yyyy HH:mm:ss")</dd>
@@ -27,7 +27,7 @@
         </div></div>
 
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-shield-lock me-1"></i> Security controls</h6>
+            <h2 class="th-card-title mb-2"><i class="bi bi-shield-lock me-1"></i> Security controls</h2>
             <dl class="row mb-0">
                 <dt class="col-5">HTTPS redirect</dt><dd class="col-7"><span class="th-pill th-pill-success">Enabled</span></dd>
                 <dt class="col-5">HSTS</dt><dd class="col-7">@if (Model.HstsEnabled) { <span class="th-pill th-pill-success">Enabled (production)</span> } else { <span class="th-pill th-pill-warning">Disabled</span> }</dd>
@@ -42,8 +42,8 @@
 
     <div class="col-lg-6">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-list-check me-1"></i> HTTP security headers</h6>
-            <table class="table table-sm mb-0">
+            <h2 class="th-card-title mb-2"><i class="bi bi-list-check me-1"></i> HTTP security headers</h2>
+            <div class="table-responsive"><table class="table table-sm mb-0">
                 <thead><tr><th>Header</th><th>Status / value</th></tr></thead>
                 <tbody>
                 @foreach (var kv in Model.SecurityHeaders)
@@ -51,11 +51,11 @@
                     <tr><td class="font-monospace small">@kv.Key</td><td><small>@kv.Value</small></td></tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         </div></div>
 
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-plug me-1"></i> Integration providers</h6>
+            <h2 class="th-card-title mb-2"><i class="bi bi-plug me-1"></i> Integration providers</h2>
             <dl class="row mb-0">
                 <dt class="col-5">SMS</dt><dd class="col-7"><span class="th-pill th-pill-info">@Model.SmsProvider</span></dd>
                 <dt class="col-5">Email</dt><dd class="col-7"><span class="th-pill th-pill-info">@Model.EmailProvider</span></dd>

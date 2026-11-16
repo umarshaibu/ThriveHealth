@@ -1,24 +1,25 @@
 @model ThriveHealth.Web.Models.ViewModels.ClaimsWorklistViewModel
 @{ ViewData["Title"] = "Claims"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <h1 class="th-section-title"><i class="bi bi-file-earmark-medical text-primary me-1"></i> Claims worklist</h1>
+        <h1 class="th-section-title">Claims worklist</h1>
         <p class="th-section-sub mb-0">@Model.DraftCount drafts · @Model.SubmittedCount submitted · @Model.OutstandingCount outstanding</p>
     </div>
-    <form method="get" class="d-flex gap-2">
-        <select name="payerId" class="form-select" onchange="this.form.submit()">
-            <option value="">All payers</option>
-            @foreach (var p in Model.Payers)
-            { <option value="@p.Id" selected="@(Model.FilterPayerId == p.Id)">@p.Code · @p.Name</option> }
-        </select>
-        <select name="status" class="form-select" onchange="this.form.submit()">
-            <option value="">All statuses</option>
-            @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Insurance.ClaimStatus>())
-            { <option value="@((int)s)" selected="@(Model.FilterStatus == s)">@s</option> }
-        </select>
-    </form>
 </div>
+
+<form method="get" class="th-toolbar">
+    <select name="payerId" class="form-select" onchange="this.form.submit()">
+        <option value="">All payers</option>
+        @foreach (var p in Model.Payers)
+        { <option value="@p.Id" selected="@(Model.FilterPayerId == p.Id)">@p.Code · @p.Name</option> }
+    </select>
+    <select name="status" class="form-select" onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        @foreach (var s in Enum.GetValues<ThriveHealth.Web.Models.Insurance.ClaimStatus>())
+        { <option value="@((int)s)" selected="@(Model.FilterStatus == s)">@s</option> }
+    </select>
+</form>
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-file-earmark"></i></div><div class="th-stat-label">Draft</div><div class="th-stat-value">@Model.DraftCount</div></div></div>
@@ -34,8 +35,8 @@
 }
 else
 {
-    <table class="table align-middle mb-0">
-        <thead><tr><th>Created</th><th>Reference</th><th>Patient</th><th>Payer / plan</th><th>Service date</th><th>Gross ₦</th><th>Claimable ₦</th><th>Paid ₦</th><th>Status</th><th class="text-end"></th></tr></thead>
+    <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Created</th><th>Reference</th><th>Patient</th><th>Payer and plan</th><th>Service date</th><th class="text-end">Gross ₦</th><th class="text-end">Claimable ₦</th><th class="text-end">Paid ₦</th><th>Status</th><th class="text-end"></th></tr></thead>
         <tbody>
         @foreach (var r in Model.Rows)
         {
@@ -57,14 +58,14 @@ else
                 <td><strong>@r.Patient.FullName</strong><br /><small class="font-monospace text-muted">@r.Patient.HospitalNumber</small></td>
                 <td><strong>@c.Payer?.Name</strong>@if (c.PayerPlan != null) { <br /><small class="text-muted">@c.PayerPlan.Name</small> }</td>
                 <td>@c.ServiceDate.ToString("dd MMM yyyy")</td>
-                <td>@c.GrossAmount.ToString("N2")</td>
-                <td>@c.ClaimableAmount.ToString("N2")</td>
-                <td>@c.PaidAmount.ToString("N2")</td>
+                <td class="text-end">@c.GrossAmount.ToString("N2")</td>
+                <td class="text-end">@c.ClaimableAmount.ToString("N2")</td>
+                <td class="text-end">@c.PaidAmount.ToString("N2")</td>
                 <td><span class="th-pill @statusTone">@c.Status</span></td>
                 <td class="text-end"><a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i></a></td>
             </tr>
         }
         </tbody>
-    </table>
+    </table></div>
 }
 </div></div>

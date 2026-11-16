@@ -13,12 +13,12 @@
     var expectedCash = (summary?.Cash ?? 0) + Model.OpeningFloat;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 d-print-none">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Shift report</h1>
         <p class="th-section-sub mb-0">@Model.ShiftNumber · @Model.Cashier?.FullName</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions d-print-none">
         <a asp-action="Bills" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Bills</a>
         <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print</button>
     </div>
@@ -35,7 +35,7 @@
             <div><strong>Status:</strong> <span class="th-pill @(Model.Status == CashierShiftStatus.Closed ? "th-pill-success" : "th-pill-warning")">@Model.Status</span></div>
         </div>
         <div class="col-md-6">
-            <h6 class="text-uppercase text-muted small mb-2">Cash reconciliation</h6>
+            <h2 class="th-card-title mb-2">Cash reconciliation</h2>
             <dl class="row mb-0">
                 <dt class="col-7">Opening float</dt><dd class="col-5 text-end">₦@Model.OpeningFloat.ToString("N2")</dd>
                 <dt class="col-7">Cash takings</dt><dd class="col-5 text-end">₦@summary?.Cash.ToString("N2")</dd>
@@ -53,8 +53,8 @@
 </div></div>
 
 <div class="th-card mb-3"><div class="th-card-body">
-    <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-pie-chart me-1"></i> Takings by method</h6>
-    <table class="table table-sm mb-0">
+    <h2 class="th-card-title mb-3"><i class="bi bi-pie-chart me-1"></i> Takings by method</h2>
+    <div class="table-responsive"><table class="table table-sm mb-0">
         <thead><tr><th>Method</th><th class="text-end">Amount (₦)</th></tr></thead>
         <tbody>
             <tr><td>Cash</td><td class="text-end">@summary?.Cash.ToString("N2")</td></tr>
@@ -64,7 +64,7 @@
             <tr><td>Cheque</td><td class="text-end">@summary?.Cheque.ToString("N2")</td></tr>
             <tr class="table-secondary"><th>Total</th><th class="text-end">@summary?.Total.ToString("N2")</th></tr>
         </tbody>
-    </table>
+    </table></div>
 </div></div>
 
 <div class="th-card"><div class="th-card-body p-0">
@@ -75,7 +75,7 @@
     }
     else
     {
-        <table class="table align-middle mb-0">
+        <div class="table-responsive"><table class="table align-middle mb-0">
             <thead><tr><th>Time</th><th>Receipt #</th><th>Patient</th><th>Bill #</th><th>Method</th><th>Reference</th><th class="text-end">Amount (₦)</th></tr></thead>
             <tbody>
             @foreach (var p in posted)
@@ -91,6 +91,6 @@
                 </tr>
             }
             </tbody>
-        </table>
+        </table></div>
     }
 </div></div>

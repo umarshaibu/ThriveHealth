@@ -21,7 +21,7 @@
         <h1 class="th-section-title mb-1">@(session?.Clinician?.FullName != null ? "Dr " + session.Clinician.FullName : "Chat with your clinician")</h1>
         @if (session != null)
         {
-            <p class="text-muted small mb-0">@session.SessionNumber · @session.Status @if (isClosed) { <span class="text-warning">(closed — read-only)</span> }</p>
+            <p class="text-muted small mb-0">@session.SessionNumber · @session.Status @if (isClosed) { <span class="th-pill th-pill-muted">Closed, read-only</span> }</p>
         }
         else
         {
@@ -58,21 +58,21 @@
 @if (session is null && pkg?.IsActive != true)
 {
     <div class="th-card mb-3"><div class="th-card-body">
-        <h5 class="mb-2">No active chat thread</h5>
+        <h2 class="th-card-title mb-2">No active chat thread</h2>
         <p class="text-muted small mb-3">Choose how you'd like to consult:</p>
         <div class="row g-3">
             <div class="col-md-6">
-                <div class="border rounded-3 p-3 h-100">
+                <div class="rounded-3 p-3 h-100" style="background:var(--th-surface-alt)">
                     <h6 class="mb-1"><i class="bi bi-chat-dots text-primary me-1"></i> Single chat consult</h6>
                     <p class="text-muted small">Pay per consult — one thread, ends when the clinician closes it.</p>
                     <a asp-action="RequestTelemed" class="btn btn-outline-primary btn-sm">Request now</a>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="border rounded-3 p-3 h-100 bg-light">
-                    <h6 class="mb-1"><i class="bi bi-stars text-warning me-1"></i> 24-hour chat package</h6>
+                <div class="rounded-3 p-3 h-100" style="background:var(--th-emerald-soft)">
+                    <h6 class="mb-1"><i class="bi bi-stars me-1"></i> 24-hour chat package</h6>
                     <p class="text-muted small">Unlimited messages with the on-call clinician for 24 hours. Best if you expect a back-and-forth.</p>
-                    <a asp-action="BuyChatPackage" class="btn btn-warning btn-sm">Buy package</a>
+                    <a asp-action="BuyChatPackage" class="btn btn-primary btn-sm">Buy package</a>
                 </div>
             </div>
         </div>
@@ -134,11 +134,11 @@ else
                             {
                                 if (a.ContentType.StartsWith("image/"))
                                 {
-                                    <a href="@a.Url" target="_blank"><img src="@a.Url" alt="@a.FileName" style="max-width:240px;max-height:240px;border-radius:8px;display:block;margin-top:6px;" /></a>
+                                    <a href="@a.Url" target="_blank"><img src="@a.Url" alt="@a.FileName" style="max-width:240px;max-height:240px;border-radius:var(--th-radius-sm);display:block;margin-top:6px;" /></a>
                                 }
                                 else
                                 {
-                                    <a class="th-chat-att" href="@a.Url" target="_blank" style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;background:rgba(0,0,0,.08);padding:6px 10px;border-radius:8px;color:inherit;text-decoration:none;"><i class="bi bi-file-earmark-pdf"></i>@a.FileName <span style="opacity:.6;">(@(Math.Max(1, (int)(a.SizeBytes / 1024))) KB)</span></a>
+                                    <a class="th-chat-att" href="@a.Url" target="_blank" style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;background:var(--th-surface-sunken);padding:6px 10px;border-radius:var(--th-radius-sm);color:var(--th-text);text-decoration:none;"><i class="bi bi-file-earmark-pdf"></i>@a.FileName <span style="opacity:.6;">(@(Math.Max(1, (int)(a.SizeBytes / 1024))) KB)</span></a>
                                 }
                             }
                         }
@@ -146,7 +146,7 @@ else
                             var tickClass = m.SenderRole == ChatSenderRole.Patient ? (m.ReadByClinicianAt.HasValue ? "read-tick read" : "read-tick") : "";
                             var tickGlyph = m.SenderRole == ChatSenderRole.Patient ? (m.ReadByClinicianAt.HasValue ? "✓✓" : "✓") : "";
                         }
-                        <div class="time">@m.SentAt.ToLocalTime():HH:mm @if (m.SenderRole == ChatSenderRole.Patient) { <span class="@tickClass">@tickGlyph</span> }</div>
+                        <div class="time">@m.SentAt.ToLocalTime().ToString("HH:mm") @if (m.SenderRole == ChatSenderRole.Patient) { <span class="@tickClass">@tickGlyph</span> }</div>
                         @if (m.SenderRole != ChatSenderRole.System)
                         {
                             <button type="button" class="th-chat-reply-btn" data-reply-id="@m.Id" data-reply-who="@senderLabel" data-reply-snippet="@m.Body" title="Reply"><i class="bi bi-reply"></i></button>

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -159,12 +160,24 @@ builder.Services.AddHttpClient("paystack");
 
 // ---- AI ----
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+// Saved API keys are encrypted with this key ring. Servers with temporary disks, or more than one
+// instance, must set DataProtection:KeysPath to shared storage or the saved key becomes unreadable.
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("ThriveHealth")
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+}
+builder.Services.AddSingleton<AiCredentialStore>();
+builder.Services.AddSingleton<ClaudeAiService>();
 {
     var aiProvider = builder.Configuration[$"{AiOptions.SectionName}:Provider"]?.ToLowerInvariant() ?? "stub";
     switch (aiProvider)
     {
         case "openrouter":
-            builder.Services.AddHttpClient<IAiService, OpenRouterAiService>();
+            builder.Services.AddHttpClient<OpenRouterAiService>();
+            builder.Services.AddTransient<IAiService, FailoverAiService>();
             break;
         case "anthropic":
             builder.Services.AddHttpClient<IAiService, AnthropicAiService>();
@@ -188,6 +201,31 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+    // Each assistant question is a paid model call and writes audit rows, so cap it per patient.
+    options.AddPolicy("assistant", ctx =>
+    {
+        var bearer = ctx.Request.Headers.Authorization.ToString();
+        var partition = ctx.User.FindFirst(ThriveHealth.Web.Services.Api.PortalJwt.ClaimPatientId)?.Value
+            ?? (bearer.Length > 0 ? bearer : ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous");
+        return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 8,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
+    // Each uncached lookup calls a shared public map service, so cap it per patient too.
+    options.AddPolicy("hospitals-nearby", ctx =>
+    {
+        var bearer = ctx.Request.Headers.Authorization.ToString();
+        var partition = bearer.Length > 0 ? bearer : ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
     options.AddPolicy("portal-auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous",

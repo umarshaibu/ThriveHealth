@@ -4,9 +4,9 @@
     var beds = ViewBag.Beds as IEnumerable<dynamic>;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <h1 class="th-section-title">Admit patient</h1>
-    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    <div class="th-page-actions"><a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a></div>
 </div>
 
 <form asp-action="Admit" method="post" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage">
@@ -16,21 +16,21 @@
     <div class="row g-3">
         <div class="col-md-6">
             <div class="th-card h-100"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-person me-1"></i> Patient</h2>
                 <label class="form-label">Search</label>
                 <div class="position-relative">
                     <input type="text" id="patientSearch" class="form-control" placeholder="Hospital #, name, phone…" autocomplete="off" value="@Model.PatientLabel" />
                     <input type="hidden" asp-for="PatientId" id="patientId" />
                     <div id="patientResults" class="list-group position-absolute w-100" style="z-index:1000;"></div>
                 </div>
-                <div id="patientPick" class="mt-3 p-2 border rounded-3 bg-light @(Model.PatientId.HasValue ? "" : "d-none")">
+                <div id="patientPick" class="th-tile mt-3 @(Model.PatientId.HasValue ? "" : "d-none")">
                     <i class="bi bi-person-fill text-primary"></i> <span id="patientPickLabel">@Model.PatientLabel</span>
                 </div>
             </div></div>
         </div>
         <div class="col-md-6">
             <div class="th-card h-100"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-hospital me-1"></i> Ward &amp; bed</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-hospital me-1"></i> Ward &amp; bed</h2>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="WardId" class="form-label">Ward</label>
@@ -49,7 +49,7 @@
         </div>
         <div class="col-12">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-card-text me-1"></i> Clinical</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-card-text me-1"></i> Clinical</h2>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="ReasonForAdmission" class="form-label"></label>
@@ -64,7 +64,7 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-person-plus-fill me-1"></i> Admit patient</button>
     </div>

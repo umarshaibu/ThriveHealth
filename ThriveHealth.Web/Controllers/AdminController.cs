@@ -157,7 +157,7 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Integrations));
     }
 
-    [HttpGet, HasPermission(Permissions.IntegrationsManage)]
+    [HttpPost, ValidateAntiForgeryToken, HasPermission(Permissions.IntegrationsManage)]
     public async Task<IActionResult> PaymentCallback(long txId, string status)
     {
         // Stand-in for Paystack/Flutterwave webhook callback.

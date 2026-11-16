@@ -6,7 +6,7 @@
     var ai = ViewBag.AiSuggestion as ThriveHealth.Web.Models.Ai.AiSuggestion;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         @if (r != null)
         {
@@ -17,7 +17,7 @@
                 _ => "th-pill-info"
             };
             <span class="th-pill @tone">@r.Status</span>
-            @if (r.HasCriticalValue) { <span class="th-pill th-pill-danger ms-2"><i class="bi bi-exclamation-octagon-fill"></i> CRITICAL</span> }
+            @if (r.HasCriticalValue) { <span class="th-pill th-pill-danger ms-2"><i class="bi bi-exclamation-octagon-fill"></i> Critical value</span> }
         }
         else
         {
@@ -30,7 +30,7 @@
             · Ordered @Model.OrderedAt.ToLocalTime().ToString("dd MMM HH:mm") by @Model.OrderedBy?.FullName
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions d-print-none">
         <a asp-action="Worklist" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
         @if (Model.LabTestId.HasValue && Model.Status != ThriveHealth.Web.Models.Clinical.OrderStatus.Completed)
         {
@@ -50,24 +50,24 @@
 <div class="row g-3 mb-3">
     <div class="col-md-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small">Specimen &amp; collection</h6>
-            <div class="row small">
-                <div class="col-5 text-muted">Specimen</div><div class="col-7 fw-semibold">@(Model.Specimen ?? test?.Specimen ?? "—")</div>
-                <div class="col-5 text-muted">Container</div><div class="col-7 fw-semibold">@(test?.Container ?? "—")</div>
-                <div class="col-5 text-muted">Collected</div><div class="col-7 fw-semibold">@(Model.CollectedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—")</div>
-                <div class="col-5 text-muted">Collected by</div><div class="col-7 fw-semibold">@(Model.CollectedBy?.FullName ?? "—")</div>
-            </div>
+            <h2 class="th-card-title mb-2">Specimen &amp; collection</h2>
+            <dl class="th-facts">
+                <div><dt>Specimen</dt><dd>@(Model.Specimen ?? test?.Specimen ?? "—")</dd></div>
+                <div><dt>Container</dt><dd>@(test?.Container ?? "—")</dd></div>
+                <div><dt>Collected</dt><dd>@(Model.CollectedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "—")</dd></div>
+                <div><dt>Collected by</dt><dd>@(Model.CollectedBy?.FullName ?? "—")</dd></div>
+            </dl>
         </div></div>
     </div>
     <div class="col-md-6">
         <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small">Order details</h6>
-            <div class="row small">
-                <div class="col-5 text-muted">Section</div><div class="col-7 fw-semibold">@(test?.Section.ToString() ?? "—")</div>
-                <div class="col-5 text-muted">LOINC</div><div class="col-7 fw-semibold font-monospace">@(Model.LoincCode ?? "—")</div>
-                <div class="col-5 text-muted">Urgency</div><div class="col-7 fw-semibold">@Model.Urgency</div>
-                <div class="col-5 text-muted">Indication</div><div class="col-7">@(Model.ClinicalIndication ?? "—")</div>
-            </div>
+            <h2 class="th-card-title mb-2">Order details</h2>
+            <dl class="th-facts">
+                <div><dt>Section</dt><dd>@(test?.Section.ToString() ?? "—")</dd></div>
+                <div><dt>LOINC</dt><dd class="font-monospace">@(Model.LoincCode ?? "—")</dd></div>
+                <div><dt>Urgency</dt><dd>@Model.Urgency</dd></div>
+                <div><dt>Indication</dt><dd>@(Model.ClinicalIndication ?? "—")</dd></div>
+            </dl>
         </div></div>
     </div>
 </div>
@@ -75,10 +75,10 @@
 @if (r != null && r.Values.Any())
 {
     <div class="th-card mb-3">
-        <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-list-check me-1 text-primary"></i> Result values</h5></div>
+        <div class="th-card-header"><h2 class="th-card-title"><i class="bi bi-list-check me-1"></i> Result values</h2></div>
         <div class="th-card-body p-0">
-            <table class="table align-middle mb-0">
-                <thead><tr><th>Analyte</th><th>Value</th><th>Unit</th><th>Reference</th><th>Flag</th></tr></thead>
+            <div class="table-responsive"><table class="table align-middle mb-0">
+                <thead><tr><th>Analyte</th><th class="text-end">Value</th><th>Unit</th><th>Reference</th><th>Flag</th></tr></thead>
                 <tbody>
                 @foreach (var v in r.Values.OrderBy(x => x.LabAnalyte?.SortOrder ?? 0))
                 {
@@ -86,21 +86,23 @@
                     {
                         ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalLow => "th-pill-danger",
                         ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalHigh => "th-pill-danger",
+                        ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Critical => "th-pill-danger",
+                        ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.NotAssessed => "th-pill-muted",
                         ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Low => "th-pill-warning",
                         ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.High => "th-pill-warning",
                         ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Abnormal => "th-pill-warning",
                         _ => "th-pill-success"
                     };
-                    <tr class="@(v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalLow || v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalHigh ? "table-danger" : "")">
+                    <tr class="@(v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalLow || v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalHigh || v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Critical ? "table-danger" : "")">
                         <td><strong>@v.AnalyteName</strong></td>
-                        <td><strong class="@(v.Flag != ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Normal ? "fw-bold" : "")">@v.Value</strong></td>
+                        <td class="text-end"><strong class="@(v.Flag != ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Normal ? "fw-bold" : "")">@v.Value</strong></td>
                         <td><small class="text-muted">@v.Unit</small></td>
                         <td><small class="text-muted">@v.RefRangeDisplay</small></td>
-                        <td>@if (v.Flag != ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Normal) { <span class="th-pill @ftone">@v.Flag</span> }</td>
+                        <td>@if (v.Flag != ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.Normal) { <span class="th-pill @ftone"><i class="bi @(ftone == "th-pill-danger" ? "bi-exclamation-octagon-fill" : "bi-exclamation-triangle-fill")"></i> @(v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalLow || v.Flag == ThriveHealth.Web.Models.Diagnostics.AnalyteFlag.CriticalHigh ? "Critical: " : "Out of range: ")@v.Flag</span> }</td>
                     </tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         </div>
         @if (!string.IsNullOrEmpty(r.GeneralComment))
         {
@@ -124,7 +126,7 @@ else
 {
     <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiLabInterpret">
         <div class="th-card-header d-flex justify-content-between align-items-center">
-            <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI interpretation <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h5>
+            <h2 class="th-card-title mb-0"><i class="bi bi-stars me-1"></i> AI interpretation <span class="th-pill th-pill-info ms-2">Draft: clinician must verify</span></h2>
             <form asp-action="Interpret" asp-route-id="@Model.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiLabInterpret">
                 @Html.AntiForgeryToken()
                 <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i> @(ai == null ? "Generate" : "Re-generate")</button>

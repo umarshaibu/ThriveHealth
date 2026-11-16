@@ -2,8 +2,10 @@
 @{ ViewData["Title"] = "Add availability"; }
 
 <div class="row"><div class="col-lg-7">
-    <h1 class="th-section-title">Add availability</h1>
-    <p class="th-section-sub">A recurring weekly time window when a clinician is available at this clinic.</p>
+    <div class="th-page-head"><div>
+        <h1 class="th-section-title">Add availability</h1>
+    <p class="th-section-sub mb-0">A recurring weekly time window when a clinician is available at this clinic.</p>
+    </div></div>
 
     <form asp-action="AddAvailability" method="post" class="th-card" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.ClinicsManage">
         <div class="th-card-body">
@@ -31,7 +33,7 @@
                 <div class="col-md-3"><label asp-for="EndTime" class="form-label"></label><input asp-for="EndTime" type="time" class="form-control" /></div>
                 <div class="col-md-2"><label asp-for="SlotMinutesOverride" class="form-label">Slot</label><input asp-for="SlotMinutesOverride" type="number" class="form-control" placeholder="default" /></div>
             </div>
-            <div class="mt-4 d-flex justify-content-end gap-2">
+            <div class="th-sticky-actions">
                 <a asp-action="Details" asp-route-id="@Model.ClinicId" class="btn btn-outline-secondary">Cancel</a>
                 <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Add availability</button>
             </div>

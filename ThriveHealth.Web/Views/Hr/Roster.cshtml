@@ -25,12 +25,12 @@
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Duty roster</h1>
         <p class="th-section-sub mb-0">Week of @Model.WeekStart.ToString("dd MMM yyyy") · @Model.Rows.Count clinician@(Model.Rows.Count == 1 ? "" : "s")</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-action="Roster" asp-route-weekStart="@prevWeek.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
         <a asp-action="Roster" class="btn btn-outline-secondary">This week</a>
         <a asp-action="Roster" asp-route-weekStart="@nextWeek.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
@@ -135,6 +135,12 @@
         </form>
     </div>
 </div>
+
+@section Styles {
+<style>
+    .th-pill-primary { background: var(--th-navy-soft); color: var(--th-navy); }
+</style>
+}
 
 @section Scripts {
 <script>

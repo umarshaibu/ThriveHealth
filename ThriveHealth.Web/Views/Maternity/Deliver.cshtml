@@ -6,10 +6,10 @@
     var accouch = ViewBag.Accoucheurs as SelectList;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Record delivery</h1>
-        <p class="th-section-sub mb-0">@record?.Patient?.FullName · ANC <span class="font-monospace">@record?.AncNumber</span></p>
+        <p class="th-section-sub">@record?.Patient?.FullName · ANC <span class="font-monospace">@record?.AncNumber</span></p>
     </div>
     <a asp-action="Detail" asp-route-id="@Model.AnteNatalRecordId" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
 </div>
@@ -22,7 +22,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="th-card mb-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clock me-1"></i> Labour & delivery</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-clock me-1"></i> Labour & delivery</h2>
                 <div class="row g-3">
                     <div class="col-md-6"><label asp-for="LabourOnsetUtc" class="form-label">Labour onset</label><input asp-for="LabourOnsetUtc" type="datetime-local" class="form-control" /></div>
                     <div class="col-md-6"><label asp-for="DeliveryUtc" class="form-label">Delivered at</label><input asp-for="DeliveryUtc" type="datetime-local" class="form-control" /><span asp-validation-for="DeliveryUtc" class="text-danger small"></span></div>
@@ -57,7 +57,7 @@
             </div></div>
 
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person-badge me-1"></i> Accoucheur & notes</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-person-badge me-1"></i> Accoucheur & notes</h2>
                 <div class="row g-3">
                     <div class="col-12"><label asp-for="AccoucheurId" class="form-label">Accoucheur</label><select asp-for="AccoucheurId" asp-items="accouch" class="form-select"><option value="">—</option></select></div>
                     <div class="col-12"><label asp-for="Complications" class="form-label">Complications</label><textarea asp-for="Complications" class="form-control" rows="2"></textarea></div>
@@ -68,7 +68,7 @@
 
         <div class="col-lg-6">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-baby me-1"></i> Newborn</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-baby me-1"></i> Newborn</h2>
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label asp-for="BabySex" class="form-label">Sex</label>
@@ -82,7 +82,7 @@
                     <div class="col-md-4"><label asp-for="Apgar1Min" class="form-label">APGAR 1'</label><input asp-for="Apgar1Min" type="number" min="0" max="10" class="form-control" /></div>
                     <div class="col-md-4"><label asp-for="Apgar5Min" class="form-label">APGAR 5'</label><input asp-for="Apgar5Min" type="number" min="0" max="10" class="form-control" /></div>
 
-                    <div class="col-12 mt-3"><h6 class="text-uppercase text-muted small">Birth interventions</h6></div>
+                    <div class="col-12 mt-3"><h2 class="th-form-section-title">Birth interventions</h2></div>
                     <div class="col-md-6 form-check ms-3"><input asp-for="BreastfedWithin1Hr" type="checkbox" class="form-check-input" /><label asp-for="BreastfedWithin1Hr" class="form-check-label">Breastfed within 1 hr</label></div>
                     <div class="col-md-6 form-check"><input asp-for="VitaminKGiven" type="checkbox" class="form-check-input" /><label asp-for="VitaminKGiven" class="form-check-label">Vitamin K given</label></div>
                     <div class="col-md-6 form-check ms-3"><input asp-for="ResuscitationRequired" type="checkbox" class="form-check-input" /><label asp-for="ResuscitationRequired" class="form-check-label">Resuscitation required</label></div>
@@ -94,7 +94,7 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Detail" asp-route-id="@Model.AnteNatalRecordId" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-success"><i class="bi bi-heart-pulse me-1"></i> Save delivery</button>
     </div>

@@ -20,7 +20,7 @@
     var canDeny = canSettle;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <span class="th-pill @statusTone">@c.Status</span>
         <h1 class="th-section-title mt-2">Claim @c.ClaimReference</h1>
@@ -30,10 +30,10 @@
             · service date @c.ServiceDate.ToString("dd MMM yyyy")
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions d-print-none">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Worklist</a>
         @if (c.EncounterId.HasValue)
-        { <a asp-controller="Consultations" asp-action="Summary" asp-route-id="@c.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-folder2-open me-1"></i> Consultation</a> }
+        { <a asp-controller="Encounters" asp-action="Summary" asp-route-id="@c.EncounterId" class="btn btn-outline-secondary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-folder2-open me-1"></i> Consultation</a> }
         @if (canSubmit)
         {
             <button type="button" class="btn btn-outline-primary" onclick="aiClaimRisk(@c.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiClaimsRisk"><i class="bi bi-stars me-1"></i> AI risk check</button>
@@ -56,9 +56,9 @@
 </div>
 
 <div class="th-card mb-3">
-    <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-list-ul me-1 text-primary"></i> Claim items (@c.Items.Count)</h5></div>
+    <div class="th-card-header"><h2 class="th-card-title"><i class="bi bi-list-ul me-1"></i> Claim items (@c.Items.Count)</h2></div>
     <div class="th-card-body p-0">
-        <table class="table align-middle mb-0">
+        <div class="table-responsive"><table class="table align-middle mb-0">
             <thead><tr><th>Kind</th><th>Description</th><th>Code / NAFDAC</th><th class="text-end">Qty</th><th class="text-end">Unit ₦</th><th class="text-end">Line ₦</th><th class="text-end">Copay ₦</th><th class="text-end">Claimable ₦</th><th>Status</th></tr></thead>
             <tbody>
             @foreach (var i in c.Items)
@@ -96,12 +96,12 @@
                     <th class="text-end">@c.ClaimableAmount.ToString("N2")</th>
                     <th></th></tr>
             </tfoot>
-        </table>
+        </table></div>
     </div>
 </div>
 
 <div class="th-card">
-    <div class="th-card-header"><h5 class="th-card-title">Claim timeline</h5></div>
+    <div class="th-card-header"><h2 class="th-card-title">Claim timeline</h2></div>
     <div class="th-card-body">
         <div class="row small">
             <div class="col-md-3 text-muted">Created</div>
@@ -117,7 +117,7 @@
 </div>
 
 <div class="th-card mt-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiClaimsRisk" id="aiClaimRiskCard" style="display:none">
-    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI denial-risk assessment</h5></div>
+    <div class="th-card-header"><h2 class="th-card-title mb-0"><i class="bi bi-stars me-1"></i> AI denial-risk assessment</h2></div>
     <div class="th-card-body"><pre id="aiClaimRiskOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
 </div>
 

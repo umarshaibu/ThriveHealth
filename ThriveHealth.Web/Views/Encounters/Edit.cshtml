@@ -7,35 +7,35 @@
     var ai = ViewBag.AiSuggestion as ThriveHealth.Web.Models.Ai.AiSuggestion;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-patient-banner">
     <div>
-        <div class="th-pill th-pill-success mb-2"><i class="bi bi-clipboard2-pulse"></i> Consultation in progress</div>
-        <h1 class="th-section-title">@p.FullName <small class="text-muted">· @p.HospitalNumber</small></h1>
-        <p class="th-section-sub mb-0">
+        <div class="name">@p.FullName <span class="meta">· @p.HospitalNumber</span></div>
+        <div class="meta">
             @p.Sex
             @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> }
             · Started @enc.StartedAt.ToLocalTime().ToString("dd MMM HH:mm")
             · @enc.Clinic?.Name
             · @enc.Clinician?.FullName
-        </p>
+        </div>
     </div>
-    <div class="d-flex gap-2">
+    <span class="th-pill th-pill-success ms-lg-auto"><i class="bi bi-clipboard2-pulse"></i> Consultation in progress</span>
+</div>
+
+<div class="th-page-head">
+    <h1 class="th-section-title mb-0">Consultation</h1>
+    <div class="th-page-actions">
         <a asp-controller="Patients" asp-action="Profile" asp-route-id="@p.Id" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i> Open chart</a>
         <a asp-action="Referral" asp-route-id="@enc.Id" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiReferralDraft" class="btn btn-outline-primary"><i class="bi bi-stars me-1"></i> Referral letter</a>
         <button type="button" class="btn btn-warning text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#admitModal" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage"><i class="bi bi-hospital me-1"></i> Admit</button>
         <button type="button" class="btn btn-outline-primary" onclick="aiDocQuality(@enc.Id)" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDocQuality"><i class="bi bi-stars me-1"></i> AI quality check</button>
-        <form asp-action="SignOff" asp-route-id="@enc.Id" method="post" onsubmit="return confirm('Sign off this consultation? This locks the record.');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
-            @Html.AntiForgeryToken()
-            <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Sign off</button>
-        </form>
     </div>
 </div>
 
 @if (Model.Allergies.Any())
 {
-    <div class="alert @(hasSevere ? "alert-danger" : "alert-warning") d-flex align-items-center gap-2 mb-3">
+    <div class="th-safety mb-3" role="alert">
         <i class="bi bi-exclamation-octagon-fill"></i>
-        <div><strong>Allergies:</strong>
+        <div><strong>@(hasSevere ? "Severe allergy:" : "Allergies:")</strong>
             @foreach (var a in Model.Allergies)
             { <span class="me-2"><strong>@a.Substance</strong> <small>(@a.Severity)</small></span> }
         </div>
@@ -44,7 +44,7 @@
 
 <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDifferential">
     <div class="th-card-header d-flex justify-content-between align-items-center">
-        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI differential diagnosis <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h5>
+        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI differential diagnosis <span class="th-pill th-pill-info ms-2">Draft, clinician must verify</span></h5>
         <form asp-action="SuggestDifferential" asp-route-id="@enc.Id" method="post" class="d-inline" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiDifferential">
             @Html.AntiForgeryToken()
             <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i> @(ai == null ? "Suggest" : "Re-suggest")</button>
@@ -79,13 +79,13 @@
 </div>
 
 <div id="aiDocQualityCard" class="th-card mb-3" style="display:none">
-    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI documentation quality check <span class="th-pill th-pill-info ms-2">SUGGESTION — clinician decides</span></h5></div>
+    <div class="th-card-header"><h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI documentation quality check <span class="th-pill th-pill-info ms-2">Suggestion, clinician decides</span></h5></div>
     <div class="th-card-body"><pre id="aiDocQualityOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
 </div>
 
 <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiEcgInterpret">
     <div class="th-card-header d-flex justify-content-between align-items-center">
-        <h5 class="th-card-title mb-0"><i class="bi bi-activity me-1 text-primary"></i> AI ECG interpretation <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h5>
+        <h5 class="th-card-title mb-0"><i class="bi bi-activity me-1 text-primary"></i> AI ECG interpretation <span class="th-pill th-pill-info ms-2">Draft, clinician must verify</span></h5>
     </div>
     <div class="th-card-body">
         <textarea id="aiEcgFindings" class="form-control mb-2" rows="3" placeholder="e.g. HR 110 sinus rhythm, PR 200 ms, QRS 90 ms, ST elevation V2-V4, no Q waves..."></textarea>
@@ -99,7 +99,7 @@
         @* VOICE → SOAP *@
         <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiSoapStructure">
             <div class="th-card-header d-flex justify-content-between align-items-center">
-                <h5 class="th-card-title mb-0"><i class="bi bi-mic me-1 text-primary"></i> Dictate &amp; structure (voice → SOAP) <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify</span></h5>
+                <h5 class="th-card-title mb-0"><i class="bi bi-mic me-1 text-primary"></i> Dictate &amp; structure (voice → SOAP) <span class="th-pill th-pill-info ms-2">Draft, clinician must verify</span></h5>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-outline-danger" id="aiDictBtn" onclick="aiDictToggle()"><i class="bi bi-mic-fill me-1"></i> Start dictation</button>
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="aiStructureSoap(@enc.Id)"><i class="bi bi-stars me-1"></i> Structure</button>
@@ -112,9 +112,9 @@
         </div>
 
         @* SOAP NOTE *@
-        <div class="th-card mb-3">
+        <div class="th-card mb-3 th-form-section">
             <div class="th-card-header d-flex align-items-center justify-content-between">
-                <h5 class="th-card-title"><i class="bi bi-journal-text me-1 text-primary"></i> Clinical note (SOAP)</h5>
+                <h5 class="th-card-title th-form-section-title mb-0"><i class="bi bi-journal-text me-1 text-primary"></i> Clinical note (SOAP)</h5>
                 <span id="soapStatus" class="th-pill th-pill-muted">idle</span>
             </div>
             <div class="th-card-body">
@@ -150,7 +150,7 @@
                 <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#dxAdd"><i class="bi bi-plus-lg me-1"></i> Add</button>
             </div>
             <div id="dxAdd" class="collapse">
-                <div class="th-card-body border-bottom bg-light">
+                <div class="th-card-body border-bottom" style="background:var(--th-surface-alt)">
                     <form asp-action="AddDiagnosis" method="post" class="row g-2 align-items-end" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="EncounterId" value="@enc.Id" />
@@ -223,10 +223,10 @@
         @* ORDERS *@
         <div class="th-card mb-3">
             <div class="th-card-header">
-                <h5 class="th-card-title"><i class="bi bi-clipboard-plus me-1 text-primary"></i> Orders</h5>
+                <h5 class="th-card-title th-form-section-title mb-0"><i class="bi bi-clipboard-plus me-1 text-primary"></i> Orders</h5>
             </div>
             <div class="th-card-body">
-                <ul class="nav nav-pills mb-3" role="tablist">
+                <ul class="nav nav-pills th-tabs-scroll mb-3" role="tablist">
                     <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-rx">Prescription <span class="th-pill th-pill-muted ms-1">@enc.Prescriptions.SelectMany(r=>r.Items).Count()</span></button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-lab">Lab <span class="th-pill th-pill-muted ms-1">@enc.LabOrders.Count</span></button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-img">Imaging <span class="th-pill th-pill-muted ms-1">@enc.ImagingOrders.Count</span></button></li>
@@ -240,7 +240,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="EncounterId" value="@enc.Id" />
                             <div id="rxItems">
-                                <div class="rx-row mb-2 border rounded-3 p-2 bg-light position-relative">
+                                <div class="rx-row th-tile mb-2 position-relative">
                                     <div class="row g-2">
                                         <div class="col-md-5 position-relative">
                                             <input class="form-control rx-drug" name="Items[0].DrugName" placeholder="Search drug (generic or brand)…" autocomplete="off" />
@@ -393,12 +393,20 @@
                 </div>
             </div>
         </div>
+
+        <div class="th-sticky-actions align-items-center">
+            <span class="small text-muted me-auto ps-3">Note auto-saves; sign off locks the record.</span>
+            <form asp-action="SignOff" asp-route-id="@enc.Id" method="post" onsubmit="return confirm('Sign off this consultation? This locks the record.');" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-success rounded-pill px-4" type="submit"><i class="bi bi-check2-circle me-1"></i> Sign off</button>
+            </form>
+        </div>
     </div>
 
     @* RIGHT RAIL: PATIENT CONTEXT *@
     <div class="col-xl-4">
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase small text-muted"><i class="bi bi-heart-pulse me-1"></i> Latest vitals</h6>
+            <h6 class="small fw-semibold text-muted"><i class="bi bi-heart-pulse me-1"></i> Latest vitals</h6>
             @if (Model.LatestVitals is null) { <div class="text-muted">No vitals recorded.</div> }
             else
             {
@@ -420,7 +428,7 @@
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase small text-muted"><i class="bi bi-list-ul me-1"></i> Active problems</h6>
+            <h6 class="small fw-semibold text-muted"><i class="bi bi-list-ul me-1"></i> Active problems</h6>
             @if (!Model.ActiveProblems.Any()) { <div class="text-muted">None.</div> }
             else { foreach (var x in Model.ActiveProblems) {
                 <div><span class="font-monospace small">@x.IcdCode</span> @x.Description <span class="th-pill th-pill-muted">@x.Status</span></div>
@@ -428,7 +436,7 @@
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase small text-muted"><i class="bi bi-capsule me-1"></i> Current medications</h6>
+            <h6 class="small fw-semibold text-muted"><i class="bi bi-capsule me-1"></i> Current medications</h6>
             @if (!Model.CurrentMedications.Any()) { <div class="text-muted">None.</div> }
             else { foreach (var m in Model.CurrentMedications) {
                 <div><strong>@m.DrugName</strong> <small class="text-muted">@m.Dose @m.Frequency</small></div>
@@ -436,7 +444,7 @@
         </div></div>
 
         <div class="th-card mb-3"><div class="th-card-body">
-            <h6 class="text-uppercase small text-muted"><i class="bi bi-clock-history me-1"></i> Past consultations</h6>
+            <h6 class="small fw-semibold text-muted"><i class="bi bi-clock-history me-1"></i> Past consultations</h6>
             @if (!Model.PastEncounters.Any()) { <div class="text-muted">None.</div> }
             else { foreach (var e in Model.PastEncounters) {
                 <div class="border-bottom pb-2 mb-2 small">
@@ -588,7 +596,7 @@ const currentMeds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cu
 let rxIndex = 1;
 
 function rowTemplate(idx) {
-    return `<div class="rx-row mb-2 border rounded-3 p-2 bg-light position-relative">
+    return `<div class="rx-row th-tile mb-2 position-relative">
         <div class="row g-2">
             <div class="col-md-5 position-relative">
                 <input class="form-control rx-drug" name="Items[${idx}].DrugName" placeholder="Search drug…" autocomplete="off" />

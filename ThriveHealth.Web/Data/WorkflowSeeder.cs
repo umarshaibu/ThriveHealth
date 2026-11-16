@@ -33,7 +33,7 @@ public static class WorkflowSeeder
         if (await db.Patients.AnyAsync(p => p.HospitalNumber == MarkerHospitalNumber))
             return; // already seeded
 
-        var facility = await db.Facilities.AsNoTracking().FirstOrDefaultAsync();
+        var facility = await db.Facilities.AsNoTracking().OrderBy(f => f.Id).FirstOrDefaultAsync();
         if (facility is null) return;
         var tenantId = facility.TenantId;
 

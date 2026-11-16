@@ -76,7 +76,7 @@ public class PaystackPaymentGateway : IPaymentGateway, IPaymentVerifier
             email = string.IsNullOrWhiteSpace(req.CustomerEmail) ? "patient@thrivehealth.ng" : req.CustomerEmail,
             amount = (long)Math.Round(req.Amount * 100m),  // Paystack expects the minor unit (kobo)
             reference,
-            callback_url = _opts.CallbackUrl
+            callback_url = req.CallbackUrl ?? _opts.CallbackUrl
         };
 
         try
@@ -112,11 +112,28 @@ public class PaystackPaymentGateway : IPaymentGateway, IPaymentVerifier
             if (!res.IsSuccessStatusCode) { _log.LogWarning("[Paystack] verify failed: {Body}", bodyText); return false; }
 
             using var doc = JsonDocument.Parse(bodyText);
-            var status = doc.RootElement.GetProperty("data").GetProperty("status").GetString();
-            if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
-                return await MarkSuccessfulAsync(await TxIdForReferenceAsync(reference, ct), reference, "Paystack verified", ct);
+            var data = doc.RootElement.GetProperty("data");
+            var status = data.GetProperty("status").GetString();
+            var txId = await TxIdForReferenceAsync(reference, ct);
 
-            await MarkFailedAsync(await TxIdForReferenceAsync(reference, ct), $"Paystack status: {status}", ct);
+            if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+            {
+                // Never settle for less than the bill: the charged amount must match what we initiated.
+                var expectedKobo = await _db.PaymentTransactions.AsNoTracking().Where(t => t.Id == txId)
+                    .Select(t => (long)Math.Round(t.Amount * 100m)).FirstOrDefaultAsync(ct);
+                var paidKobo = data.GetProperty("amount").GetInt64();
+                if (paidKobo != expectedKobo)
+                {
+                    _log.LogError("[Paystack] amount mismatch for {Ref}: paid {Paid}, expected {Expected}", reference, paidKobo, expectedKobo);
+                    await MarkFailedAsync(txId, $"Amount mismatch: paid {paidKobo} kobo, expected {expectedKobo}", ct);
+                    return false;
+                }
+                return await MarkSuccessfulAsync(txId, reference, "Paystack verified", ct);
+            }
+
+            // "ongoing", "pending", "processing" and "queued" can still succeed, for example bank transfers.
+            if (status is "failed" or "abandoned" or "reversed")
+                await MarkFailedAsync(txId, $"Paystack status: {status}", ct);
             return false;
         }
         catch (Exception ex)
@@ -132,11 +149,17 @@ public class PaystackPaymentGateway : IPaymentGateway, IPaymentVerifier
     // Shared with LoggingPaymentGateway by behaviour: post a Payment to the bill on success.
     public async Task<bool> MarkSuccessfulAsync(long transactionId, string? providerReference, string? providerResponse, CancellationToken ct = default)
     {
-        var tx = await _db.PaymentTransactions.Include(t => t.Bill).FirstOrDefaultAsync(t => t.Id == transactionId, ct);
-        if (tx is null) return false;
-        if (tx.Status == PaymentTransactionStatus.Successful) return true;
+        // The app's confirm call and Paystack's webhook can arrive together. Claiming the row
+        // atomically means exactly one of them posts the payment to the bill.
+        var previous = await _db.PaymentTransactions.AsNoTracking()
+            .Where(t => t.Id == transactionId).Select(t => (PaymentTransactionStatus?)t.Status).FirstOrDefaultAsync(ct);
+        if (previous is null) return false;
+        var claimed = await _db.PaymentTransactions
+            .Where(t => t.Id == transactionId && t.Status != PaymentTransactionStatus.Successful)
+            .ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, PaymentTransactionStatus.Successful), ct);
+        if (claimed == 0) return true;
 
-        tx.Status = PaymentTransactionStatus.Successful;
+        var tx = await _db.PaymentTransactions.Include(t => t.Bill).FirstAsync(t => t.Id == transactionId, ct);
         tx.ProviderReference = providerReference ?? tx.Reference;
         tx.ProviderResponse = providerResponse ?? "Marked successful";
         tx.CompletedAt = DateTime.UtcNow;
@@ -145,7 +168,18 @@ public class PaystackPaymentGateway : IPaymentGateway, IPaymentVerifier
         {
             new(PaymentMethod.MobileMoney, tx.Amount, tx.ProviderReference, $"Online via {tx.Provider}")
         };
-        await _billing.RecordPaymentsAsync(tx.BillId!.Value, inputs, null, tx.InitiatedById ?? "");
+        try
+        {
+            await _billing.RecordPaymentsAsync(tx.BillId!.Value, inputs, null, tx.InitiatedById ?? "");
+        }
+        catch
+        {
+            // Release the claim so the payment can be retried rather than lost.
+            _db.ChangeTracker.Clear();
+            await _db.PaymentTransactions.Where(t => t.Id == transactionId)
+                .ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, previous.Value), CancellationToken.None);
+            throw;
+        }
 
         var latest = await _db.Payments
             .Where(p => p.BillId == tx.BillId && p.Reference == tx.ProviderReference)
@@ -160,6 +194,7 @@ public class PaystackPaymentGateway : IPaymentGateway, IPaymentVerifier
     {
         var tx = await _db.PaymentTransactions.FirstOrDefaultAsync(t => t.Id == transactionId, ct);
         if (tx is null) return false;
+        if (tx.Status == PaymentTransactionStatus.Successful) return false; // A settled payment is never undone here.
         tx.Status = PaymentTransactionStatus.Failed;
         tx.ProviderResponse = reason;
         tx.CompletedAt = DateTime.UtcNow;

@@ -4,7 +4,7 @@
     var ai = ViewBag.AiSuggestion as ThriveHealth.Web.Models.Ai.AiSuggestion;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <div>
         <span class="th-pill th-pill-info">@Model.Order.Modality</span>
         <h1 class="th-section-title mt-2">@Model.Order.StudyDescription</h1>
@@ -19,7 +19,7 @@
 
 <div class="th-card mb-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiImagingDraft">
     <div class="th-card-header d-flex justify-content-between align-items-center">
-        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> AI report draft <span class="th-pill th-pill-info ms-2">DRAFT — radiologist must verify</span></h5>
+        <h2 class="th-card-title mb-0"><i class="bi bi-stars me-1"></i> AI report draft <span class="th-pill th-pill-info ms-2">Draft: radiologist must verify</span></h2>
         <form asp-action="DraftImaging" asp-route-id="@Model.Order.Id" method="post" class="d-inline" id="aiImagingForm" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiImagingDraft">
             @Html.AntiForgeryToken()
             <input type="hidden" name="findings" id="aiFindings" />
@@ -89,13 +89,13 @@
             <div class="alert alert-warning d-flex align-items-center gap-2">
                 <input asp-for="HasCriticalFinding" class="form-check-input" type="checkbox" />
                 <label asp-for="HasCriticalFinding" class="form-check-label fw-bold">
-                    <i class="bi bi-exclamation-octagon-fill text-danger me-1"></i> Critical finding — flag urgently
+                    <i class="bi bi-exclamation-octagon-fill text-danger me-1"></i> Critical finding: flag urgently
                 </label>
             </div>
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Worklist" class="btn btn-outline-secondary">Cancel</a>
         <button name="Finalize" value="false" class="btn btn-outline-primary"><i class="bi bi-save me-1"></i> Save draft</button>
         <button name="Finalize" value="true" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Save &amp; finalise report</button>

@@ -31,7 +31,7 @@
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h1 class="th-section-title mb-1">My chats</h1>
-        <p class="text-muted small mb-0">Your chat conversations with the clinic, newest first.</p>
+        <p class="th-section-sub mb-0">Your chat conversations with the clinic, newest first.</p>
     </div>
     <div class="d-flex gap-2 align-items-center">
         @if (pkg?.IsActive == true)
@@ -44,7 +44,7 @@
         }
         else
         {
-            <a asp-action="BuyChatPackage" class="btn btn-warning btn-sm"><i class="bi bi-stars me-1"></i> Buy chat package</a>
+            <a asp-action="BuyChatPackage" class="btn btn-primary btn-sm"><i class="bi bi-stars me-1"></i> Buy chat package</a>
         }
     </div>
 </div>
@@ -58,9 +58,9 @@
     <div class="th-card"><div class="th-card-body th-empty">
         <i class="bi bi-chat-dots"></i>
         <h5 class="mt-2">No chats yet</h5>
-        <p class="small mb-3">Start a conversation with the clinic — buy a 24h chat package or request a one-off chat consult.</p>
+        <p class="small mb-3">Start a conversation with the clinic. Buy a 24h chat package or request a one-off chat consult.</p>
         <a asp-action="BuyChatPackage" class="btn btn-primary"><i class="bi bi-stars me-1"></i> Buy chat package</a>
-        <a asp-action="RequestTelemed" class="btn btn-outline-primary ms-2"><i class="bi bi-plus-circle me-1"></i> Request a chat consult</a>
+        <a asp-action="RequestTelemed" class="btn btn-outline-primary ms-md-2 mt-2 mt-md-0"><i class="bi bi-plus-circle me-1"></i> Request a chat consult</a>
     </div></div>
 }
 else

@@ -7,13 +7,14 @@
 
     string ColourHex(ThriveHealth.Web.Models.Emergency.TriageColour c) => c switch
     {
-        ThriveHealth.Web.Models.Emergency.TriageColour.Red => "#c81e1e",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Orange => "#ff8c00",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Yellow => "#d4a017",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Green => "#1f9d55",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Blue => "#0d8aaa",
-        _ => "#5b6b85"
+        ThriveHealth.Web.Models.Emergency.TriageColour.Red => "var(--tri-red)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Orange => "var(--tri-orange)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Yellow => "var(--tri-yellow)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Green => "var(--tri-green)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Blue => "var(--tri-blue)",
+        _ => "var(--tri-none)"
     };
+    var triText = t.Colour == ThriveHealth.Web.Models.Emergency.TriageColour.Yellow ? "var(--th-text)" : "#fff";
     var hasSevereAllergy = p.Allergies.Any(x => x.IsActive && x.Severity >= ThriveHealth.Web.Models.Patients.AllergySeverity.Severe);
     var inResus = enc.ResusBayId.HasValue;
     var minutesSince = (int)(DateTime.UtcNow - t.TriagedAt).TotalMinutes;
@@ -21,34 +22,38 @@
     var active = enc.Status == ThriveHealth.Web.Models.Clinical.EncounterStatus.InProgress;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <span class="th-pill" style="background:@ColourHex(t.Colour);color:#fff;"><i class="bi bi-bandaid"></i> A&amp;E · @t.Colour</span>
-        @if (inResus) { <span class="th-pill th-pill-danger ms-2"><i class="bi bi-heart-pulse"></i> In Resus · @enc.ResusBay?.Code</span> }
-        @if (t.IsForensicCase) { <span class="th-pill th-pill-warning ms-2"><i class="bi bi-shield-exclamation"></i> Forensic · @t.ForensicCategory</span> }
-        @if (t.IsTrauma) { <span class="th-pill th-pill-warning ms-2"><i class="bi bi-bandaid"></i> Trauma</span> }
-        <h1 class="th-section-title mt-2">@p.FullName <small class="text-muted">· @p.HospitalNumber</small></h1>
-        <p class="th-section-sub mb-0">
-            @p.Sex @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> }
-            · Triaged @t.TriagedAt.ToLocalTime().ToString("HH:mm") by @t.TriagedBy?.FullName
-            · @minutesSince min in dept
-            @if (overdueMin > 0 && active) { <span class="text-danger"> · <strong>@overdueMin min over target</strong></span> }
-        </p>
+        <h1 class="th-section-title">A&amp;E consultation</h1>
+        <p class="th-section-sub">Triaged @t.TriagedAt.ToLocalTime().ToString("HH:mm") by @t.TriagedBy?.FullName · @minutesSince min in dept</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="th-page-actions">
         <a asp-controller="Patients" asp-action="Profile" asp-route-id="@p.Id" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i> Chart</a>
         @if (active)
         {
-            <a asp-action="Dispose" asp-route-id="@enc.Id" class="btn btn-success"><i class="bi bi-box-arrow-right me-1"></i> Dispose / Sign off</a>
+            <a asp-action="Dispose" asp-route-id="@enc.Id" class="btn btn-success"><i class="bi bi-box-arrow-right me-1"></i> Dispose / sign off</a>
         }
     </div>
 </div>
 
+<div class="th-patient-banner">
+    <span class="name">@p.FullName</span>
+    <span class="meta font-monospace">@p.HospitalNumber</span>
+    <span class="meta">@p.Sex @if (p.AgeYears.HasValue) { <span> · @p.AgeYears y</span> }</span>
+    <span class="d-flex flex-wrap gap-2">
+        <span class="th-pill" style="background:@ColourHex(t.Colour);color:@triText;"><i class="bi bi-bandaid"></i> A&amp;E · @t.Colour</span>
+        @if (inResus) { <span class="th-pill th-pill-danger"><i class="bi bi-heart-pulse"></i> In resus · @enc.ResusBay?.Code</span> }
+        @if (t.IsForensicCase) { <span class="th-pill th-pill-warning"><i class="bi bi-shield-exclamation"></i> Forensic · @t.ForensicCategory</span> }
+        @if (t.IsTrauma) { <span class="th-pill th-pill-warning"><i class="bi bi-bandaid"></i> Trauma</span> }
+        @if (overdueMin > 0 && active) { <span class="th-pill th-pill-danger"><i class="bi bi-stopwatch"></i> @overdueMin min over target</span> }
+    </span>
+</div>
+
 @if (p.Allergies.Any(x => x.IsActive))
 {
-    <div class="alert @(hasSevereAllergy ? "alert-danger" : "alert-warning") d-flex align-items-center gap-2 mb-3">
+    <div class="th-safety mb-3" role="alert">
         <i class="bi bi-exclamation-octagon-fill"></i>
-        <div><strong>Allergies:</strong>
+        <div><strong>@(hasSevereAllergy ? "Severe allergies:" : "Allergies:")</strong>
             @foreach (var a in p.Allergies.Where(x => x.IsActive)) { <span class="me-2"><strong>@a.Substance</strong> <small>(@a.Severity)</small></span> }
         </div>
     </div>
@@ -57,11 +62,11 @@
 <div class="row g-3 mb-3">
     <div class="col-md-8">
         <div class="th-card h-100"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2">Chief complaint</h6>
+            <h2 class="th-form-section-title">Chief complaint</h2>
             <p class="mb-2">@t.ChiefComplaint</p>
             @if (!string.IsNullOrEmpty(t.MechanismOfInjury))
             {
-                <h6 class="text-uppercase text-muted small">Mechanism</h6>
+                <h2 class="th-form-section-title">Mechanism</h2>
                 <p class="mb-2">@t.MechanismOfInjury</p>
             }
             <div class="row small">
@@ -82,7 +87,7 @@
 
     <div class="col-md-4">
         <div class="th-card h-100"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-grid me-1"></i> Resus bay</h6>
+            <h2 class="th-form-section-title"><i class="bi bi-grid me-1"></i> Resus bay</h2>
             @if (inResus)
             {
                 <div class="alert alert-danger py-2 mb-2"><strong>@enc.ResusBay?.Name</strong> · since @enc.ResusStartedAt?.ToLocalTime().ToString("HH:mm")</div>
@@ -120,7 +125,7 @@
 {
     <div class="th-card mb-3">
         <div class="th-card-header">
-            <h5 class="th-card-title"><i class="bi bi-lightning text-warning me-1"></i> Order set bundles · one-click</h5>
+            <h5 class="th-card-title"><i class="bi bi-lightning me-1"></i> Order set bundles (one click)</h5>
         </div>
         <div class="th-card-body">
             <div class="row g-2">
@@ -147,7 +152,7 @@
     </div>
 }
 
-<ul class="nav nav-tabs mb-3">
+<ul class="nav nav-pills th-tabs-scroll mb-3">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-log">Resus log <span class="th-pill th-pill-muted ms-1">@Model.Events.Count</span></button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-orders">Orders <span class="th-pill th-pill-muted ms-1">@(enc.LabOrders.Count + enc.ImagingOrders.Count + enc.ProcedureOrders.Count + enc.Prescriptions.Sum(x => x.Items.Count))</span></button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-vitals">Vitals <span class="th-pill th-pill-muted ms-1">@Model.Vitals.Count</span></button></li>
@@ -224,14 +229,14 @@
                 @if (!enc.LabOrders.Any()) { <div class="p-3 text-muted small">No lab orders</div> }
                 else
                 {
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive"><table class="table table-sm mb-0">
                     <tbody>
                     @foreach (var l in enc.LabOrders.OrderByDescending(x => x.OrderedAt))
                     {
                         <tr><td><strong>@l.TestName</strong> <small class="text-muted">@l.Specimen</small></td><td><span class="th-pill th-pill-warning">@l.Urgency</span></td><td>@l.Status</td></tr>
                     }
                     </tbody>
-                    </table>
+                    </table></div>
                 }
             </div></div>
         </div>
@@ -240,14 +245,14 @@
                 @if (!enc.ImagingOrders.Any()) { <div class="p-3 text-muted small">No imaging orders</div> }
                 else
                 {
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive"><table class="table table-sm mb-0">
                     <tbody>
                     @foreach (var i in enc.ImagingOrders.OrderByDescending(x => x.OrderedAt))
                     {
                         <tr><td>@i.Modality · <strong>@i.StudyDescription</strong></td><td><span class="th-pill th-pill-warning">@i.Urgency</span></td></tr>
                     }
                     </tbody>
-                    </table>
+                    </table></div>
                 }
             </div></div>
         </div>
@@ -256,14 +261,14 @@
                 @if (!enc.Prescriptions.Any()) { <div class="p-3 text-muted small">No prescriptions</div> }
                 else
                 {
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive"><table class="table table-sm mb-0">
                     <tbody>
                     @foreach (var rx in enc.Prescriptions) { foreach (var i in rx.Items)
                     {
                         <tr><td><strong>@i.DrugName</strong></td><td><small>@i.Dose · @i.Route · @i.Frequency</small></td></tr>
                     } }
                     </tbody>
-                    </table>
+                    </table></div>
                 }
             </div></div>
         </div>
@@ -272,14 +277,14 @@
                 @if (!enc.ProcedureOrders.Any()) { <div class="p-3 text-muted small">No procedures</div> }
                 else
                 {
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive"><table class="table table-sm mb-0">
                     <tbody>
                     @foreach (var p2 in enc.ProcedureOrders.OrderByDescending(x => x.OrderedAt))
                     {
                         <tr><td><strong>@p2.ProcedureName</strong>@if (!string.IsNullOrEmpty(p2.Notes)) { <div class="small text-muted">@p2.Notes</div> }</td></tr>
                     }
                     </tbody>
-                    </table>
+                    </table></div>
                 }
             </div></div>
         </div>
@@ -289,7 +294,7 @@
         <div class="alert alert-info mt-3 small">
             <i class="bi bi-info-circle me-1"></i>
             Need an ad-hoc order outside a bundle? Open the
-            <a asp-controller="Consultations" asp-action="Edit" asp-route-id="@enc.Id">full consultation view</a>
+            <a asp-controller="Encounters" asp-action="Edit" asp-route-id="@enc.Id">full consultation view</a>
             to add labs, imaging, prescriptions, or diagnoses individually.
         </div>
     }
@@ -297,7 +302,7 @@
 
 @* VITALS *@
 <div class="tab-pane fade" id="t-vitals">
-    <div class="d-flex justify-content-between mb-2">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
         <h6 class="mb-0">Vitals during this consultation</h6>
         @if (active) { <a asp-controller="Emr" asp-action="AddVitals" asp-route-patientId="@p.Id" class="btn btn-sm btn-primary" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.EncountersWrite"><i class="bi bi-plus-lg me-1"></i> Record vitals</a> }
     </div>
@@ -335,7 +340,7 @@
 <div class="tab-pane fade" id="t-clinical">
     <div class="alert alert-info">
         <i class="bi bi-info-circle me-1"></i> Full clinical documentation (SOAP note, diagnoses, ad-hoc orders) is in the
-        <a asp-controller="Consultations" asp-action="Edit" asp-route-id="@enc.Id">general consultation view</a>.
+        <a asp-controller="Encounters" asp-action="Edit" asp-route-id="@enc.Id">general consultation view</a>.
     </div>
     @if (enc.Soap is not null && (!string.IsNullOrEmpty(enc.Soap.Subjective) || !string.IsNullOrEmpty(enc.Soap.Plan)))
     {
@@ -347,14 +352,23 @@
     @if (enc.Diagnoses.Any())
     {
         <div class="th-card"><div class="th-card-header"><h6 class="th-card-title">Diagnoses</h6></div><div class="th-card-body p-0">
-            <table class="table mb-0"><tbody>
+            <div class="table-responsive"><table class="table mb-0"><tbody>
             @foreach (var d in enc.Diagnoses)
             {
                 <tr><td><span class="font-monospace">@d.IcdCode</span></td><td>@d.Description</td><td>@d.Status</td>@if (d.IsPrimary) { <td><span class="th-pill th-pill-info">Primary</span></td> } else { <td></td> }</tr>
             }
-            </tbody></table>
+            </tbody></table></div>
         </div></div>
     }
 </div>
 
 </div>
+
+@section Styles {
+<style>
+    :root {
+        --tri-red: var(--th-danger); --tri-orange: #c2570c; --tri-yellow: #e0b000;
+        --tri-green: var(--th-success); --tri-blue: var(--th-info); --tri-none: var(--th-text-muted);
+    }
+</style>
+}

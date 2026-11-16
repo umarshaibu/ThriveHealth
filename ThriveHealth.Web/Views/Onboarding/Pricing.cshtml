@@ -5,28 +5,33 @@
 }
 
 <style>
-    .th-pricing-hero { padding: 64px 24px 32px; text-align: center; }
-    .th-pricing-hero h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
-    .th-pricing-hero p { color: #64748b; max-width: 640px; margin: 0 auto; font-size: 1.05rem; }
-    .th-pricing-table { max-width: 1200px; margin: 32px auto 64px; padding: 0 24px; }
-    .th-pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-    .th-plan { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; }
-    .th-plan.featured { border-color: var(--th-primary); box-shadow: 0 16px 40px rgba(15,58,138,.12); }
-    .th-plan h4 { font-weight: 800; font-size: 1.15rem; margin-bottom: 4px; }
-    .th-plan .tagline { color: #64748b; font-size: .85rem; min-height: 36px; margin-bottom: 14px; }
-    .th-plan .price { font-size: 1.8rem; font-weight: 800; color: var(--th-primary); margin-bottom: 2px; }
-    .th-plan .price small { font-size: .85rem; font-weight: 500; color: #64748b; }
-    .th-plan ul { list-style: none; padding: 0; margin: 16px 0; flex: 1; font-size: .85rem; }
-    .th-plan ul li { padding: 5px 0; color: #475569; display: flex; align-items: center; gap: 8px; }
-    .th-plan ul li i { color: #14b8a6; font-size: 1rem; }
-    .th-plan ul li.no i { color: #cbd5e1; }
-    .th-plan ul li.no { color: #cbd5e1; text-decoration: line-through; }
-    .th-plan .pick { display: block; text-align: center; padding: 12px; border-radius: 10px; background: #f1f5f9; color: var(--th-primary); font-weight: 600; text-decoration: none; }
-    .th-plan.featured .pick { background: linear-gradient(135deg, var(--th-primary), var(--th-primary-dark)); color: #fff; }
-    .th-faq { max-width: 760px; margin: 0 auto 64px; padding: 0 24px; }
-    .th-faq h2 { text-align: center; font-weight: 800; margin-bottom: 24px; }
-    .th-faq dt { font-weight: 700; color: var(--th-text); margin-top: 18px; }
-    .th-faq dd { color: #64748b; margin-bottom: 12px; line-height: 1.6; }
+    .th-pricing-hero { padding: 56px 20px 24px; text-align: center; }
+    .th-pricing-hero h1 { font-size: 2.2rem; font-weight: 600; letter-spacing: -.03em; margin-bottom: 8px; }
+    .th-pricing-hero p { color: var(--th-text-muted); max-width: 640px; margin: 0 auto; font-size: 1.05rem; }
+    .th-pricing-table { max-width: 1200px; margin: 28px auto 56px; padding: 0 16px; }
+    .th-pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; }
+    .th-plan { background: var(--th-surface); border-radius: var(--th-radius); padding: 24px; display: flex; flex-direction: column; }
+    .th-plan.featured { background: var(--th-navy); color: #fff; }
+    .th-plan h4 { font-weight: 600; font-size: 1.15rem; margin-bottom: 4px; }
+    .th-plan .tagline { color: var(--th-text-muted); font-size: 13px; min-height: 36px; margin-bottom: 14px; }
+    .th-plan.featured .tagline, .th-plan.featured .text-muted, .th-plan.featured .price small { color: #c3cbd6 !important; }
+    .th-plan .price { font-size: 1.9rem; font-weight: 600; letter-spacing: -.03em; margin-bottom: 2px; }
+    .th-plan .price small { font-size: .85rem; font-weight: 500; color: var(--th-text-muted); }
+    .th-plan ul { list-style: none; padding: 0; margin: 16px 0; flex: 1; font-size: 13.5px; }
+    .th-plan ul li { padding: 5px 0; color: var(--th-text-muted); display: flex; align-items: center; gap: 8px; }
+    .th-plan.featured ul li { color: #e6eaf0; }
+    .th-plan ul li i { color: var(--th-emerald); font-size: 1rem; }
+    .th-plan.featured ul li i { color: #7fd8b0; }
+    .th-plan ul li.no, .th-plan ul li.no i { color: var(--th-text-faint); }
+    .th-plan ul li.no { text-decoration: line-through; }
+    .th-plan .pick { display: block; text-align: center; padding: 11px; border-radius: 999px; background: var(--th-surface-sunken); color: var(--th-text); font-weight: 500; }
+    .th-plan .pick:hover { background: var(--th-border); }
+    .th-plan.featured .pick { background: #fff; color: var(--th-navy); }
+    .th-faq { max-width: 760px; margin: 0 auto 56px; padding: 0 16px; }
+    .th-faq h2 { text-align: center; font-weight: 600; letter-spacing: -.02em; margin-bottom: 20px; }
+    .th-faq dl { background: var(--th-surface); border-radius: var(--th-radius); padding: 8px 24px 16px; }
+    .th-faq dt { font-weight: 600; color: var(--th-text); margin-top: 18px; }
+    .th-faq dd { color: var(--th-text-muted); margin-bottom: 12px; line-height: 1.6; }
 </style>
 
 <div class="th-pricing-hero">

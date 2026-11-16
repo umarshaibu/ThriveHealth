@@ -250,6 +250,12 @@ public class ReportingController : Controller
         if (report is null) return NotFound();
         var aggregates = JsonSerializer.Deserialize<NhmisAggregates>(report.AggregatesJson)
             ?? throw new InvalidOperationException("Invalid aggregates JSON");
+        // Reports saved before these breakdowns were added have no value for them.
+        aggregates = aggregates with
+        {
+            ImmunizationByVaccine = aggregates.ImmunizationByVaccine ?? new(),
+            IdsrByDisease = aggregates.IdsrByDisease ?? new()
+        };
         return View(new NhmisDetailViewModel { Report = report, Aggregates = aggregates });
     }
 

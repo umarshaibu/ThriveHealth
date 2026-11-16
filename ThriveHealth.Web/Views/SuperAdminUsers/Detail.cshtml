@@ -11,14 +11,14 @@
 
 <a asp-action="Index" class="small">← Back to all users</a>
 
-<div class="d-flex justify-content-between align-items-start mt-2 mb-3">
+<div class="th-page-head mt-2">
     <div>
-        <h1 class="sa-h1">@Model.FullName</h1>
-        <p class="sa-sub mb-0">@Model.Email · @(Model.Designation ?? "—") · staff# @(Model.StaffNumber ?? "—")</p>
+        <h1 class="th-section-title">@Model.FullName</h1>
+        <p class="th-section-sub">@Model.Email · @(Model.Designation ?? "—") · staff# @(Model.StaffNumber ?? "—")</p>
     </div>
-    <div class="text-end">
-        @if (Model.IsActive) { <span class="badge-pill badge-active" style="font-size:.85rem;">Active</span> }
-        else { <span class="badge-pill badge-suspended" style="font-size:.85rem;">Inactive</span> }
+    <div class="th-page-actions text-end">
+        @if (Model.IsActive) { <span class="th-pill th-pill-success">Active</span> }
+        else { <span class="th-pill th-pill-muted">Inactive</span> }
         @if (Model.LastLoginAt.HasValue)
         { <div class="small text-muted mt-1">last login @Model.LastLoginAt?.ToString("dd MMM yyyy HH:mm")</div> }
     </div>
@@ -26,10 +26,10 @@
 
 @if (!string.IsNullOrEmpty(tempPassword))
 {
-    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <div class="alert alert-warning d-flex flex-wrap gap-2 justify-content-between align-items-center">
         <div>
             <strong>One-time temporary password — copy now, won't be shown again:</strong>
-            <code class="ms-2" style="font-size: 1.1rem; user-select: all;">@tempPassword</code>
+            <code class="ms-2 th-code-box" style="font-size: 1.1rem; user-select: all;">@tempPassword</code>
         </div>
         <button class="btn btn-sm btn-outline-dark" onclick="navigator.clipboard.writeText('@tempPassword'); this.textContent='Copied!';">Copy</button>
     </div>
@@ -37,8 +37,8 @@
 
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="sa-card h-100">
-            <div class="sa-section-title">Identity</div>
+        <div class="th-card th-card-body h-100">
+            <h2 class="th-section-title mb-3">Identity</h2>
             <div class="row g-2 small">
                 <div class="col-5 text-muted">Email</div>
                 <div class="col-7"><code>@Model.Email</code></div>
@@ -58,8 +58,8 @@
     </div>
 
     <div class="col-md-4">
-        <div class="sa-card h-100">
-            <div class="sa-section-title">Tenant &amp; facility</div>
+        <div class="th-card th-card-body h-100">
+            <h2 class="th-section-title mb-3">Tenant &amp; facility</h2>
             @if (tenant != null)
             {
                 <div class="mb-2">
@@ -77,7 +77,7 @@
             }
             @if (facility != null)
             {
-                <div class="mt-3 pt-3" style="border-top:1px dashed #334155;">
+                <div class="mt-3 pt-3" style="border-top:1px dashed var(--th-border);">
                     <div class="small text-muted">Facility</div>
                     <div>@facility.Name</div>
                     <div class="small text-muted">@facility.Code · @facility.Type</div>
@@ -87,8 +87,8 @@
     </div>
 
     <div class="col-md-4">
-        <div class="sa-card h-100">
-            <div class="sa-section-title">Account actions</div>
+        <div class="th-card th-card-body h-100">
+            <h2 class="th-section-title mb-3">Account actions</h2>
 
             <form asp-action="ResetPassword" asp-route-id="@Model.Id" method="post" class="mb-2">
                 @Html.AntiForgeryToken()
@@ -118,8 +118,8 @@
     </div>
 </div>
 
-<div class="sa-card mb-4">
-    <div class="sa-section-title">Roles</div>
+<div class="th-card th-card-body mb-4">
+    <h2 class="th-section-title mb-3">Roles</h2>
     @if (roles.Any())
     {
         <div class="d-flex flex-wrap gap-2 mb-3">
@@ -128,10 +128,9 @@
                 <form asp-action="RemoveRole" asp-route-id="@Model.Id" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="role" value="@r" />
-                    <span class="badge d-inline-flex align-items-center gap-2"
-                          style="@(r == Roles.SuperAdmin ? "background:rgba(168,85,247,.18);color:#a855f7;" : "background:rgba(96,165,250,.18);color:#60a5fa;") padding:6px 10px;">
+                    <span class="th-pill th-pill-@(r == Roles.SuperAdmin ? "warning" : "info") d-inline-flex align-items-center gap-2">
                         @r
-                        <button class="btn btn-link p-0 m-0" style="color:inherit;line-height:1;" type="submit"
+                        <button class="btn btn-link p-0 m-0" style="color:inherit;line-height:1;" type="submit" aria-label="Remove role @r"
                                 onclick="return confirm('Remove role @r from @Model.Email?');">
                             <i class="bi bi-x"></i>
                         </button>

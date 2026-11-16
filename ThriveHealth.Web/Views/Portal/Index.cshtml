@@ -1,68 +1,127 @@
 @model ThriveHealth.Web.Models.ViewModels.PortalDashboardViewModel
-@{ ViewData["Title"] = "My health"; }
+@{
+    ViewData["Title"] = "My health";
+    var hasBalance = Model.OpenBills > 0 && Model.OpenBalance > 0;
+}
+
+<style>
+    .th-next { background: var(--th-emerald); color: var(--th-surface); border-radius: var(--th-radius); padding: 22px; margin-bottom: 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; }
+    .th-next-eyebrow { font-size: 13px; font-weight: 500; opacity: .85; }
+    .th-next-title { font-size: 1.35rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.25; margin: 2px 0 0; }
+    .th-next-text { margin: 4px 0 0; opacity: .9; }
+    .th-next .btn { background: var(--th-surface); color: var(--th-emerald); border-color: var(--th-surface); font-weight: 600; }
+    .th-next .btn:hover { background: var(--th-emerald-soft); color: var(--th-emerald-hover); }
+    .th-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @@media (min-width: 768px) { .th-tiles { grid-template-columns: repeat(3, 1fr); } }
+    .th-dest { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 132px; padding: 18px; background: var(--th-surface); border-radius: var(--th-radius); color: var(--th-text); }
+    .th-dest:hover { background: var(--th-emerald-soft); color: var(--th-text); }
+    .th-dest-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--th-emerald-soft); color: var(--th-emerald); display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; }
+    .th-dest:hover .th-dest-icon { background: var(--th-surface); }
+    .th-dest-name { font-weight: 600; font-size: 1rem; letter-spacing: -.01em; }
+    .th-dest-note { font-size: 13px; color: var(--th-text-muted); margin-top: 2px; }
+    .th-dest-count { position: absolute; top: 16px; right: 16px; min-width: 28px; text-align: center; }
+    .th-recent li + li { border-top: 1px solid var(--th-border); }
+</style>
 
 <div class="mb-3">
-    <h1 class="th-section-title mb-1">Hi, @Model.Patient.FirstName 👋</h1>
+    <h1 class="th-section-title mb-1">Hello, <span class="th-greeting-name">@Model.Patient.FirstName</span></h1>
     <small class="text-muted">@Model.Patient.HospitalNumber · @Model.Patient.Sex@(Model.Patient.AgeYears.HasValue ? $" · {Model.Patient.AgeYears} yo" : "")</small>
 </div>
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
-<div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="th-stat tone-primary"><div class="th-stat-icon"><i class="bi bi-calendar2-week"></i></div><div class="th-stat-label">Upcoming visits</div><div class="th-stat-value">@Model.UpcomingAppointments</div></div></div>
-    <div class="col-6 col-md-3"><div class="th-stat tone-warning"><div class="th-stat-icon"><i class="bi bi-receipt"></i></div><div class="th-stat-label">Open bills</div><div class="th-stat-value">@Model.OpenBills</div></div></div>
-    <div class="col-6 col-md-3"><div class="th-stat tone-danger"><div class="th-stat-icon"><i class="bi bi-cash-coin"></i></div><div class="th-stat-label">Balance (₦)</div><div class="th-stat-value">@Model.OpenBalance.ToString("N0")</div></div></div>
-    <div class="col-6 col-md-3"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-droplet-half"></i></div><div class="th-stat-label">Lab results pending</div><div class="th-stat-value">@Model.PendingResults</div></div></div>
-</div>
+@if (Model.ActiveTeleSessions > 0)
+{
+    <section class="th-next" aria-label="Next step">
+        <div>
+            <div class="th-next-eyebrow">Your next step</div>
+            <h2 class="th-next-title">You have @Model.ActiveTeleSessions active tele-consultation@(Model.ActiveTeleSessions == 1 ? "" : "s")</h2>
+            <p class="th-next-text">Open your sessions to join, pay or check the status.</p>
+        </div>
+        <a asp-action="Telemed" class="btn btn-lg">View sessions <i class="bi bi-arrow-right ms-1"></i></a>
+    </section>
+}
+else if (hasBalance)
+{
+    <section class="th-next" aria-label="Next step">
+        <div>
+            <div class="th-next-eyebrow">Your next step</div>
+            <h2 class="th-next-title">@Model.OpenBills open bill@(Model.OpenBills == 1 ? "" : "s"), ₦@Model.OpenBalance.ToString("N0") to pay</h2>
+            <p class="th-next-text">Pay online, or at the cashier desk on your next visit.</p>
+        </div>
+        <a asp-action="Bills" class="btn btn-lg">Review bills <i class="bi bi-arrow-right ms-1"></i></a>
+    </section>
+}
+else if (Model.UpcomingAppointments > 0)
+{
+    <section class="th-next" aria-label="Next step">
+        <div>
+            <div class="th-next-eyebrow">Your next step</div>
+            <h2 class="th-next-title">You have @Model.UpcomingAppointments upcoming visit@(Model.UpcomingAppointments == 1 ? "" : "s")</h2>
+            <p class="th-next-text">See the date, time and clinic.</p>
+        </div>
+        <a asp-action="Appointments" class="btn btn-lg">View visits <i class="bi bi-arrow-right ms-1"></i></a>
+    </section>
+}
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-camera-video me-1"></i> Tele-consultation</h6>
-            @if (Model.ActiveTeleSessions > 0)
-            {
-                <div class="alert alert-info mb-2"><i class="bi bi-bell me-1"></i> You have @Model.ActiveTeleSessions active session(s).</div>
-                <a asp-action="Telemed" class="btn btn-primary"><i class="bi bi-arrow-right me-1"></i> View sessions</a>
-            }
-            else
-            {
-                <p class="small text-muted">Speak with a clinician from home.</p>
-                <a asp-action="RequestTelemed" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Request consultation</a>
-            }
-        </div></div>
-    </div>
-    <div class="col-md-6">
-        <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Pre-consultation intake</h6>
-            <p class="small text-muted">Submit symptoms ahead of your visit so the clinician can prepare.</p>
-            <a asp-action="Intake" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1"></i> Fill intake form</a>
-        </div></div>
-    </div>
-    <div class="col-md-6">
-        <div class="th-card"><div class="th-card-body">
-            <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-chat-dots me-1"></i> Ask the symptom checker</h6>
-            <p class="small text-muted">Not sure if you should book or come in? Ask a quick question. <span class="th-pill th-pill-info ms-1">general guidance — not a diagnosis</span></p>
-            <a asp-action="SymptomChecker" class="btn btn-outline-primary"><i class="bi bi-stars me-1"></i> Open symptom checker</a>
-        </div></div>
-    </div>
+<div class="th-tiles mb-3">
+    <a asp-action="SymptomChecker" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-stars"></i></span>
+        <span><div class="th-dest-name">Ask the assistant</div><div class="th-dest-note">General guidance, not a diagnosis</div></span>
+    </a>
+    <a asp-action="RequestTelemed" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-camera-video"></i></span>
+        <span><div class="th-dest-name">Request a consultation</div><div class="th-dest-note">Speak with a clinician from home</div></span>
+    </a>
+    <a asp-action="Appointments" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-calendar2-week"></i></span>
+        @if (Model.UpcomingAppointments > 0) { <span class="th-pill th-pill-info th-dest-count">@Model.UpcomingAppointments</span> }
+        <span><div class="th-dest-name">Appointments</div><div class="th-dest-note">@Model.UpcomingAppointments upcoming</div></span>
+    </a>
+    <a asp-action="Results" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-droplet-half"></i></span>
+        @if (Model.PendingResults > 0) { <span class="th-pill th-pill-warning th-dest-count">@Model.PendingResults</span> }
+        <span><div class="th-dest-name">Results</div><div class="th-dest-note">@Model.PendingResults pending</div></span>
+    </a>
+    <a asp-action="Bills" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-receipt"></i></span>
+        @if (Model.OpenBills > 0) { <span class="th-pill th-pill-warning th-dest-count">@Model.OpenBills</span> }
+        <span><div class="th-dest-name">Bills</div><div class="th-dest-note">@(Model.OpenBills > 0 ? $"₦{Model.OpenBalance.ToString("N0")} balance" : "No open bills")</div></span>
+    </a>
+    <a asp-action="Intake" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-clipboard2-pulse"></i></span>
+        <span><div class="th-dest-name">Symptom intake</div><div class="th-dest-note">Prepare your clinician before a visit</div></span>
+    </a>
+    <a asp-action="Chats" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-chat-dots"></i></span>
+        <span><div class="th-dest-name">Chats</div><div class="th-dest-note">Messages with the clinic</div></span>
+    </a>
+    <a asp-action="Visits" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-clock-history"></i></span>
+        <span><div class="th-dest-name">Visit history</div><div class="th-dest-note">Notes, prescriptions, referrals</div></span>
+    </a>
+    <a asp-action="Profile" class="th-dest">
+        <span class="th-dest-icon"><i class="bi bi-person-circle"></i></span>
+        <span><div class="th-dest-name">Profile</div><div class="th-dest-note">Your hospital record</div></span>
+    </a>
 </div>
 
 @if (Model.RecentVisits.Any())
 {
-    <div class="th-card mt-3"><div class="th-card-body">
-        <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-clock-history me-1"></i> Recent visits</h6>
-        <ul class="list-unstyled mb-0">
+    <div class="th-card"><div class="th-card-body">
+        <h2 class="th-card-title mb-2">Recent visits</h2>
+        <ul class="list-unstyled mb-0 th-recent">
         @foreach (dynamic v in Model.RecentVisits)
         {
-            <li class="border-bottom py-2 d-flex justify-content-between align-items-start">
+            <li class="py-2 d-flex justify-content-between align-items-start">
                 <div><strong>@(v.ChiefComplaint ?? "Visit")</strong><div class="small text-muted">@v.StartedAt.ToLocalTime().ToString("dd MMM yyyy") · @v.Status</div></div>
             </li>
         }
         </ul>
-        <div class="text-end mt-2"><a asp-action="Visits" class="small">View all visits →</a></div>
+        <div class="text-end mt-2"><a asp-action="Visits" class="small">View all visits <i class="bi bi-arrow-right"></i></a></div>
     </div></div>
 }
 
 <div class="text-center mt-4 mb-3">
-    <small class="text-muted">Install this app: tap <i class="bi bi-share"></i> in your browser → "Add to Home Screen"</small>
+    <small class="text-muted">Install this app: tap <i class="bi bi-share"></i> in your browser, then "Add to Home Screen"</small>
 </div>

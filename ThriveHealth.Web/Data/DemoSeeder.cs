@@ -26,7 +26,7 @@ public static class DemoSeeder
 
         if (!(config.GetValue<bool?>("Seed:Demo") ?? true)) return;
 
-        var fac = await db.Facilities.AsNoTracking().FirstOrDefaultAsync();
+        var fac = await db.Facilities.AsNoTracking().OrderBy(f => f.Id).FirstOrDefaultAsync();
         if (fac is null) return;
         var fid = fac.Id;
 

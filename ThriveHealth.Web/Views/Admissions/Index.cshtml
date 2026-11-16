@@ -4,22 +4,23 @@
     var includeDischarged = (bool)(ViewBag.IncludeDischarged ?? false);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Admissions</h1>
-        <p class="th-section-sub mb-0">@Model.Count() patient@(Model.Count() == 1 ? "" : "s") @(includeDischarged ? "(active + discharged)" : "currently admitted")</p>
+        <p class="th-section-sub">@Model.Count() patient@(Model.Count() == 1 ? "" : "s") @(includeDischarged ? "(active + discharged)" : "currently admitted")</p>
     </div>
-    <div class="d-flex gap-2">
-        <form method="get">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="includeDischarged" id="incDis" value="true" @(includeDischarged ? "checked" : "") onchange="this.form.submit()" />
-                <label class="form-check-label" for="incDis">Show discharged</label>
-            </div>
-        </form>
+    <div class="th-page-actions">
         <a asp-controller="Wards" asp-action="Board" class="btn btn-outline-primary"><i class="bi bi-grid me-1"></i> Bed board</a>
         <a asp-action="Admit" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AdmissionsManage" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Admit patient</a>
     </div>
 </div>
+
+<form method="get" class="th-toolbar">
+    <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" name="includeDischarged" id="incDis" value="true" @(includeDischarged ? "checked" : "") onchange="this.form.submit()" />
+        <label class="form-check-label" for="incDis">Show discharged</label>
+    </div>
+</form>
 
 <div class="th-card"><div class="th-card-body p-0">
 @if (!Model.Any())

@@ -6,7 +6,7 @@
     var ai = ViewBag.AiPatientSummary as ThriveHealth.Web.Models.Ai.AiSuggestion;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
         <span class="th-pill th-pill-success"><i class="bi bi-check2-circle"></i> Signed</span>
         <h1 class="th-section-title mt-2">Visit summary</h1>
@@ -41,7 +41,7 @@
     <div class="th-card mb-3">
         <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-list-ul me-1 text-primary"></i> Diagnoses</h5></div>
         <div class="th-card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive"><table class="table mb-0">
                 <thead><tr><th>Code</th><th>Description</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var d in e.Diagnoses.OrderByDescending(x => x.IsPrimary))
@@ -54,7 +54,7 @@
                     </tr>
                 }
                 </tbody>
-            </table>
+            </table></div>
         </div>
     </div>
 }
@@ -77,14 +77,14 @@
     <div class="th-card mb-3">
         <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-prescription2 me-1 text-primary"></i> Prescription</h5></div>
         <div class="th-card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive"><table class="table mb-0">
                 <thead><tr><th>Drug</th><th>Dose</th><th>Route</th><th>Freq</th><th>Duration</th><th>Instructions</th></tr></thead>
                 <tbody>
                 @foreach (var rx in e.Prescriptions)
                 { foreach (var i in rx.Items)
                 { <tr><td><strong>@i.DrugName</strong></td><td>@i.Dose</td><td>@i.Route</td><td>@i.Frequency</td><td>@i.Duration</td><td>@i.Instructions</td></tr> } }
                 </tbody>
-            </table>
+            </table></div>
         </div>
     </div>
 }
@@ -94,13 +94,13 @@
     <div class="th-card mb-3">
         <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-droplet-half me-1 text-primary"></i> Lab orders</h5></div>
         <div class="th-card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive"><table class="table mb-0">
                 <thead><tr><th>Test</th><th>Specimen</th><th>Urgency</th><th>Indication</th></tr></thead>
                 <tbody>
                 @foreach (var l in e.LabOrders)
                 { <tr><td><strong>@l.TestName</strong></td><td>@l.Specimen</td><td>@l.Urgency</td><td>@l.ClinicalIndication</td></tr> }
                 </tbody>
-            </table>
+            </table></div>
         </div>
     </div>
 }
@@ -110,20 +110,20 @@
     <div class="th-card mb-3">
         <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-radioactive me-1 text-primary"></i> Imaging orders</h5></div>
         <div class="th-card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive"><table class="table mb-0">
                 <thead><tr><th>Modality</th><th>Study</th><th>Urgency</th><th>Indication</th></tr></thead>
                 <tbody>
                 @foreach (var im in e.ImagingOrders)
                 { <tr><td>@im.Modality</td><td><strong>@im.StudyDescription</strong></td><td>@im.Urgency</td><td>@im.ClinicalIndication</td></tr> }
                 </tbody>
-            </table>
+            </table></div>
         </div>
     </div>
 }
 
 <div class="th-card mt-3" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiPatientSummary">
     <div class="th-card-header d-flex justify-content-between align-items-center">
-        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> Patient-friendly visit summary <span class="th-pill th-pill-info ms-2">DRAFT — clinician must verify before sharing</span></h5>
+        <h5 class="th-card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i> Patient-friendly visit summary <span class="th-pill th-pill-info ms-2">Draft, clinician must verify before sharing</span></h5>
         <form asp-action="DraftPatientSummary" method="post" class="d-flex gap-2" asp-permission="@ThriveHealth.Web.Models.Identity.Permissions.AiPatientSummary">
             @Html.AntiForgeryToken()
             <input type="hidden" name="EncounterId" value="@e.Id" />

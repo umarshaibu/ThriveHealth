@@ -7,10 +7,10 @@
     var nurses = ViewBag.Nurses as SelectList;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="th-page-head">
     <div>
         <h1 class="th-section-title">Book theatre session</h1>
-        <p class="th-section-sub mb-0">Schedule a new operating session — WHO checklist will be auto-loaded</p>
+        <p class="th-section-sub">Schedule a new operating session — WHO checklist will be auto-loaded</p>
     </div>
     <a asp-action="Schedule" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Schedule</a>
 </div>
@@ -20,7 +20,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-person me-1"></i> Patient & theatre</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-person me-1"></i> Patient & theatre</h2>
                 <div class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Patient</label>
@@ -54,7 +54,7 @@
             </div></div>
 
             <div class="th-card mt-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-people me-1"></i> Surgical team</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-people me-1"></i> Surgical team</h2>
                 <div class="row g-3">
                     <div class="col-md-12">
                         <label asp-for="LeadSurgeonId" class="form-label">Lead surgeon</label>
@@ -75,7 +75,7 @@
 
         <div class="col-lg-6">
             <div class="th-card"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-3"><i class="bi bi-clipboard2-pulse me-1"></i> Procedure</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-clipboard2-pulse me-1"></i> Procedure</h2>
                 <div class="row g-3">
                     <div class="col-md-9"><label asp-for="ProcedureName" class="form-label">Procedure</label><input asp-for="ProcedureName" class="form-control" placeholder="e.g. Open appendicectomy" /></div>
                     <div class="col-md-3"><label asp-for="CptCode" class="form-label">CPT</label><input asp-for="CptCode" class="form-control" /></div>
@@ -98,7 +98,7 @@
             </div></div>
 
             <div class="th-card mt-3"><div class="th-card-body">
-                <h6 class="text-uppercase text-muted small mb-2"><i class="bi bi-shield-check me-1"></i> WHO Surgical Safety Checklist</h6>
+                <h2 class="th-form-section-title"><i class="bi bi-shield-check me-1"></i> WHO Surgical Safety Checklist</h2>
                 <p class="small text-muted mb-2">A 19-item checklist (Sign In · Time Out · Sign Out) will be auto-loaded into this session. Items must be confirmed at each phase before knife on skin and before completion.</p>
                 <div class="d-flex gap-2">
                     <span class="th-pill th-pill-info">8 Sign In</span>
@@ -109,7 +109,7 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="th-sticky-actions">
         <a asp-action="Schedule" class="btn btn-outline-secondary">Cancel</a>
         <button class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i> Book session</button>
     </div>

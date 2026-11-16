@@ -1,8 +1,10 @@
 @{ ViewData["Title"] = "Adherence parser"; }
 
 <div class="row"><div class="col-lg-8">
-    <h1 class="th-section-title"><i class="bi bi-chat-square-text text-primary me-1"></i> Medication adherence parser <span class="th-pill th-pill-info ms-2">SUGGESTION — clinician decides escalation</span></h1>
-    <p class="th-section-sub">Paste a patient's free-text SMS reply about their medication. The assistant classifies adherence, flags side-effects, and drafts a reassuring reply (≤160 chars).</p>
+    <div class="th-page-head"><div>
+        <h1 class="th-section-title">Medication adherence parser <span class="th-pill th-pill-info ms-2">Suggestion: clinician decides escalation</span></h1>
+    <p class="th-section-sub mb-0">Paste a patient's free-text SMS reply about their medication. The assistant classifies adherence, flags side-effects, and drafts a reassuring reply (≤160 chars).</p>
+    </div></div>
 
     <div class="th-card mb-3"><div class="th-card-body">
         <div class="row g-3">
@@ -14,7 +16,7 @@
     </div></div>
 
     <div class="th-card" id="aCard" style="display:none">
-        <div class="th-card-header"><h5 class="th-card-title mb-0">AI classification</h5></div>
+        <div class="th-card-header"><h2 class="th-card-title mb-0">AI classification</h2></div>
         <div class="th-card-body"><pre id="aOut" class="mb-0" style="white-space:pre-wrap;font-family:inherit"></pre></div>
     </div>
 </div></div>

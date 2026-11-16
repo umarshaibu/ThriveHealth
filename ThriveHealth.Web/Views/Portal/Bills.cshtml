@@ -11,7 +11,15 @@
     };
 }
 
-<h1 class="th-section-title mb-3">My bills</h1>
+<style>
+    .th-bill-balance { font-size: 1.6rem; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .th-bill-pay { position: sticky; bottom: 76px; z-index: 40; }
+    @@media (min-width: 768px) { .th-bill-pay { position: static; } }
+    @@media print { .no-print { display: none !important; } }
+</style>
+
+<h1 class="th-section-title mb-1">My bills</h1>
+<p class="th-section-sub">What you owe, what you have paid and your receipts.</p>
 
 @if (!Model.Any())
 {
@@ -25,7 +33,7 @@ else
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <strong class="font-monospace">@b.BillNumber</strong>
-                    <div class="small text-muted">@b.ServiceDate.ToString("dd MMM yyyy") · @b.Items.Count item(s)</div>
+                    <div class="small text-muted">@b.ServiceDate.ToString("dd MMM yyyy") · @b.Items.Count @(b.Items.Count == 1 ? "item" : "items")</div>
                 </div>
                 <span class="th-pill @Tone(b.Status)">@b.Status</span>
             </div>
@@ -33,16 +41,16 @@ else
             <dl class="row mb-0 small">
                 <dt class="col-7">Net</dt><dd class="col-5 text-end">₦@b.NetAmount.ToString("N2")</dd>
                 <dt class="col-7">Paid</dt><dd class="col-5 text-end text-success">₦@b.PaidAmount.ToString("N2")</dd>
-                <dt class="col-7 fw-bold border-top pt-1">Balance</dt><dd class="col-5 text-end fw-bold border-top pt-1">₦@b.Balance.ToString("N2")</dd>
+                <dt class="col-7 fw-bold border-top pt-2">Balance due</dt><dd class="col-5 text-end border-top pt-2 th-bill-balance">₦@b.Balance.ToString("N2")</dd>
             </dl>
             @if (b.Status is BillStatus.Open or BillStatus.PartiallyPaid)
             {
-                <form asp-action="PayBill" method="post" class="mt-2">
+                <form asp-action="PayBill" method="post" class="mt-3 th-bill-pay">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="billId" value="@b.Id" />
-                    <button class="btn btn-success w-100"><i class="bi bi-credit-card me-1"></i> Pay ₦@b.Balance.ToString("N2") online</button>
+                    <button class="btn btn-primary btn-lg w-100"><i class="bi bi-credit-card me-1"></i> Pay ₦@b.Balance.ToString("N2") online</button>
                 </form>
-                <div class="small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Or pay at the cashier desk on your next visit.</div>
+                <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Or pay at the cashier desk on your next visit.</div>
             }
             @if (b.Payments.Any(p => p.Status == PaymentStatus.Recorded))
             {

@@ -19,8 +19,17 @@
         o.Report?.IsAuthorized == true ? "Ready" : (o.Status == OrderStatus.Completed ? "Reviewing" : o.Status.ToString());
 }
 
+<style>
+    .th-result-row { display: flex; align-items: center; gap: 14px; padding: 16px 18px; color: var(--th-text); min-height: 72px; }
+    .th-result-row:hover { background: var(--th-surface-alt); color: var(--th-text); }
+    .th-result-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--th-emerald-soft); color: var(--th-emerald); display: inline-flex; align-items: center; justify-content: center; }
+    .th-result-main { flex: 1; min-width: 0; }
+    .th-result-state { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .th-results-list > li + li { border-top: 1px solid var(--th-border); }
+</style>
+
 <h1 class="th-section-title mb-1">My results</h1>
-<p class="text-muted small mb-3">Lab and imaging investigations ordered for you.</p>
+<p class="th-section-sub">Lab and imaging investigations ordered for you.</p>
 
 <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabLabs" type="button"><i class="bi bi-droplet-half me-1"></i> Lab (@Model.Count)</button></li>
@@ -35,20 +44,22 @@
         }
         else
         {
-            <div class="th-card"><div class="th-card-body p-0"><ul class="list-group list-group-flush">
+            <div class="th-card"><div class="th-card-body p-0"><ul class="list-unstyled mb-0 th-results-list">
                 @foreach (var o in Model)
                 {
-                    <li class="list-group-item">
-                        <a class="text-decoration-none text-body d-flex justify-content-between align-items-center gap-3" asp-action="LabResult" asp-route-orderId="@o.Id">
-                            <div>
+                    <li>
+                        <a class="th-result-row text-decoration-none" asp-action="LabResult" asp-route-orderId="@o.Id">
+                            <span class="th-result-icon"><i class="bi bi-droplet-half"></i></span>
+                            <div class="th-result-main">
                                 <strong>@(o.LabTest?.Name ?? o.TestName)</strong>
                                 <div class="small text-muted">Ordered @o.OrderedAt.ToLocalTime().ToString("dd MMM yyyy") @(o.Urgency == OrderUrgency.Routine ? "" : "· " + o.Urgency)</div>
                                 @if (!string.IsNullOrEmpty(o.ClinicalIndication)) { <div class="small text-muted">@o.ClinicalIndication</div> }
                             </div>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="th-result-state">
                                 <span class="th-pill @LabPill(o)">@LabLabel(o)</span>
-                                <i class="bi bi-chevron-right text-muted"></i>
+                                @if (o.Result?.HasCriticalValue == true) { <span class="th-pill th-pill-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i>Critical value</span> }
                             </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
                         </a>
                     </li>
                 }
@@ -63,24 +74,27 @@
         }
         else
         {
-            <div class="th-card"><div class="th-card-body p-0"><ul class="list-group list-group-flush">
+            <div class="th-card"><div class="th-card-body p-0"><ul class="list-unstyled mb-0 th-results-list">
                 @foreach (var o in imaging)
                 {
-                    <li class="list-group-item">
-                        <a class="text-decoration-none text-body d-flex justify-content-between align-items-center gap-3" asp-action="ImagingReport" asp-route-orderId="@o.Id">
-                            <div>
+                    <li>
+                        <a class="th-result-row text-decoration-none" asp-action="ImagingReport" asp-route-orderId="@o.Id">
+                            <span class="th-result-icon"><i class="bi bi-image"></i></span>
+                            <div class="th-result-main">
                                 <strong>@o.Modality — @o.StudyDescription</strong>
                                 <div class="small text-muted">Ordered @o.OrderedAt.ToLocalTime().ToString("dd MMM yyyy") @(o.Urgency == OrderUrgency.Routine ? "" : "· " + o.Urgency)</div>
                                 @if (!string.IsNullOrEmpty(o.ClinicalIndication)) { <div class="small text-muted">@o.ClinicalIndication</div> }
                             </div>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="th-result-state">
                                 <span class="th-pill @ImgPill(o)">@ImgLabel(o)</span>
-                                <i class="bi bi-chevron-right text-muted"></i>
+                                @if (o.Report?.HasCriticalFinding == true) { <span class="th-pill th-pill-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i>Critical finding</span> }
                             </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
                         </a>
                     </li>
                 }
             </ul></div></div>
+            <p class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i> Talk to your clinician for an interpretation of your reports.</p>
         }
     </div>
 </div>

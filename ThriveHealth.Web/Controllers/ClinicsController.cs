@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,47 @@ public class ClinicsController : Controller
             .OrderBy(c => c.Name)
             .ToListAsync();
         return View(clinics);
+    }
+
+    public class FacilityLocationModel
+    {
+        [StringLength(500)] public string? Address { get; set; }
+        [StringLength(100)] public string? Lga { get; set; }
+        [StringLength(100)] public string? State { get; set; }
+        [StringLength(50)] public string? Phone { get; set; }
+        [Range(-90, 90)] public double? Latitude { get; set; }
+        [Range(-180, 180)] public double? Longitude { get; set; }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Location()
+    {
+        var fid = await FacilityIdAsync();
+        var f = await _db.Facilities.AsNoTracking().FirstOrDefaultAsync(x => x.Id == fid);
+        if (f is null) return NotFound();
+        return View(new FacilityLocationModel
+        {
+            Address = f.Address, Lga = f.Lga, State = f.State, Phone = f.Phone,
+            Latitude = f.Latitude, Longitude = f.Longitude
+        });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Location(FacilityLocationModel model)
+    {
+        if (model.Latitude.HasValue != model.Longitude.HasValue)
+            ModelState.AddModelError(string.Empty, "Enter both latitude and longitude, or leave both empty.");
+        if (!ModelState.IsValid) return View(model);
+
+        var fid = await FacilityIdAsync();
+        var f = await _db.Facilities.FirstOrDefaultAsync(x => x.Id == fid);
+        if (f is null) return NotFound();
+
+        f.Address = model.Address; f.Lga = model.Lga; f.State = model.State; f.Phone = model.Phone;
+        f.Latitude = model.Latitude; f.Longitude = model.Longitude;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Hospital location saved.";
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]

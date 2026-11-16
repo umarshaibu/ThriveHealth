@@ -12,45 +12,45 @@
         _ => "muted"
     };
 
+    string ColourText(ThriveHealth.Web.Models.Emergency.TriageColour c) => c == ThriveHealth.Web.Models.Emergency.TriageColour.Yellow ? "var(--th-text)" : "#fff";
+
     string ColourHex(ThriveHealth.Web.Models.Emergency.TriageColour c) => c switch
     {
-        ThriveHealth.Web.Models.Emergency.TriageColour.Red => "#c81e1e",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Orange => "#ff8c00",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Yellow => "#d4a017",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Green => "#1f9d55",
-        ThriveHealth.Web.Models.Emergency.TriageColour.Blue => "#0d8aaa",
-        _ => "#5b6b85"
+        ThriveHealth.Web.Models.Emergency.TriageColour.Red => "var(--tri-red)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Orange => "var(--tri-orange)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Yellow => "var(--tri-yellow)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Green => "var(--tri-green)",
+        ThriveHealth.Web.Models.Emergency.TriageColour.Blue => "var(--tri-blue)",
+        _ => "var(--tri-none)"
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="th-page-head">
     <div>
-        <span class="th-pill th-pill-danger mb-2"><i class="bi bi-bandaid"></i> Accident &amp; Emergency</span>
         <h1 class="th-section-title">A&amp;E live board</h1>
-        <p class="th-section-sub mb-0">@(Model.Waiting.Count + Model.InResus.Count) active · @Model.OverdueCount overdue · auto-refresh 30s</p>
+        <p class="th-section-sub">@(Model.Waiting.Count + Model.InResus.Count) active · @Model.OverdueCount overdue · auto-refresh 30s</p>
     </div>
-    <a asp-action="Triage" class="btn btn-danger btn-lg"><i class="bi bi-plus-circle me-1"></i> New triage</a>
+    <div class="th-page-actions"><a asp-action="Triage" class="btn btn-danger"><i class="bi bi-plus-circle me-1"></i> New triage</a></div>
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-2"><div class="th-stat tone-danger"><div class="th-stat-icon" style="background:#fde8e8;color:#c81e1e;"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Red · immediate</div><div class="th-stat-value">@Model.RedCount</div></div></div>
-    <div class="col-md-2"><div class="th-stat tone-warning"><div class="th-stat-icon" style="background:#ffe8d1;color:#ff8c00;"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Orange · 10 min</div><div class="th-stat-value">@Model.OrangeCount</div></div></div>
-    <div class="col-md-2"><div class="th-stat tone-warning"><div class="th-stat-icon" style="background:#fff5e1;color:#d4a017;"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Yellow · 1 hr</div><div class="th-stat-value">@Model.YellowCount</div></div></div>
+    <div class="col-md-2"><div class="th-stat tone-danger"><div class="th-stat-icon" style="color:var(--tri-red);"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Red · immediate</div><div class="th-stat-value">@Model.RedCount</div></div></div>
+    <div class="col-md-2"><div class="th-stat tone-warning"><div class="th-stat-icon" style="color:var(--tri-orange);"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Orange · 10 min</div><div class="th-stat-value">@Model.OrangeCount</div></div></div>
+    <div class="col-md-2"><div class="th-stat tone-warning"><div class="th-stat-icon" style="color:var(--tri-yellow);"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Yellow · 1 hr</div><div class="th-stat-value">@Model.YellowCount</div></div></div>
     <div class="col-md-2"><div class="th-stat tone-success"><div class="th-stat-icon"><i class="bi bi-circle-fill"></i></div><div class="th-stat-label">Green / Blue</div><div class="th-stat-value">@Model.GreenBlueCount</div></div></div>
     <div class="col-md-2"><div class="th-stat tone-info"><div class="th-stat-icon"><i class="bi bi-heart-pulse"></i></div><div class="th-stat-label">In resus</div><div class="th-stat-value">@Model.InResusCount</div></div></div>
     <div class="col-md-2"><div class="th-stat @(Model.OverdueCount > 0 ? "tone-danger" : "tone-success")"><div class="th-stat-icon"><i class="bi bi-stopwatch"></i></div><div class="th-stat-label">Overdue</div><div class="th-stat-value">@Model.OverdueCount</div></div></div>
 </div>
 
 <div class="th-card mb-3">
-    <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-grid me-1 text-primary"></i> Resus bays</h5></div>
+    <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-grid me-1"></i> Resus bays</h5></div>
     <div class="th-card-body">
         <div class="d-flex flex-wrap gap-2">
             @foreach (var bay in Model.Bays)
             {
                 var enc = Model.BayOccupancy.GetValueOrDefault(bay.Id);
                 var occupied = enc != null;
-                <div class="border rounded-3 p-3 @(occupied ? "text-white" : "bg-light")"
-                     style="min-width:200px; @(occupied ? "background:linear-gradient(135deg,#c81e1e,#0b2447);" : "")">
+                <div class="th-tile resus-bay @(occupied ? "resus-occupied" : "resus-free")">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <div class="small @(occupied ? "text-white-50" : "text-muted")">Bay</div>
@@ -61,14 +61,15 @@
                     @if (occupied)
                     {
                         <div class="mt-2">
+                            <div class="small fw-semibold">Occupied</div>
                             <div class="fw-bold text-truncate">@enc!.Patient!.FullName</div>
                             <div class="small">@enc.Patient.Sex@(enc.Patient.AgeYears.HasValue ? " · " + enc.Patient.AgeYears + "y" : "")</div>
-                            <a asp-action="Consultation" asp-route-id="@enc.Id" class="text-white text-decoration-underline small">Open</a>
+                            <a asp-action="Encounter" asp-route-id="@enc.Id" class="text-white text-decoration-underline small">Open</a>
                         </div>
                     }
                     else
                     {
-                        <div class="text-success small mt-2"><i class="bi bi-check-circle"></i> Available</div>
+                        <div class="small fw-semibold mt-2" style="color:var(--th-success);"><i class="bi bi-check-circle"></i> Available</div>
                     }
                 </div>
             }
@@ -79,7 +80,7 @@
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="th-card">
-            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-people me-1 text-primary"></i> Triage queue (@Model.Waiting.Count)</h5></div>
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-people me-1"></i> Triage queue (@Model.Waiting.Count)</h5></div>
             <div class="th-card-body p-0">
                 @if (!Model.Waiting.Any())
                 {
@@ -96,7 +97,7 @@
                                 var wait = (int)(DateTime.UtcNow - r.Triage.TriagedAt).TotalMinutes;
                                 <tr style="border-left:4px solid @ColourHex(r.Triage.Colour);">
                                     <td>
-                                        <span class="th-pill th-pill-@ColourTone(r.Triage.Colour)" style="background:@ColourHex(r.Triage.Colour);color:#fff;">@r.Triage.Colour</span>
+                                        <span class="th-pill th-pill-@ColourTone(r.Triage.Colour)" style="background:@ColourHex(r.Triage.Colour);color:@ColourText(r.Triage.Colour);">@r.Triage.Colour</span>
                                         @if (r.Triage.IsForensicCase) { <div class="small text-danger mt-1"><i class="bi bi-shield-exclamation"></i> Forensic</div> }
                                         @if (r.Triage.IsTrauma) { <div class="small text-danger mt-1"><i class="bi bi-bandaid"></i> Trauma</div> }
                                     </td>
@@ -111,7 +112,7 @@
                                         { <div><span class="th-pill th-pill-danger">@(r.MinutesOverdue) min late</span></div> }
                                     </td>
                                     <td class="text-end">
-                                        <a asp-action="Consultation" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-primary"><i class="bi bi-clipboard2-pulse me-1"></i> Open</a>
+                                        <a asp-action="Encounter" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-primary"><i class="bi bi-clipboard2-pulse me-1"></i> Open</a>
                                     </td>
                                 </tr>
                             }
@@ -125,7 +126,7 @@
 
     <div class="col-lg-5">
         <div class="th-card">
-            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-heart-pulse me-1 text-danger"></i> In resus (@Model.InResus.Count)</h5></div>
+            <div class="th-card-header"><h5 class="th-card-title"><i class="bi bi-heart-pulse me-1"></i> In resus (@Model.InResus.Count)</h5></div>
             <div class="th-card-body p-0">
                 @if (!Model.InResus.Any())
                 {
@@ -142,9 +143,9 @@
                                 var min = r.Encounter.ResusStartedAt.HasValue ? (int)(DateTime.UtcNow - r.Encounter.ResusStartedAt.Value).TotalMinutes : 0;
                                 <tr>
                                     <td><span class="font-monospace fw-bold">@r.Encounter.ResusBay?.Code</span></td>
-                                    <td><strong>@r.Patient.FullName</strong><br /><span class="th-pill" style="background:@ColourHex(r.Triage.Colour);color:#fff;font-size:9px;">@r.Triage.Colour</span></td>
+                                    <td><strong>@r.Patient.FullName</strong><br /><span class="th-pill" style="background:@ColourHex(r.Triage.Colour);color:@ColourText(r.Triage.Colour);">@r.Triage.Colour</span></td>
                                     <td>@min m</td>
-                                    <td><a asp-action="Consultation" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-right"></i></a></td>
+                                    <td><a asp-action="Encounter" asp-route-id="@r.Encounter.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-right"></i></a></td>
                                 </tr>
                             }
                             </tbody>
@@ -155,6 +156,20 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+<style>
+    /* Triage categories: clinical meaning, always shown with the category name */
+    :root {
+        --tri-red: var(--th-danger); --tri-orange: #c2570c; --tri-yellow: #e0b000;
+        --tri-green: var(--th-success); --tri-blue: var(--th-info); --tri-none: var(--th-text-muted);
+    }
+    .resus-bay { flex: 1 1 200px; max-width: 260px; border: 2px solid transparent; }
+    .resus-free { border-color: var(--th-success); background: var(--th-success-soft); }
+    .resus-occupied { background: var(--th-navy); color: #fff; }
+    @@media (max-width: 575.98px) { .resus-bay { max-width: none; flex-basis: 100%; } }
+</style>
+}
 
 @section Scripts {
 <script>setTimeout(() => location.reload(), 30000);</script>

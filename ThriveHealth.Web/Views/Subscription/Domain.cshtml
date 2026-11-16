@@ -8,10 +8,11 @@
     var isVerified = tenant.CustomDomainVerifiedAt.HasValue;
 }
 
-<h1 class="th-section-title mb-1">Custom domain</h1>
-<p class="th-section-sub mb-3">Sign in to your workspace at your own hostname (for example <code>app.yourhospital.com</code>) instead of the default <code>@(tenant.Slug + ".thrivehealth.ng")</code>.</p>
-
-<p><a asp-action="Index" class="small text-muted"><i class="bi bi-arrow-left"></i> Back to subscription</a></p>
+<div class="th-page-head"><div>
+<h1 class="th-section-title">Custom domain</h1>
+<p class="th-section-sub">Sign in to your workspace at your own hostname (for example <code>app.yourhospital.com</code>) instead of the default <code>@(tenant.Slug + ".thrivehealth.ng")</code>.</p>
+</div>
+<div class="th-page-actions"><a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to subscription</a></div></div>
 
 @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 @if (TempData["Error"] != null) { <div class="alert alert-warning">@TempData["Error"]</div> }
@@ -44,26 +45,26 @@
 @if (hasDomain)
 {
     <div class="th-card mb-3"><div class="th-card-body">
-        <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start mb-3">
             <div>
                 <h5 class="mb-1">2. Verify ownership</h5>
                 <p class="text-muted small mb-0">Add a TXT record at your DNS provider to prove you control <strong>@tenant.CustomDomain</strong>.</p>
             </div>
             @if (isVerified)
             {
-                <span class="badge bg-success" style="font-size: .85rem; padding: 6px 12px;">
+                <span class="th-pill th-pill-success">
                     <i class="bi bi-check-circle me-1"></i> Verified @tenant.CustomDomainVerifiedAt?.ToString("dd MMM yyyy")
                 </span>
             }
             else
             {
-                <span class="badge bg-warning text-dark" style="font-size: .85rem; padding: 6px 12px;">
+                <span class="th-pill th-pill-warning">
                     <i class="bi bi-clock me-1"></i> Awaiting verification
                 </span>
             }
         </div>
 
-        <div class="border rounded p-3 mb-3" style="background: #f8fafc;">
+        <div class="border rounded p-3 mb-3 th-dns" style="background: var(--th-surface-alt); border-color: transparent !important;">
             <div class="row g-2 small">
                 <div class="col-md-2 text-muted">Record type</div>
                 <div class="col-md-10"><code>TXT</code></div>
@@ -89,7 +90,7 @@
         <h5 class="mb-3">3. Point traffic at us</h5>
         <p class="text-muted small">Once verified, add this CNAME so requests to <strong>@tenant.CustomDomain</strong> reach your workspace.</p>
 
-        <div class="border rounded p-3 mb-3" style="background: #f8fafc;">
+        <div class="border rounded p-3 mb-3 th-dns" style="background: var(--th-surface-alt); border-color: transparent !important;">
             <div class="row g-2 small">
                 <div class="col-md-2 text-muted">Record type</div>
                 <div class="col-md-10"><code>CNAME</code></div>
@@ -110,7 +111,7 @@
 else
 {
     <div class="th-card"><div class="th-card-body text-center py-4">
-        <i class="bi bi-globe2" style="font-size: 2rem; color: #94a3b8;"></i>
+        <i class="bi bi-globe2" style="font-size: 2rem; color: var(--th-text-faint);"></i>
         <p class="text-muted mt-2 mb-0">Save a domain above to see DNS instructions.</p>
     </div></div>
 }

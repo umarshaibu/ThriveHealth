@@ -7,6 +7,7 @@ using ThriveHealth.Web.Data;
 using ThriveHealth.Web.Models.Audit;
 using ThriveHealth.Web.Models.Billing;
 using ThriveHealth.Web.Models.Clinical;
+using ThriveHealth.Web.Models.Diagnostics;
 using ThriveHealth.Web.Models.Integrations;
 using ThriveHealth.Web.Models.Portal;
 using ThriveHealth.Web.Models.Telemedicine;
@@ -232,6 +233,8 @@ public class PortalController : Controller
             .Include(o => o.Report)
             .Where(o => o.PatientId == pid)
             .OrderByDescending(o => o.OrderedAt).Take(50).ToListAsync();
+        foreach (var o in labs) HideUnreleasedResult(o);
+        foreach (var o in imaging) HideUnreleasedReport(o);
         ViewBag.Imaging = imaging;
         return View(labs);
     }
@@ -249,6 +252,7 @@ public class PortalController : Controller
             .Include(o => o.Result).ThenInclude(r => r!.AuthorizedBy)
             .FirstOrDefaultAsync(o => o.Id == orderId && o.PatientId == pid);
         if (order is null) return NotFound();
+        HideUnreleasedResult(order);
         return View(order);
     }
 
@@ -264,6 +268,7 @@ public class PortalController : Controller
             .Include(o => o.Report).ThenInclude(r => r!.ReportedBy)
             .FirstOrDefaultAsync(o => o.Id == orderId && o.PatientId == pid);
         if (order is null) return NotFound();
+        HideUnreleasedReport(order);
         return View(order);
     }
 
@@ -445,34 +450,34 @@ public class PortalController : Controller
             Amount: session.Bill.Balance,
             CustomerEmail: account?.Email,
             CustomerPhone: session.Patient?.Phone,
-            InitiatedById: $"portal-{pid.Value}"));
+            InitiatedById: $"portal-{pid.Value}",
+            CallbackUrl: Url.Action(nameof(PayCallback), null, new { teleSessionId }, Request.Scheme)));
 
-        // Real gateways redirect to a hosted checkout page that returns the user to our PayCallback when
-        // the customer completes the payment. The stub gateway has no checkout, so for now we route the
-        // patient straight to PayCallback as if the checkout already succeeded — flipping bill → Paid
-        // and session → Scheduled. Wiring up Paystack/Flutterwave just changes this single line.
-        return Redirect(Url.Action(nameof(PayCallback), new { txId = initiated.TransactionId, status = "success", teleSessionId })!);
+        return ContinueToCheckout(initiated,
+            Url.Action(nameof(PayCallback), new { txId = initiated.TransactionId, status = "success", teleSessionId })!,
+            Url.Action(nameof(PayResult), new { teleSessionId })!);
     }
 
-    /// <summary>Portal-facing payment callback the stub gateway redirects to after the fake checkout.
-    /// Real Paystack/Flutterwave will hit a webhook endpoint server-side instead, but the same shape works.</summary>
+    /// <summary>Where a patient lands after checkout. The status in the URL is never trusted on a real gateway.</summary>
     [HttpGet]
-    public async Task<IActionResult> PayCallback(long txId, string status, int teleSessionId)
+    public async Task<IActionResult> PayCallback(long txId, string? status, int teleSessionId, string? reference)
     {
         var pid = CurrentPatientId();
         if (pid is null) return RedirectToAction(nameof(Login));
-        if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+        var (tx, settled) = await SettleOwnPaymentAsync(txId, reference, status, pid.Value);
+        if (tx is null) return NotFound();
+        if (settled)
         {
-            await _payment.MarkSuccessfulAsync(txId, providerReference: null, providerResponse: "Portal callback");
             await _audit.LogAsync("portal.payment.success", AuditCategory.BusinessAction, AuditOutcome.Success,
-                entityType: "PaymentTransaction", entityKey: txId.ToString(),
+                entityType: "PaymentTransaction", entityKey: tx.Id.ToString(),
                 summary: $"Tele-consult bill paid (session {teleSessionId})", actorOverride: $"patient-{pid}");
-            await _notifier.NotifySessionScheduledAsync(teleSessionId);
+            var ownsSession = await _db.TeleSessions.AsNoTracking()
+                .AnyAsync(s => s.Id == teleSessionId && s.PatientId == pid && s.BillId == tx.BillId);
+            if (ownsSession) await _notifier.NotifySessionScheduledAsync(teleSessionId);
             TempData["Success"] = "Payment confirmed. Your tele-consult is scheduled.";
         }
         else
         {
-            await _payment.MarkFailedAsync(txId, "Cancelled at provider.");
             TempData["Error"] = "Payment was not completed.";
         }
         return RedirectToAction(nameof(PayResult), new { teleSessionId });
@@ -819,18 +824,22 @@ public class PortalController : Controller
             Amount: bill?.NetAmount ?? pkg.Price,
             CustomerEmail: account?.Email,
             CustomerPhone: patient.Phone,
-            InitiatedById: $"portal-{pid.Value}"));
-        return Redirect(Url.Action(nameof(ChatPackageCallback), new { txId = initiated.TransactionId, status = "success", billId })!);
+            InitiatedById: $"portal-{pid.Value}",
+            CallbackUrl: Url.Action(nameof(ChatPackageCallback), null, new { billId }, Request.Scheme)));
+        return ContinueToCheckout(initiated,
+            Url.Action(nameof(ChatPackageCallback), new { txId = initiated.TransactionId, status = "success", billId })!,
+            Url.Action(nameof(Chat))!);
     }
 
     [HttpGet]
-    public async Task<IActionResult> ChatPackageCallback(long txId, string status, int billId)
+    public async Task<IActionResult> ChatPackageCallback(long txId, string? status, int billId, string? reference)
     {
         var pid = CurrentPatientId();
         if (pid is null) return RedirectToAction(nameof(Login));
-        if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+        var (tx, settled) = await SettleOwnPaymentAsync(txId, reference, status, pid.Value);
+        if (tx is null) return NotFound();
+        if (settled && tx.BillId == billId)
         {
-            await _payment.MarkSuccessfulAsync(txId, providerReference: null, providerResponse: "Chat package callback");
             await _chat.ActivatePackageForBillAsync(billId);
             await _audit.LogAsync("portal.chat.package.activated", AuditCategory.BusinessAction, AuditOutcome.Success,
                 entityType: "ChatPackage", entityKey: billId.ToString(),
@@ -839,10 +848,59 @@ public class PortalController : Controller
         }
         else
         {
-            await _payment.MarkFailedAsync(txId, "Cancelled at provider.");
             TempData["Error"] = "Payment was not completed.";
         }
         return RedirectToAction(nameof(Chat));
+    }
+
+    private static void HideUnreleasedResult(LabOrder order)
+    {
+        if (order.Result?.Status is not (LabResultStatus.Authorized or LabResultStatus.Amended)) order.Result = null;
+    }
+
+    private static void HideUnreleasedReport(ImagingOrder order)
+    {
+        if (order.Report?.IsAuthorized != true) order.Report = null;
+    }
+
+    private IActionResult ContinueToCheckout(PaymentInitiateResult initiated, string stubReturnUrl, string failureUrl)
+    {
+        // The development stub has no hosted checkout, so it returns straight to our callback.
+        if (_payment is not IPaymentVerifier) return Redirect(stubReturnUrl);
+        if (!initiated.AuthorizationUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "We couldn't start the payment. Please try again.";
+            return Redirect(failureUrl);
+        }
+        return Redirect(initiated.AuthorizationUrl);
+    }
+
+    /// <summary>
+    /// Settles a returning payment, but only one belonging to this patient. A real gateway is always
+    /// re-verified with the provider; only the development stub takes the status from the URL.
+    /// </summary>
+    private async Task<(PaymentTransaction? Tx, bool Settled)> SettleOwnPaymentAsync(long txId, string? reference, string? status, int patientId)
+    {
+        var tx = await _db.PaymentTransactions.AsNoTracking().FirstOrDefaultAsync(t => t.PatientId == patientId
+            && (txId > 0 ? t.Id == txId : t.Reference == reference));
+        if (tx is null) return (null, false);
+
+        try
+        {
+            if (_payment is IPaymentVerifier verifier)
+                return (tx, await verifier.VerifyAndSettleAsync(tx.Reference));
+            if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+                return (tx, await _payment.MarkSuccessfulAsync(tx.Id, providerReference: null, providerResponse: "Portal callback"));
+        }
+        catch (InvalidOperationException)
+        {
+            // For example the bill was cancelled while the patient was at checkout.
+            return (tx, false);
+        }
+
+        if (tx.Status != PaymentTransactionStatus.Successful)
+            await _payment.MarkFailedAsync(tx.Id, "Cancelled at provider.");
+        return (tx, false);
     }
 
     /// <summary>Called by the room JS once the patient accepts consent and LiveKit connects.</summary>
@@ -929,13 +987,15 @@ public class PortalController : Controller
 
     public class PortalSymptomDto { public string? Question { get; set; } public List<string>? History { get; set; } }
 
-    [HttpPost]
+    [HttpPost, EnableRateLimiting("assistant")]
     public async Task<IActionResult> SymptomCheckerAsk([FromBody] PortalSymptomDto dto)
     {
         var pid = CurrentPatientId();
         if (pid is null) return Unauthorized();
         if (string.IsNullOrWhiteSpace(dto.Question))
             return Json(new { ok = false, error = "Type your question first." });
+        if (dto.Question.Length > 1000)
+            return Json(new { ok = false, error = "Please shorten your question to 1000 characters." });
 
         var p = await _db.Patients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == pid.Value);
         if (p is null) return NotFound();
@@ -945,7 +1005,8 @@ public class PortalController : Controller
             ? $"{(int)((DateTime.UtcNow - p.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue)).TotalDays / 365)}y {p.Sex}"
             : p.Sex.ToString();
 
-        var input = new SymptomCheckerInput(p.FacilityId, account?.Id, ageSex, dto.Question, dto.History ?? new());
+        var input = new SymptomCheckerInput(p.FacilityId, account?.Id, ageSex, dto.Question,
+            (dto.History ?? new()).Where(h => !string.IsNullOrWhiteSpace(h)).TakeLast(12).Select(h => h.Length > 1500 ? h[..1500] : h).ToList());
         var outcome = await _ai.SymptomCheckAsync(input, requestedById: null);
         return Json(new { ok = outcome.Ok, text = outcome.Text, error = outcome.Error });
     }
